@@ -65,10 +65,9 @@ class AudioRecorderTest {
     @Test
     fun testAudioRecordingResultSealed() {
         val successResult = AudioRecordingResult.Success
-        assertTrue(successResult is AudioRecordingResult.Success)
+        assertEquals(AudioRecordingResult.Success, successResult)
         
         val errorResult = AudioRecordingResult.Error(AudioRecordingError.Unknown())
-        assertTrue(errorResult is AudioRecordingResult.Error)
         assertEquals("Unknown recording error", errorResult.error.message)
     }
     
