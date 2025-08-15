@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TranscriptionRequestDto(
-    val file: String, // Base64 encoded audio file
+    val file: String,
     val model: String = "whisper-1",
     val language: String? = null,
     val prompt: String? = null,
@@ -35,11 +35,26 @@ fun TranscriptionResponseDto.toDomain(): me.shadykhalifa.whispertop.domain.model
     )
 }
 
-fun me.shadykhalifa.whispertop.domain.models.TranscriptionRequest.toDto(): TranscriptionRequestDto {
-    return TranscriptionRequestDto(
-        file = "", // This will be filled with base64 audio data during API call
+fun me.shadykhalifa.whispertop.domain.models.TranscriptionRequest.toOpenAIDto(): CreateTranscriptionRequestDto {
+    return CreateTranscriptionRequestDto(
         model = model,
         language = language,
-        response_format = "json"
+        responseFormat = "json"
+    )
+}
+
+fun CreateTranscriptionResponseDto.toDomain(): me.shadykhalifa.whispertop.domain.models.TranscriptionResponse {
+    return me.shadykhalifa.whispertop.domain.models.TranscriptionResponse(
+        text = text,
+        language = null,
+        duration = null
+    )
+}
+
+fun CreateTranscriptionResponseVerboseDto.toDomain(): me.shadykhalifa.whispertop.domain.models.TranscriptionResponse {
+    return me.shadykhalifa.whispertop.domain.models.TranscriptionResponse(
+        text = text,
+        language = language,
+        duration = duration
     )
 }
