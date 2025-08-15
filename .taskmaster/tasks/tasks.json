@@ -95,7 +95,7 @@
           1,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -109,7 +109,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -117,7 +117,7 @@
             "description": "Configure AndroidManifest.xml with required permissions and service declarations for audio recording",
             "dependencies": [],
             "details": "Add RECORD_AUDIO, FOREGROUND_SERVICE, WRITE_EXTERNAL_STORAGE permissions to AndroidManifest.xml. Add foreground service type declarations and service component entries. Configure notification channels and required Android API permissions for audio recording functionality.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify permissions are properly declared, test permission requests at runtime, validate service registration in manifest"
           },
           {
@@ -661,7 +661,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-15T18:42:03.584Z",
+      "updated": "2025-08-15T19:15:21.597Z",
       "description": "Tasks for master context"
     }
   }
