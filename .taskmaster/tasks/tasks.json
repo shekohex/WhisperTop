@@ -217,8 +217,8 @@
               "6.2",
               "6.3"
             ],
-            "details": "Create OpenAIApiService class in data/remote/ package with suspend fun transcribe() method. Support file upload via ByteArray or File input with automatic multipart/form-data formatting. Implement model selection parameter with validation. Add optional parameters for language, prompt, and response_format. Create factory function for service instantiation with API key and endpoint configuration.",
-            "status": "pending",
+            "details": "Create OpenAIApiService class in data/remote/ package with suspend fun transcribe() method. Support file upload via ByteArray or File input with automatic multipart/form-data formatting. Implement model selection parameter with validation. Add optional parameters for language, prompt, and response_format. Create factory function for service instantiation with API key and endpoint configuration.\n<info added on 2025-08-15T23:00:42.300Z>\nBased on the user request and task context, the implementation of subtask 6.4 has been completed successfully. Here's the new information that should be appended to the subtask details:\n\nImplementation completed with comprehensive OpenAIApiService class featuring transcribe() method with WhisperModel enum validation, overloaded string-based transcribe() method, support for all OpenAI Whisper models (whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe), automatic multipart/form-data formatting using existing MultipartExtensions, model and temperature validation with proper error handling, content type detection based on file extension, optional parameters for language/prompt/response_format/temperature, OpenAIApiException for HTTP errors, support for both standard and verbose JSON response formats, and factory function createOpenAIApiService() for easy instantiation. Comprehensive test suite with 17 tests covering successful transcription scenarios, validation edge cases, error handling, and factory function testing. All tests pass and Android debug build successful.\n</info added on 2025-08-15T23:00:42.300Z>",
+            "status": "done",
             "testStrategy": "Integration tests with mock server responses, verify multipart upload format, test all model parameter combinations, validate request formation"
           },
           {
@@ -661,7 +661,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-15T22:47:08.009Z",
+      "updated": "2025-08-15T23:00:49.264Z",
       "description": "Tasks for master context"
     }
   }
