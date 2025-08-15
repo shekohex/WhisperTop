@@ -6,4 +6,18 @@
     <string name="audio_recording_channel_name">Audio Recording</string>
     <string name="audio_recording_channel_description">Notifications for audio recording service</string>
     <string name="accessibility_service_description">WhisperTop Accessibility Service for text insertion after voice transcription</string>
+    
+    <!-- AudioRecordingService notifications -->
+    <string name="notification_channel_name">Audio Recording</string>
+    <string name="notification_channel_description">Notifications for WhisperTop audio recording service</string>
+    <string name="notification_recording_title">Recording Audio</string>
+    <string name="notification_paused_title">Recording Paused</string>
+    <string name="notification_processing_title">Processing Audio</string>
+    <string name="notification_idle_title">WhisperTop Ready</string>
+    <string name="notification_recording_text">%1$d:%2$02d elapsed</string>
+    <string name="notification_processing_text">Saving audio file…</string>
+    <string name="notification_idle_text">Ready to record</string>
+    <string name="stop_recording">Stop</string>
+    <string name="pause_recording">Pause</string>
+    <string name="resume_recording">Resume</string>
 </resources>
