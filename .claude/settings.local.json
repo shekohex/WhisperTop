@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__taskmaster-ai__get_tasks",
+      "mcp__taskmaster-ai__next_task",
+      "mcp__taskmaster-ai__validate_dependencies",
+      "mcp__firecrawl-mcp__firecrawl_search",
+      "WebSearch",
+      "mcp__firecrawl-mcp__firecrawl_scrape",
+      "mcp__taskmaster-ai__get_task"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

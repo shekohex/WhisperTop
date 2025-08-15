@@ -1,0 +1,668 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Update Project Dependencies and Build Configuration",
+        "description": "Add Android-specific dependencies for audio recording, networking, security, and accessibility features",
+        "details": "Update libs.versions.toml and build.gradle.kts files to include: OkHttp 4.12+ for API calls, androidx.security:security-crypto 1.1.0 for encrypted preferences, androidx.work:work-runtime-ktx 2.9.0 for background processing, kotlinx-serialization 1.6.0 for JSON handling, androidx.lifecycle:lifecycle-service 2.8.0 for foreground service management. Update min SDK from 24 to 26 as specified in PRD.",
+        "testStrategy": "Verify all dependencies compile successfully and no version conflicts exist through ./gradlew build",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Configure Android Manifest Permissions and Services",
+        "description": "Add all required permissions and service declarations to AndroidManifest.xml",
+        "details": "Add permissions: RECORD_AUDIO, SYSTEM_ALERT_WINDOW, BIND_ACCESSIBILITY_SERVICE, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MICROPHONE, INTERNET, WAKE_LOCK. Declare services: OverlayService (foreground), AudioRecordingService, AccessibilityService. Add Quick Settings Tile service declaration. Set up proper intent filters and service configurations.",
+        "testStrategy": "Install app and verify all permissions are requested appropriately, no manifest merge conflicts",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Set up Project Architecture and Package Structure",
+        "description": "Create proper MVVM architecture with data, domain, and presentation layers. Address multiplatform compatibility issues and implement missing components.",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "medium",
+        "details": "Create packages: data/ (repositories, local, remote, models), domain/ (usecases, repositories interfaces, models), presentation/ (ui, viewmodels, components). Replace OkHttp with Ktor for multiplatform compatibility. Implement missing repository implementations (AudioRepositoryImpl, SettingsRepositoryImpl, TranscriptionRepositoryImpl). Create data models and DTOs. Fix Koin dependency injection modules. Set up proper error handling with sealed classes for Result types. Create base classes for ViewModels and Repositories following Clean Architecture principles. Ensure successful build across all platforms (Android, iOS).",
+        "testStrategy": "Unit tests for repository interfaces and use case implementations. Verify dependency injection graph builds correctly. Test multiplatform compatibility across Android and iOS. Verify all repository implementations work correctly.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Replace OkHttp with Ktor for multiplatform compatibility",
+            "description": "Remove OkHttp dependencies that prevent iOS compilation and implement Ktor HTTP client",
+            "status": "done",
+            "dependencies": [],
+            "details": "Update dependencies to use Ktor instead of OkHttp. Configure Ktor client for both Android and iOS platforms. Ensure API client functionality remains intact.",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create missing repository implementations",
+            "description": "Implement AudioRepositoryImpl, SettingsRepositoryImpl, and TranscriptionRepositoryImpl",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create concrete implementations for all repository interfaces. Implement proper error handling and data transformation. Follow Clean Architecture principles.\n<info added on 2025-08-14T22:30:39.651Z>\nAnalysis complete. Found that most implementations are already present but need several critical fixes:\n\n1. SharedModule has incorrect dependency injection - singleOf(::FileReader) but FileReader is expect/actual class\n2. TranscriptionRepositoryImpl has getSettings() call that can block - needs proper async handling  \n3. Missing DataStore dependencies in build.gradle.kts for proper multiplatform settings persistence\n4. Need to add missing platform modules to DI\n\nAll repository implementations exist and are properly structured. Platform-specific implementations for Android and iOS are complete. Main issues are around DI configuration and async handling.\n</info added on 2025-08-14T22:30:39.651Z>\n<info added on 2025-08-14T23:21:45.232Z>\nRepository verification complete. All implementations are present and correctly structured with proper state management, error handling, and Clean Architecture compliance. The repository layer implementation is fully complete and ready for integration with the rest of the application architecture.\n</info added on 2025-08-14T23:21:45.232Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add data models and DTOs",
+            "description": "Create data layer models and DTOs for API communication",
+            "status": "done",
+            "dependencies": [],
+            "details": "Define data models for audio files, transcriptions, and settings. Create DTOs for API requests and responses. Implement proper serialization with kotlinx-serialization.\n<info added on 2025-08-14T23:28:47.147Z>\nTask 3.3 has been completed successfully. All domain models, data entities, DTOs, and serialization components have been implemented with proper Clean Architecture separation. Domain models (AudioFile, TranscriptionRequest, TranscriptionResponse) are now in separate files, data entities have @Serializable annotations for persistence, API DTOs are properly structured for request/response handling, and conversion functions between layers are implemented. The kotlinx-serialization configuration is working correctly and multiplatform compatibility is maintained throughout the data layer.\n</info added on 2025-08-14T23:28:47.147Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Fix Koin dependency injection modules",
+            "description": "Complete and fix the DI graph in Koin modules",
+            "status": "done",
+            "dependencies": [],
+            "details": "Define all necessary modules for data, domain, and presentation layers. Ensure all dependencies are properly injected. Fix any circular dependencies or missing bindings.\n<info added on 2025-08-15T18:40:33.116Z>\nLooking at the task context, this appears to be a completion update for subtask 3.4 \"Fix Koin dependency injection modules\" which was marked as in-progress and is now being reported as completed successfully.\n\nThe user's request contains a comprehensive completion report detailing:\n1. The fundamental design flaw that was fixed (SOLID principle violations)\n2. The proper SOLID design implementation \n3. Complete architectural refactor details\n4. Comprehensive testing suite results\n5. Full verification with all tests passing\n6. Key benefits achieved\n\nThis is a substantial completion update that should be appended to the subtask's implementation details to document what was accomplished.Based on the task context and user request, I can see this is a completion update for subtask 3.4 \"Fix Koin dependency injection modules.\" The user is providing a comprehensive report of successful completion.\n\nThe new text content that should be appended to the subtask's details is:\n\n**COMPLETION UPDATE:** Task 3.4 completed successfully with a SOLID-compliant dependency injection solution! Fixed fundamental DI design flaw where repositories depended directly on expect/actual classes, violating SOLID principles and making testing impossible. Implemented proper SOLID design with service interfaces (AudioRecorderService, FileReaderService) applying Dependency Inversion Principle. Repositories now depend on abstractions, not concretions. Created adapter pattern with service implementations bridging between domain interfaces and platform-specific expect/actual classes. Complete architectural refactor across domain layer (service interfaces), data layer (service adapters), repository layer (updated dependencies), and DI configuration (proper binding). Comprehensive testing suite implemented with mock services and 7 passing DI test scenarios. Full verification achieved: all tests pass (7/7), successful Android and iOS builds, proper mock injection, clean architecture maintained. Key benefits: testable with mockable dependencies, SOLID compliant following Dependency Inversion Principle, maintainable with clean separation, multiplatform compatible, and flexible for easy implementation swapping.I understand you want me to update subtask 3.4 with the completion details you've provided. Let me present my plan:I see you want to update subtask 3.4 with completion details. Since I'm in plan mode, I cannot execute the updates yet. Here's what I would do:\n\n**Plan:**\n1. Update subtask 3.4 implementation details with the completion report you provided\n2. Change subtask 3.4 status from \"in-progress\" to \"done\"\n\nThe completion report documents successful implementation of a SOLID-compliant dependency injection solution with proper architectural design, comprehensive testing, and multiplatform verification.\n\nWould you like me to proceed with this update?\n</info added on 2025-08-15T18:40:33.116Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Verify multiplatform build compatibility",
+            "description": "Ensure successful build across all target platforms",
+            "status": "done",
+            "dependencies": [],
+            "details": "Test builds on Android and iOS. Fix any platform-specific compilation issues. Ensure all dependencies are multiplatform compatible.\n<info added on 2025-08-14T23:09:37.436Z>\nBUILD SUCCESSFULLY FIXED! All compilation issues resolved across Android and iOS platforms.\n\n**Fixed Issues:**\n- expect/actual constructor mismatch: Replaced PreferencesDataSourceImpl class pattern with factory function pattern (createPreferencesDataSource()) to properly handle Android Context dependency\n- iOS AudioRecorder errors: Fixed NSDate time handling, ExperimentalForeignApi annotations, and audio format constants  \n- iOS FileReader issues: Added proper ExperimentalForeignApi annotations for CInterop usage\n- DI configuration: Updated Koin modules to use new factory pattern\n\n**Build Verification Results:**\n- Android compilation (Debug & Release): PASSED\n- iOS compilation (Arm64, X64, SimulatorArm64): PASSED  \n- All test compilations: PASSED\n- Framework linking for iOS: PASSED\n- Multiplatform build compatibility: VERIFIED\n\nNote: expect/actual Beta warnings are expected for KMP projects and non-blocking. Build now compiles successfully across all target platforms.\n</info added on 2025-08-14T23:09:37.436Z>",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement Secure API Key Storage",
+        "description": "Create encrypted storage for OpenAI API keys using EncryptedSharedPreferences",
+        "details": "Use androidx.security.crypto.EncryptedSharedPreferences with AES256_GCM encryption and KEYSET_ALIAS for master key. Create SecurePreferencesRepository with methods: saveApiKey(), getApiKey(), clearApiKey(), hasApiKey(). Implement key validation against OpenAI API format. Add API endpoint configuration storage with default 'https://api.openai.com/v1/'.",
+        "testStrategy": "Unit tests for encryption/decryption, integration tests for API key validation, verify keys persist after app restart",
+        "priority": "high",
+        "dependencies": [
+          1,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Create Audio Recording Service with WAV Generation",
+        "description": "Implement foreground service for microphone capture and WAV file creation",
+        "details": "Use MediaRecorder or AudioRecord to capture audio at 16kHz mono PCM16 format as required by OpenAI API. Implement AudioRecordingService extending Service with foreground notification. Create WAV file writer with proper headers. Add recording state management (IDLE, RECORDING, PROCESSING). Implement proper cleanup and resource management. Handle audio focus and interruptions.",
+        "testStrategy": "Unit tests for WAV file format validation, integration tests for recording functionality, verify proper cleanup on service destruction",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Audio Permissions and Manifest Configuration",
+            "description": "Configure AndroidManifest.xml with required permissions and service declarations for audio recording",
+            "dependencies": [],
+            "details": "Add RECORD_AUDIO, FOREGROUND_SERVICE, WRITE_EXTERNAL_STORAGE permissions to AndroidManifest.xml. Add foreground service type declarations and service component entries. Configure notification channels and required Android API permissions for audio recording functionality.",
+            "status": "pending",
+            "testStrategy": "Verify permissions are properly declared, test permission requests at runtime, validate service registration in manifest"
+          },
+          {
+            "id": 2,
+            "title": "Create Core Audio Recording Engine",
+            "description": "Implement AudioRecorder class using AudioRecord API for PCM16 audio capture at 16kHz mono",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement AudioRecorder class using Android AudioRecord API configured for 16kHz sample rate, mono channel, PCM16 encoding as required by OpenAI API. Create thread-safe recording operations with proper buffer management. Implement audio focus handling and interruption management for phone calls and other audio events.",
+            "status": "pending",
+            "testStrategy": "Unit tests for audio configuration parameters, integration tests for recording functionality, test audio focus and interruption handling"
+          },
+          {
+            "id": 3,
+            "title": "Implement WAV File Writer",
+            "description": "Create WAVFileWriter with proper WAV header generation and file I/O operations",
+            "dependencies": [],
+            "details": "Create WAVFileWriter class that generates proper WAV headers (44-byte header for PCM16 mono format). Implement file I/O operations for writing audio data streams to WAV files. Add file management utilities for organized audio storage with proper naming and cleanup mechanisms.",
+            "status": "pending",
+            "testStrategy": "Unit tests for WAV header generation and validation, file I/O tests, verify WAV file compatibility with audio players"
+          },
+          {
+            "id": 4,
+            "title": "Build AudioRecordingService as Foreground Service",
+            "description": "Extend Android Service class implementing foreground service with recording state management",
+            "dependencies": [
+              "5.2",
+              "5.3"
+            ],
+            "details": "Extend Android Service class to create AudioRecordingService with foreground notification. Integrate AudioRecorder and WAVFileWriter components. Implement recording state machine with IDLE, RECORDING, PROCESSING states. Add proper service lifecycle management and foreground service notifications.",
+            "status": "pending",
+            "testStrategy": "Test service lifecycle, verify foreground notification behavior, test state transitions and proper cleanup"
+          },
+          {
+            "id": 5,
+            "title": "Add Service Integration and Resource Management",
+            "description": "Create service communication interface and comprehensive resource management",
+            "dependencies": [
+              "5.4"
+            ],
+            "details": "Create service binder interface for communication between UI components and AudioRecordingService. Implement proper cleanup procedures, resource disposal, and error handling mechanisms. Add comprehensive exception handling for recording failures, storage issues, and service lifecycle problems.",
+            "status": "pending",
+            "testStrategy": "Integration tests for service binding and communication, test resource cleanup and disposal, verify error handling and recovery mechanisms"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Build OpenAI API Client",
+        "description": "Create HTTP client for OpenAI audio transcriptions API with proper error handling",
+        "details": "Use OkHttp with multipart/form-data support for file uploads. Create OpenAIApiService with transcribe() method supporting model selection (whisper-1, whisper-3-turbo, gpt-4o-audio-preview). Implement proper error handling for 401, 429, 500 status codes. Add retry mechanism with exponential backoff. Support custom endpoint configuration. Implement request/response logging for debugging.",
+        "testStrategy": "Unit tests for request formation and response parsing, integration tests with mock server, error handling tests for various HTTP status codes",
+        "priority": "high",
+        "dependencies": [
+          1,
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add OkHttp Dependencies and Configuration",
+            "description": "Update build.gradle.kts and libs.versions.toml to include OkHttp, kotlinx-serialization, and logging dependencies required for API client",
+            "dependencies": [],
+            "details": "Add OkHttp 4.12+, kotlinx-serialization-json 1.6.0, and okhttp-logging-interceptor to libs.versions.toml. Update shared/build.gradle.kts commonMain dependencies to include these libraries. Add serialization plugin to build configuration. Configure proper version catalog entries for consistent dependency management across modules.",
+            "status": "pending",
+            "testStrategy": "Verify dependencies resolve correctly with ./gradlew build, ensure no version conflicts, confirm serialization plugin applies successfully"
+          },
+          {
+            "id": 2,
+            "title": "Create API Models and Data Classes",
+            "description": "Define Kotlin data classes for OpenAI transcription API requests and responses with proper JSON serialization",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Create data classes in shared/src/commonMain/kotlin/data/models/: TranscriptionRequest (file, model, language, prompt), TranscriptionResponse (text, task, language, duration), OpenAIError (error code, message, type). Add @Serializable annotations and configure custom serializers for multipart data. Define enum classes for supported models (whisper-1, whisper-3-turbo, gpt-4o-audio-preview) and language codes.",
+            "status": "pending",
+            "testStrategy": "Unit tests for JSON serialization/deserialization, verify all fields serialize correctly, test enum value handling"
+          },
+          {
+            "id": 3,
+            "title": "Implement Core HTTP Client with Retry Logic",
+            "description": "Build the foundational OkHttpClient with interceptors, timeout configuration, and exponential backoff retry mechanism",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Create HttpClientProvider class with OkHttpClient configuration: 30s connect timeout, 60s read/write timeouts. Implement RetryInterceptor with exponential backoff (initial delay 1s, max delay 16s, max retries 3). Add AuthenticationInterceptor for API key header injection. Create extension functions for handling multipart/form-data uploads. Support custom endpoint configuration with default https://api.openai.com/v1/.",
+            "status": "pending",
+            "testStrategy": "Unit tests for retry logic with different failure scenarios, test timeout configurations, verify authentication headers applied correctly"
+          },
+          {
+            "id": 4,
+            "title": "Create OpenAI API Service Interface",
+            "description": "Implement the main OpenAIApiService class with transcribe() method supporting all specified Whisper models",
+            "dependencies": [
+              "6.2",
+              "6.3"
+            ],
+            "details": "Create OpenAIApiService class in data/remote/ package with suspend fun transcribe() method. Support file upload via ByteArray or File input with automatic multipart/form-data formatting. Implement model selection parameter with validation. Add optional parameters for language, prompt, and response_format. Create factory function for service instantiation with API key and endpoint configuration.",
+            "status": "pending",
+            "testStrategy": "Integration tests with mock server responses, verify multipart upload format, test all model parameter combinations, validate request formation"
+          },
+          {
+            "id": 5,
+            "title": "Add Error Handling and Logging System",
+            "description": "Implement comprehensive error handling for HTTP status codes (401, 429, 500) and request/response logging",
+            "dependencies": [
+              "6.3",
+              "6.4"
+            ],
+            "details": "Create sealed class OpenAIException hierarchy: AuthenticationException (401), RateLimitException (429), ServerException (500), NetworkException. Add ErrorHandlingInterceptor to map HTTP status codes to appropriate exceptions. Implement LoggingInterceptor with configurable levels (NONE, BASIC, HEADERS, BODY) for debugging. Add response validation and custom error message parsing from OpenAI error responses.",
+            "status": "pending",
+            "testStrategy": "Unit tests for each exception type mapping, verify logging outputs at different levels, test error response parsing, integration tests for various HTTP error scenarios"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement Overlay Service Infrastructure",
+        "description": "Create base overlay service with WindowManager integration for floating UI elements",
+        "details": "Create OverlayService extending Service with TYPE_APPLICATION_OVERLAY window type. Implement WindowManager.LayoutParams configuration for overlay windows. Handle permission checks for SYSTEM_ALERT_WINDOW. Create base OverlayView class for floating components. Implement proper lifecycle management and cleanup. Handle configuration changes and screen rotations.",
+        "testStrategy": "Verify overlay appears on top of other apps, test permission handling, verify proper cleanup when service stops",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Set up Accessibility Service for Text Insertion",
+        "description": "Create accessibility service to paste transcribed text into focused input fields",
+        "details": "Extend AccessibilityService with proper service configuration in XML. Implement findFocusedEditText() and insertText() methods using AccessibilityNodeInfo. Handle different input field types (EditText, WebView inputs, etc.). Add proper event filtering and node traversal. Implement fallback mechanisms using clipboard and global actions. Handle permission requests and service binding.",
+        "testStrategy": "Test text insertion across various apps (messaging, browser, notes), verify accessibility service starts correctly",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Create Floating Microphone Button UI",
+        "description": "Design and implement draggable floating mic button with state indicators",
+        "details": "Create MicButtonOverlay using Jetpack Compose in overlay window. Implement draggable behavior with touch event handling and screen edge snapping. Add state-based visual indicators: gray (idle), red (recording), blue (processing). Implement animated pulsing ring during recording. Add haptic feedback for state changes. Support different screen sizes and orientations.",
+        "testStrategy": "Test dragging behavior across screen, verify state animations work correctly, test on different screen sizes",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Recording State Management",
+        "description": "Create comprehensive state management for recording workflow",
+        "details": "Create RecordingState sealed class with states: Idle, Recording, Processing, Success, Error. Implement RecordingManager with StateFlow for UI updates. Handle recording start/stop, audio processing, and API communication. Add timeout handling for long recordings. Implement proper cancellation support. Create error recovery mechanisms.",
+        "testStrategy": "Unit tests for state transitions, integration tests for complete recording workflow, error scenario testing",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create RecordingState Sealed Class",
+            "description": "Define sealed class hierarchy for all recording states with associated data classes",
+            "dependencies": [],
+            "details": "Create RecordingState sealed class with states: Idle, Recording(startTime, duration), Processing(progress), Success(audioFile, transcription), Error(throwable, retryable). Include proper data classes for each state with relevant parameters. Place in shared/commonMain for multiplatform support.",
+            "status": "pending",
+            "testStrategy": "Unit tests for state creation, equality checks, and proper sealed class hierarchy. Test state data integrity and serialization if needed."
+          },
+          {
+            "id": 2,
+            "title": "Implement RecordingManager with StateFlow",
+            "description": "Create core manager class with StateFlow for reactive state management",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Implement RecordingManager class with private MutableStateFlow<RecordingState> and public StateFlow exposure. Add coroutine scope management and proper lifecycle handling. Include methods for state transitions and state observation. Integrate with AndroidX ViewModel for UI layer.",
+            "status": "pending",
+            "testStrategy": "Unit tests for state flow emissions, state transition logic, and proper coroutine scope cleanup. Test StateFlow behavior with multiple observers."
+          },
+          {
+            "id": 3,
+            "title": "Implement Recording Start/Stop Logic",
+            "description": "Add recording lifecycle management with audio capture integration",
+            "dependencies": [
+              "10.2"
+            ],
+            "details": "Implement startRecording() and stopRecording() methods in RecordingManager. Handle audio permission checks, MediaRecorder setup/teardown, and proper state transitions (Idle -> Recording -> Processing). Add recording duration tracking and file management. Integrate with existing audio infrastructure from task dependencies.",
+            "status": "pending",
+            "testStrategy": "Integration tests for complete recording workflow, unit tests for state transitions, and tests for audio file creation and management."
+          },
+          {
+            "id": 4,
+            "title": "Add Timeout and Cancellation Support",
+            "description": "Implement recording timeout handling and proper cancellation mechanisms",
+            "dependencies": [
+              "10.3"
+            ],
+            "details": "Add configurable recording timeout (max 25MB for OpenAI compatibility). Implement timeout coroutine jobs with proper cancellation. Add cancelRecording() method with cleanup logic. Handle interruption scenarios (incoming calls, app backgrounding). Implement proper resource cleanup on cancellation.",
+            "status": "pending",
+            "testStrategy": "Unit tests for timeout scenarios, cancellation behavior, and resource cleanup. Test edge cases like rapid start/stop/cancel operations."
+          },
+          {
+            "id": 5,
+            "title": "Create Error Recovery Mechanisms",
+            "description": "Implement comprehensive error handling with retry logic and recovery patterns",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Add error classification (recoverable vs non-recoverable). Implement retry logic for transient failures with exponential backoff. Create error state recovery methods (resetFromError, retryLastOperation). Handle specific error scenarios: permission denied, storage full, audio device unavailable. Add error reporting and user-friendly error messages.",
+            "status": "pending",
+            "testStrategy": "Unit tests for error classification, retry mechanisms, and recovery flows. Integration tests for various error scenarios and proper state recovery."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Integrate Speech-to-Text Workflow",
+        "description": "Connect audio recording, API processing, and text insertion components",
+        "details": "Create TranscriptionUseCase orchestrating the complete workflow: start recording → generate WAV → upload to OpenAI → parse response → insert text via accessibility. Implement proper error handling and user feedback. Add progress indicators and loading states. Handle network failures and API errors gracefully. Implement caching for temporary audio files.",
+        "testStrategy": "End-to-end testing of complete workflow, error scenario testing, performance testing with various audio lengths",
+        "priority": "high",
+        "dependencies": [
+          6,
+          8,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Create Settings Screen Infrastructure",
+        "description": "Build settings screen foundation with Material 3 design and navigation",
+        "details": "Create SettingsScreen composable with Material 3 components. Implement navigation from MainActivity to Settings. Create SettingsViewModel with proper state management. Design sections for API configuration, model selection, language preferences, theme customization, and privacy controls. Implement settings persistence with PreferenceDataStore.",
+        "testStrategy": "UI tests for settings navigation, verify settings persistence across app restarts",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement API Key Configuration UI",
+        "description": "Create secure API key entry and validation interface",
+        "details": "Design API key input field with proper masking and validation. Add endpoint configuration with default OpenAI URL. Implement real-time validation against OpenAI API format (sk-...). Add test connection functionality to verify API key validity. Create clear error messages for invalid keys. Implement delete API key functionality with confirmation dialog.",
+        "testStrategy": "Test API key validation, verify secure storage, test connection validation with valid/invalid keys",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Build Model Selection Interface",
+        "description": "Create dropdown/selection UI for OpenAI transcription models",
+        "details": "Create model selection dropdown with predefined options: whisper-1, whisper-3-turbo, gpt-4o-audio-preview. Add custom model input option for advanced users. Implement model capability descriptions and pricing information. Store selected model in preferences. Add model recommendation based on use case (speed vs accuracy).",
+        "testStrategy": "Test model selection persistence, verify API integration with different models, UI responsiveness testing",
+        "priority": "medium",
+        "dependencies": [
+          12,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create OpenAI Model Data Classes",
+            "description": "Define data structures for OpenAI transcription models including names, capabilities, pricing, and descriptions",
+            "dependencies": [],
+            "details": "Create data classes for OpenAIModel with fields for modelId, displayName, description, capabilities (speed/accuracy), pricing information, and use case recommendations. Include predefined models: whisper-1, whisper-3-turbo, gpt-4o-audio-preview. Add sealed class for ModelCapability and data class for PricingInfo.",
+            "status": "pending",
+            "testStrategy": "Unit tests for data class serialization, validation of predefined models, and capability comparison logic"
+          },
+          {
+            "id": 2,
+            "title": "Implement Preferences Data Store",
+            "description": "Set up Android DataStore for persisting selected model and related preferences",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Add DataStore dependency to build.gradle.kts. Create PreferencesManager with DataStore<Preferences> for storing selected model ID, custom model names, and user preferences. Implement suspend functions for saving and retrieving model selection. Create default model selection logic based on use case.",
+            "status": "pending",
+            "testStrategy": "Unit tests for preferences storage/retrieval, integration tests for persistence across app restarts, test default model selection"
+          },
+          {
+            "id": 3,
+            "title": "Build Model Selection UI Components",
+            "description": "Create Material 3 dropdown and custom input UI components for model selection",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Create ModelSelectionDropdown composable with ExposedDropdownMenuBox using Material 3 components. Add ModelCapabilityCard to display model descriptions and pricing. Implement CustomModelInput composable for advanced users. Add ModelRecommendationChip for use case-based suggestions. Include proper accessibility support and loading states.",
+            "status": "pending",
+            "testStrategy": "UI tests for dropdown interaction, custom input validation, recommendation selection, and accessibility compliance"
+          },
+          {
+            "id": 4,
+            "title": "Create Model Selection ViewModel",
+            "description": "Implement state management and business logic for model selection using Compose ViewModel",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "Create ModelSelectionViewModel extending ViewModel with StateFlow for UI state management. Implement model selection logic, custom model validation, and preference persistence. Add use case recommendation algorithm (speed vs accuracy). Handle loading states and error scenarios. Create sealed class for ModelSelectionUiState.",
+            "status": "pending",
+            "testStrategy": "Unit tests for ViewModel state transitions, model selection persistence, recommendation logic, and error handling scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Model Selection with Settings Screen",
+            "description": "Connect model selection components to the main settings screen infrastructure",
+            "dependencies": [
+              "14.3",
+              "14.4"
+            ],
+            "details": "Create ModelSelectionSection composable that combines dropdown, custom input, and recommendations. Integrate with SettingsScreen from task 12 infrastructure. Add navigation between model selection and main settings. Implement proper state sharing and lifecycle management. Add confirmation dialogs for model changes that affect ongoing operations.",
+            "status": "pending",
+            "testStrategy": "Integration tests for settings navigation, state persistence across screen changes, and confirmation dialog behavior"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Implement Language Detection and Selection",
+        "description": "Add multi-language support with auto-detection and manual override",
+        "details": "Implement automatic language detection using OpenAI API (no language parameter). Add manual language selection UI with common languages dropdown. Create language preference storage. Add language code mapping for OpenAI API (ISO-639-1 codes). Implement language detection confidence display and manual override option.",
+        "testStrategy": "Test language detection accuracy, verify manual language selection works with API, test persistence",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Create Theme Customization System",
+        "description": "Implement Material 3 theming with dark/light modes and accent color selection",
+        "details": "Implement Material 3 dynamic theming with device theme detection. Create theme selection UI with Light/Dark/System options. Add accent color picker with Material You color palette. Implement theme persistence and runtime switching. Apply theming to overlay components and notifications. Create custom theme previews.",
+        "testStrategy": "Test theme switching across all UI components, verify persistence, test dynamic color support",
+        "priority": "low",
+        "dependencies": [
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Add Privacy Controls and Data Management",
+        "description": "Implement privacy settings with data clearing and usage transparency",
+        "details": "Create privacy settings section with clear data usage explanation. Implement 'Clear All Data' functionality removing API keys and preferences. Add temporary audio file management with automatic cleanup. Create privacy policy display. Implement usage analytics opt-out. Add audit trail for API calls (optional logging).",
+        "testStrategy": "Verify complete data clearing functionality, test automatic file cleanup, verify privacy policy accessibility",
+        "priority": "medium",
+        "dependencies": [
+          12,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement Error Handling and User Feedback",
+        "description": "Create comprehensive error handling with user-friendly messages and recovery options",
+        "details": "Create error classification system for network, API, permission, and audio errors. Implement user-friendly error messages with suggested fixes. Add error notification system with actionable buttons. Create retry mechanisms for transient failures. Implement error logging for debugging. Add connection status indicators.",
+        "testStrategy": "Test all error scenarios, verify error messages are helpful, test retry mechanisms work correctly",
+        "priority": "high",
+        "dependencies": [
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Add Quick Settings Tile",
+        "description": "Implement Quick Settings tile for easy recording trigger",
+        "details": "Create WhisperTopTileService extending TileService. Implement tile state management (active/inactive/unavailable). Add tile click handling to start/stop recording. Implement proper tile icon and label updates. Handle service permissions and availability. Add tile customization options in settings.",
+        "testStrategy": "Test tile functionality from Quick Settings, verify state updates correctly, test permission handling",
+        "priority": "medium",
+        "dependencies": [
+          10,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Implement Recording Animations and Feedback",
+        "description": "Create visual and haptic feedback for recording states",
+        "details": "Design pulsing animation for recording state with configurable colors and timing. Add haptic feedback patterns for start/stop/success/error states. Implement smooth state transitions with Material Motion principles. Add audio level visualization during recording. Create notification updates with recording progress. Implement accessibility announcements for state changes.",
+        "testStrategy": "Test animations are smooth and performant, verify haptic feedback works on different devices, accessibility testing",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Add Battery Optimization Handling",
+        "description": "Implement battery optimization exemption requests and background service management",
+        "details": "Detect battery optimization settings and request exemption when needed. Implement proper foreground service handling with persistent notifications. Add doze mode handling and background processing optimization. Create user education about battery settings. Implement service restart mechanisms after system kills. Add power management best practices.",
+        "testStrategy": "Test background service persistence, verify battery optimization detection, test service restart mechanisms",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Battery Optimization Detection",
+            "description": "Create utility class to detect current battery optimization status and provide user feedback",
+            "dependencies": [],
+            "details": "Implement BatteryOptimizationUtil class using PowerManager.isIgnoringBatteryOptimizations() to check if the app is whitelisted from battery optimization. Create UI components to display current status in settings screen. Add proper permission checks for BATTERY_OPTIMIZATION_IGNORED. Implement status indicators showing whether battery optimization is enabled/disabled for the app.",
+            "status": "pending",
+            "testStrategy": "Unit tests for detection logic on various Android versions, UI tests for status display, manual testing on devices with different power management settings"
+          },
+          {
+            "id": 2,
+            "title": "Create Battery Optimization Exemption Request Flow",
+            "description": "Implement user-friendly flow to request battery optimization exemption",
+            "dependencies": [
+              "21.1"
+            ],
+            "details": "Create intent-based flow using ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS to prompt user to whitelist the app. Design user education dialog explaining why battery optimization exemption is needed for continuous audio recording. Implement proper permission handling for REQUEST_IGNORE_BATTERY_OPTIMIZATIONS. Add fallback flow directing users to manual settings if direct request fails. Create onboarding flow that guides users through this process during first setup.",
+            "status": "pending",
+            "testStrategy": "Test exemption request flow on various Android versions and OEM modifications, verify proper handling of user denial, test fallback flows"
+          },
+          {
+            "id": 3,
+            "title": "Implement Foreground Service with Persistent Notification",
+            "description": "Create proper foreground service implementation for audio recording with required persistent notifications",
+            "dependencies": [
+              "21.2"
+            ],
+            "details": "Extend Service class to create AudioRecordingService with proper foreground service lifecycle. Implement persistent notification with recording status, start/stop controls, and proper notification channel configuration. Add notification actions for pause/resume recording. Handle service promotion to foreground during recording sessions. Implement proper cleanup when service is stopped. Add notification importance and behavior configuration for minimal user disruption.",
+            "status": "pending",
+            "testStrategy": "Test service persistence during doze mode and app backgrounding, verify notification behavior across Android versions, test service cleanup and resource management"
+          },
+          {
+            "id": 4,
+            "title": "Add Doze Mode and Background Processing Optimization",
+            "description": "Implement doze mode handling and optimize background processing for power efficiency",
+            "dependencies": [
+              "21.3"
+            ],
+            "details": "Implement DeviceIdleController integration to handle doze mode transitions. Add wake lock management for critical audio processing periods with minimal duration. Implement intelligent batching of API requests when possible. Add app standby handling and optimize background tasks to work within Android's power management constraints. Create power-aware scheduling for non-critical operations. Implement proper handling of network restrictions during doze mode.",
+            "status": "pending",
+            "testStrategy": "Test app behavior during simulated doze mode, verify wake lock usage is minimal and appropriate, test network handling during power restrictions"
+          },
+          {
+            "id": 5,
+            "title": "Create Service Restart and Recovery Mechanisms",
+            "description": "Implement automatic service restart mechanisms and recovery strategies after system kills",
+            "dependencies": [
+              "21.4"
+            ],
+            "details": "Implement service restart logic using START_STICKY return type and proper restart handling. Create BroadcastReceiver for system events (boot completed, power connected) to restart service when appropriate. Implement job scheduler for periodic service health checks and automatic restart. Add crash recovery mechanisms with state preservation. Create power management best practices documentation and implement proper service lifecycle management. Add monitoring for service health and automatic restart triggers.",
+            "status": "pending",
+            "testStrategy": "Test service restart after system kills, verify proper state recovery, test boot completed restart, monitor service stability over extended periods"
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Implement Audio Quality Management",
+        "description": "Add audio quality optimization and noise handling features",
+        "details": "Implement audio quality detection and automatic adjustment. Add noise reduction preprocessing if needed. Create recording timeout management (max 25MB file size for OpenAI). Implement audio level monitoring and silence detection. Add recording quality indicators. Create audio format optimization for API requirements.",
+        "testStrategy": "Test audio quality across different devices, verify file size limits work correctly, test silence detection",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Add Comprehensive Logging and Debugging",
+        "description": "Implement debugging tools and logging system for troubleshooting",
+        "details": "Create structured logging system with different log levels. Implement debug mode with detailed API request/response logging. Add performance monitoring for recording and transcription times. Create log export functionality for support. Implement crash reporting system. Add debugging overlay for development builds.",
+        "testStrategy": "Verify logging works correctly across all components, test log export functionality, verify performance monitoring accuracy",
+        "priority": "low",
+        "dependencies": [
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Create Comprehensive Test Suite",
+        "description": "Implement unit tests, integration tests, and UI tests for core functionality",
+        "details": "Create unit tests for all repositories, use cases, and ViewModels. Implement integration tests for API client and audio recording. Add UI tests for settings screen and overlay interactions. Create accessibility tests for screen readers. Implement performance tests for audio processing. Add mock implementations for testing.",
+        "testStrategy": "Achieve >80% code coverage, all tests pass consistently, performance tests meet requirements",
+        "priority": "medium",
+        "dependencies": [
+          11,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Implement Production Readiness and Optimization",
+        "description": "Final optimizations, security hardening, and production configuration",
+        "details": "Enable R8/ProGuard optimization with proper rules for reflection-based libraries. Implement security hardening with certificate pinning for OpenAI API. Add performance monitoring and memory leak detection. Create proper release build configuration. Implement crash reporting integration. Add app update mechanisms and version checking. Optimize APK size and startup time.",
+        "testStrategy": "Performance testing on various devices, security testing for data protection, memory leak detection, release build testing",
+        "priority": "high",
+        "dependencies": [
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-14T18:18:20.877Z",
+      "updated": "2025-08-15T18:42:03.584Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
