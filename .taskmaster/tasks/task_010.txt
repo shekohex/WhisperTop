@@ -1,0 +1,43 @@
+# Task ID: 10
+# Title: Implement Recording State Management
+# Status: pending
+# Dependencies: 5, 9
+# Priority: medium
+# Description: Create comprehensive state management for recording workflow
+# Details:
+Create RecordingState sealed class with states: Idle, Recording, Processing, Success, Error. Implement RecordingManager with StateFlow for UI updates. Handle recording start/stop, audio processing, and API communication. Add timeout handling for long recordings. Implement proper cancellation support. Create error recovery mechanisms.
+
+# Test Strategy:
+Unit tests for state transitions, integration tests for complete recording workflow, error scenario testing
+
+# Subtasks:
+## 1. Create RecordingState Sealed Class [pending]
+### Dependencies: None
+### Description: Define sealed class hierarchy for all recording states with associated data classes
+### Details:
+Create RecordingState sealed class with states: Idle, Recording(startTime, duration), Processing(progress), Success(audioFile, transcription), Error(throwable, retryable). Include proper data classes for each state with relevant parameters. Place in shared/commonMain for multiplatform support.
+
+## 2. Implement RecordingManager with StateFlow [pending]
+### Dependencies: 10.1
+### Description: Create core manager class with StateFlow for reactive state management
+### Details:
+Implement RecordingManager class with private MutableStateFlow<RecordingState> and public StateFlow exposure. Add coroutine scope management and proper lifecycle handling. Include methods for state transitions and state observation. Integrate with AndroidX ViewModel for UI layer.
+
+## 3. Implement Recording Start/Stop Logic [pending]
+### Dependencies: 10.2
+### Description: Add recording lifecycle management with audio capture integration
+### Details:
+Implement startRecording() and stopRecording() methods in RecordingManager. Handle audio permission checks, MediaRecorder setup/teardown, and proper state transitions (Idle -> Recording -> Processing). Add recording duration tracking and file management. Integrate with existing audio infrastructure from task dependencies.
+
+## 4. Add Timeout and Cancellation Support [pending]
+### Dependencies: 10.3
+### Description: Implement recording timeout handling and proper cancellation mechanisms
+### Details:
+Add configurable recording timeout (max 25MB for OpenAI compatibility). Implement timeout coroutine jobs with proper cancellation. Add cancelRecording() method with cleanup logic. Handle interruption scenarios (incoming calls, app backgrounding). Implement proper resource cleanup on cancellation.
+
+## 5. Create Error Recovery Mechanisms [pending]
+### Dependencies: 10.4
+### Description: Implement comprehensive error handling with retry logic and recovery patterns
+### Details:
+Add error classification (recoverable vs non-recoverable). Implement retry logic for transient failures with exponential backoff. Create error state recovery methods (resetFromError, retryLastOperation). Handle specific error scenarios: permission denied, storage full, audio device unavailable. Add error reporting and user-friendly error messages.
+

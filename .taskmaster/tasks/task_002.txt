@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: Configure Android Manifest Permissions and Services
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Add all required permissions and service declarations to AndroidManifest.xml
+# Details:
+Add permissions: RECORD_AUDIO, SYSTEM_ALERT_WINDOW, BIND_ACCESSIBILITY_SERVICE, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MICROPHONE, INTERNET, WAKE_LOCK. Declare services: OverlayService (foreground), AudioRecordingService, AccessibilityService. Add Quick Settings Tile service declaration. Set up proper intent filters and service configurations.
+
+# Test Strategy:
+Install app and verify all permissions are requested appropriately, no manifest merge conflicts

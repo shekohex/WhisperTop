@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Implement Secure API Key Storage
+# Status: done
+# Dependencies: 1, 3
+# Priority: high
+# Description: Create encrypted storage for OpenAI API keys using EncryptedSharedPreferences
+# Details:
+Use androidx.security.crypto.EncryptedSharedPreferences with AES256_GCM encryption and KEYSET_ALIAS for master key. Create SecurePreferencesRepository with methods: saveApiKey(), getApiKey(), clearApiKey(), hasApiKey(). Implement key validation against OpenAI API format. Add API endpoint configuration storage with default 'https://api.openai.com/v1/'.
+
+# Test Strategy:
+Unit tests for encryption/decryption, integration tests for API key validation, verify keys persist after app restart

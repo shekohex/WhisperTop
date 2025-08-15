@@ -1,0 +1,11 @@
+# Task ID: 7
+# Title: Implement Overlay Service Infrastructure
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create base overlay service with WindowManager integration for floating UI elements
+# Details:
+Create OverlayService extending Service with TYPE_APPLICATION_OVERLAY window type. Implement WindowManager.LayoutParams configuration for overlay windows. Handle permission checks for SYSTEM_ALERT_WINDOW. Create base OverlayView class for floating components. Implement proper lifecycle management and cleanup. Handle configuration changes and screen rotations.
+
+# Test Strategy:
+Verify overlay appears on top of other apps, test permission handling, verify proper cleanup when service stops

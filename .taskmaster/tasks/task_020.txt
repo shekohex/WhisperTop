@@ -1,0 +1,11 @@
+# Task ID: 20
+# Title: Implement Recording Animations and Feedback
+# Status: pending
+# Dependencies: 9, 10
+# Priority: medium
+# Description: Create visual and haptic feedback for recording states
+# Details:
+Design pulsing animation for recording state with configurable colors and timing. Add haptic feedback patterns for start/stop/success/error states. Implement smooth state transitions with Material Motion principles. Add audio level visualization during recording. Create notification updates with recording progress. Implement accessibility announcements for state changes.
+
+# Test Strategy:
+Test animations are smooth and performant, verify haptic feedback works on different devices, accessibility testing

@@ -1,0 +1,11 @@
+# Task ID: 15
+# Title: Implement Language Detection and Selection
+# Status: pending
+# Dependencies: 6, 12
+# Priority: medium
+# Description: Add multi-language support with auto-detection and manual override
+# Details:
+Implement automatic language detection using OpenAI API (no language parameter). Add manual language selection UI with common languages dropdown. Create language preference storage. Add language code mapping for OpenAI API (ISO-639-1 codes). Implement language detection confidence display and manual override option.
+
+# Test Strategy:
+Test language detection accuracy, verify manual language selection works with API, test persistence

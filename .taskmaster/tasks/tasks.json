@@ -176,7 +176,7 @@
           1,
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -230,7 +230,7 @@
               "6.4"
             ],
             "details": "Create sealed class OpenAIException hierarchy: AuthenticationException (401), RateLimitException (429), ServerException (500), NetworkException. Add ErrorHandlingInterceptor to map HTTP status codes to appropriate exceptions. Implement LoggingInterceptor with configurable levels (NONE, BASIC, HEADERS, BODY) for debugging. Add response validation and custom error message parsing from OpenAI error responses.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for each exception type mapping, verify logging outputs at different levels, test error response parsing, integration tests for various HTTP error scenarios"
           }
         ]
@@ -657,11 +657,35 @@
         ],
         "status": "pending",
         "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Fix iOS Platform Build Issues and AudioRecorder Implementation",
+        "description": "Resolve iOS-specific compilation errors and platform implementation issues, focusing on fixing AudioRecorder iOS implementation with incorrect Java references and imports.",
+        "details": "Address iOS-specific build errors in the AudioRecorder implementation by removing Java-specific class references and replacing with appropriate iOS/Kotlin Multiplatform equivalents. Replace Java-specific imports (java.io.*, java.util.*) with Kotlin Multiplatform alternatives. Implement proper iOS audio recording using AVAudioRecorder through Kotlin/Native interop or appropriate KMP audio libraries. Fix platform-specific file I/O operations for iOS using NSFileManager or Kotlin Multiplatform file APIs. Update WAV file generation to use iOS-compatible audio format APIs. Ensure proper memory management and resource cleanup for iOS platform. Address any iOS-specific permissions (NSMicrophoneUsageDescription) and audio session configuration. Update build configuration files (build.gradle.kts) to properly handle iOS targets and dependencies.",
+        "testStrategy": "Verify iOS project builds successfully without compilation errors. Test audio recording functionality on iOS simulator and physical devices. Validate WAV file generation works correctly on iOS platform. Test proper cleanup and memory management during recording sessions. Verify audio permissions are properly requested and handled on iOS. Cross-platform testing to ensure Android functionality remains intact.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          3
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Fix iOS AudioRecorder Java Import Dependencies",
+            "description": "Replace Java-specific imports and classes in iOS AudioRecorder implementation with Kotlin Multiplatform equivalents",
+            "details": "CRITICAL BUILD ISSUE: The iOS AudioRecorder implementation (shared/src/iosMain/kotlin/.../AudioRecorder.ios.kt) contains Java-specific imports and class references that prevent iOS compilation.\n\nSPECIFIC COMPILATION ERRORS TO FIX:\n1. Unresolved reference 'java' imports:\n   - import java.io.*\n   - import java.util.*\n   - import java.util.concurrent.*\n\n2. Unresolved Java class references:\n   - AtomicBoolean -> Replace with kotlinx.atomicfu.AtomicBoolean or platform-specific equivalent\n   - AtomicReference -> Replace with kotlinx.atomicfu.AtomicRef\n   - CopyOnWriteArrayList -> Replace with thread-safe Kotlin collection or synchronized wrapper\n\n3. Unresolved iOS audio constants:\n   - kAudioFormatLinearPCM -> Use proper AVAudioFormat constants via Kotlin/Native interop\n\n4. Invalid operator usage:\n   - Multiple 'not' operator usage ('!') -> Replace with proper Kotlin boolean negation\n\n5. Type inference and platform API issues:\n   - NSObject assignment type mismatches\n   - Incorrect method signatures for iOS audio APIs\n   - Missing NSFileManager usage for iOS file operations\n\nIMPLEMENTATION PLAN:\n- Replace java.util.concurrent.atomic classes with kotlinx.atomicfu equivalents\n- Implement proper iOS audio session management using AVAudioSession\n- Use NSFileManager for iOS file operations instead of Java File APIs\n- Implement proper Kotlin/Native interop for AVAudioRecorder\n- Add proper iOS audio format configuration\n- Fix memory management and resource cleanup for iOS platform\n- Ensure proper thread safety using iOS-appropriate mechanisms\n\nDEPENDENCIES:\n- May require adding kotlinx-atomicfu dependency to build.gradle.kts\n- Ensure proper iOS audio framework linking in build configuration\n- Verify NSMicrophoneUsageDescription is properly configured in iOS Info.plist",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 26
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-15T23:00:49.264Z",
+      "updated": "2025-08-15T23:19:35.176Z",
       "description": "Tasks for master context"
     }
   }

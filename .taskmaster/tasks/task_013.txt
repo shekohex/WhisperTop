@@ -1,0 +1,11 @@
+# Task ID: 13
+# Title: Implement API Key Configuration UI
+# Status: pending
+# Dependencies: 4, 12
+# Priority: medium
+# Description: Create secure API key entry and validation interface
+# Details:
+Design API key input field with proper masking and validation. Add endpoint configuration with default OpenAI URL. Implement real-time validation against OpenAI API format (sk-...). Add test connection functionality to verify API key validity. Create clear error messages for invalid keys. Implement delete API key functionality with confirmation dialog.
+
+# Test Strategy:
+Test API key validation, verify secure storage, test connection validation with valid/invalid keys

@@ -1,0 +1,55 @@
+# Task ID: 6
+# Title: Build OpenAI API Client
+# Status: pending
+# Dependencies: 1, 4
+# Priority: high
+# Description: Create HTTP client for OpenAI audio transcriptions API with proper error handling
+# Details:
+Use OkHttp with multipart/form-data support for file uploads. Create OpenAIApiService with transcribe() method supporting model selection (whisper-1, whisper-3-turbo, gpt-4o-audio-preview). Implement proper error handling for 401, 429, 500 status codes. Add retry mechanism with exponential backoff. Support custom endpoint configuration. Implement request/response logging for debugging.
+
+# Test Strategy:
+Unit tests for request formation and response parsing, integration tests with mock server, error handling tests for various HTTP status codes
+
+# Subtasks:
+## 1. Add OkHttp Dependencies and Configuration [done]
+### Dependencies: None
+### Description: Update build.gradle.kts and libs.versions.toml to include OkHttp, kotlinx-serialization, and logging dependencies required for API client
+### Details:
+Add OkHttp 4.12+, kotlinx-serialization-json 1.6.0, and okhttp-logging-interceptor to libs.versions.toml. Update shared/build.gradle.kts commonMain dependencies to include these libraries. Add serialization plugin to build configuration. Configure proper version catalog entries for consistent dependency management across modules.
+<info added on 2025-08-15T22:01:27.730Z>
+Looking at the current subtask details and the critical update provided, I need to generate new text that reflects the change from OkHttp to Ktor for multiplatform compatibility.
+
+Based on the user request, here's the new text that should be appended to the subtask's details:
+
+CRITICAL UPDATE: Following Task 3's decision to replace OkHttp with Ktor for multiplatform compatibility, this subtask now requires Ktor dependencies instead. Will add ktor-client-core, ktor-client-content-negotiation, ktor-serialization-kotlinx-json, and ktor-client-logging to libs.versions.toml. Update shared/build.gradle.kts commonMain dependencies to include these Ktor libraries. Configure Ktor client engine dependencies for platform-specific implementations (ktor-client-okhttp for Android, ktor-client-darwin for iOS). Add kotlinx-serialization plugin and configure version catalog entries for consistent Ktor-based dependency management across modules.
+</info added on 2025-08-15T22:01:27.730Z>
+
+## 2. Create API Models and Data Classes [done]
+### Dependencies: 6.1
+### Description: Define Kotlin data classes for OpenAI transcription API requests and responses with proper JSON serialization
+### Details:
+Create data classes in shared/src/commonMain/kotlin/data/models/: TranscriptionRequest (file, model, language, prompt), TranscriptionResponse (text, task, language, duration), OpenAIError (error code, message, type). Add @Serializable annotations and configure custom serializers for multipart data. Define enum classes for supported models (whisper-1, whisper-3-turbo, gpt-4o-audio-preview) and language codes.
+
+## 3. Implement Core HTTP Client with Retry Logic [done]
+### Dependencies: 6.1
+### Description: Build the foundational OkHttpClient with interceptors, timeout configuration, and exponential backoff retry mechanism
+### Details:
+Create HttpClientProvider class with OkHttpClient configuration: 30s connect timeout, 60s read/write timeouts. Implement RetryInterceptor with exponential backoff (initial delay 1s, max delay 16s, max retries 3). Add AuthenticationInterceptor for API key header injection. Create extension functions for handling multipart/form-data uploads. Support custom endpoint configuration with default https://api.openai.com/v1/.
+
+## 4. Create OpenAI API Service Interface [done]
+### Dependencies: 6.2, 6.3
+### Description: Implement the main OpenAIApiService class with transcribe() method supporting all specified Whisper models
+### Details:
+Create OpenAIApiService class in data/remote/ package with suspend fun transcribe() method. Support file upload via ByteArray or File input with automatic multipart/form-data formatting. Implement model selection parameter with validation. Add optional parameters for language, prompt, and response_format. Create factory function for service instantiation with API key and endpoint configuration.
+<info added on 2025-08-15T23:00:42.300Z>
+Based on the user request and task context, the implementation of subtask 6.4 has been completed successfully. Here's the new information that should be appended to the subtask details:
+
+Implementation completed with comprehensive OpenAIApiService class featuring transcribe() method with WhisperModel enum validation, overloaded string-based transcribe() method, support for all OpenAI Whisper models (whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe), automatic multipart/form-data formatting using existing MultipartExtensions, model and temperature validation with proper error handling, content type detection based on file extension, optional parameters for language/prompt/response_format/temperature, OpenAIApiException for HTTP errors, support for both standard and verbose JSON response formats, and factory function createOpenAIApiService() for easy instantiation. Comprehensive test suite with 17 tests covering successful transcription scenarios, validation edge cases, error handling, and factory function testing. All tests pass and Android debug build successful.
+</info added on 2025-08-15T23:00:42.300Z>
+
+## 5. Add Error Handling and Logging System [pending]
+### Dependencies: 6.3, 6.4
+### Description: Implement comprehensive error handling for HTTP status codes (401, 429, 500) and request/response logging
+### Details:
+Create sealed class OpenAIException hierarchy: AuthenticationException (401), RateLimitException (429), ServerException (500), NetworkException. Add ErrorHandlingInterceptor to map HTTP status codes to appropriate exceptions. Implement LoggingInterceptor with configurable levels (NONE, BASIC, HEADERS, BODY) for debugging. Add response validation and custom error message parsing from OpenAI error responses.
+

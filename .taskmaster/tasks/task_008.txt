@@ -1,0 +1,11 @@
+# Task ID: 8
+# Title: Set up Accessibility Service for Text Insertion
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create accessibility service to paste transcribed text into focused input fields
+# Details:
+Extend AccessibilityService with proper service configuration in XML. Implement findFocusedEditText() and insertText() methods using AccessibilityNodeInfo. Handle different input field types (EditText, WebView inputs, etc.). Add proper event filtering and node traversal. Implement fallback mechanisms using clipboard and global actions. Handle permission requests and service binding.
+
+# Test Strategy:
+Test text insertion across various apps (messaging, browser, notes), verify accessibility service starts correctly

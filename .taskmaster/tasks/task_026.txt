@@ -1,0 +1,55 @@
+# Task ID: 26
+# Title: Fix iOS Platform Build Issues and AudioRecorder Implementation
+# Status: pending
+# Dependencies: 5, 3
+# Priority: medium
+# Description: Resolve iOS-specific compilation errors and platform implementation issues, focusing on fixing AudioRecorder iOS implementation with incorrect Java references and imports.
+# Details:
+Address iOS-specific build errors in the AudioRecorder implementation by removing Java-specific class references and replacing with appropriate iOS/Kotlin Multiplatform equivalents. Replace Java-specific imports (java.io.*, java.util.*) with Kotlin Multiplatform alternatives. Implement proper iOS audio recording using AVAudioRecorder through Kotlin/Native interop or appropriate KMP audio libraries. Fix platform-specific file I/O operations for iOS using NSFileManager or Kotlin Multiplatform file APIs. Update WAV file generation to use iOS-compatible audio format APIs. Ensure proper memory management and resource cleanup for iOS platform. Address any iOS-specific permissions (NSMicrophoneUsageDescription) and audio session configuration. Update build configuration files (build.gradle.kts) to properly handle iOS targets and dependencies.
+
+# Test Strategy:
+Verify iOS project builds successfully without compilation errors. Test audio recording functionality on iOS simulator and physical devices. Validate WAV file generation works correctly on iOS platform. Test proper cleanup and memory management during recording sessions. Verify audio permissions are properly requested and handled on iOS. Cross-platform testing to ensure Android functionality remains intact.
+
+# Subtasks:
+## 1. Fix iOS AudioRecorder Java Import Dependencies [pending]
+### Dependencies: None
+### Description: Replace Java-specific imports and classes in iOS AudioRecorder implementation with Kotlin Multiplatform equivalents
+### Details:
+CRITICAL BUILD ISSUE: The iOS AudioRecorder implementation (shared/src/iosMain/kotlin/.../AudioRecorder.ios.kt) contains Java-specific imports and class references that prevent iOS compilation.
+
+SPECIFIC COMPILATION ERRORS TO FIX:
+1. Unresolved reference 'java' imports:
+   - import java.io.*
+   - import java.util.*
+   - import java.util.concurrent.*
+
+2. Unresolved Java class references:
+   - AtomicBoolean -> Replace with kotlinx.atomicfu.AtomicBoolean or platform-specific equivalent
+   - AtomicReference -> Replace with kotlinx.atomicfu.AtomicRef
+   - CopyOnWriteArrayList -> Replace with thread-safe Kotlin collection or synchronized wrapper
+
+3. Unresolved iOS audio constants:
+   - kAudioFormatLinearPCM -> Use proper AVAudioFormat constants via Kotlin/Native interop
+
+4. Invalid operator usage:
+   - Multiple 'not' operator usage ('!') -> Replace with proper Kotlin boolean negation
+
+5. Type inference and platform API issues:
+   - NSObject assignment type mismatches
+   - Incorrect method signatures for iOS audio APIs
+   - Missing NSFileManager usage for iOS file operations
+
+IMPLEMENTATION PLAN:
+- Replace java.util.concurrent.atomic classes with kotlinx.atomicfu equivalents
+- Implement proper iOS audio session management using AVAudioSession
+- Use NSFileManager for iOS file operations instead of Java File APIs
+- Implement proper Kotlin/Native interop for AVAudioRecorder
+- Add proper iOS audio format configuration
+- Fix memory management and resource cleanup for iOS platform
+- Ensure proper thread safety using iOS-appropriate mechanisms
+
+DEPENDENCIES:
+- May require adding kotlinx-atomicfu dependency to build.gradle.kts
+- Ensure proper iOS audio framework linking in build configuration
+- Verify NSMicrophoneUsageDescription is properly configured in iOS Info.plist
+

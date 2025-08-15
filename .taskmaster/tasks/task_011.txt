@@ -1,0 +1,11 @@
+# Task ID: 11
+# Title: Integrate Speech-to-Text Workflow
+# Status: pending
+# Dependencies: 6, 8, 10
+# Priority: high
+# Description: Connect audio recording, API processing, and text insertion components
+# Details:
+Create TranscriptionUseCase orchestrating the complete workflow: start recording → generate WAV → upload to OpenAI → parse response → insert text via accessibility. Implement proper error handling and user feedback. Add progress indicators and loading states. Handle network failures and API errors gracefully. Implement caching for temporary audio files.
+
+# Test Strategy:
+End-to-end testing of complete workflow, error scenario testing, performance testing with various audio lengths

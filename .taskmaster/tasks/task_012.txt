@@ -1,0 +1,11 @@
+# Task ID: 12
+# Title: Create Settings Screen Infrastructure
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Build settings screen foundation with Material 3 design and navigation
+# Details:
+Create SettingsScreen composable with Material 3 components. Implement navigation from MainActivity to Settings. Create SettingsViewModel with proper state management. Design sections for API configuration, model selection, language preferences, theme customization, and privacy controls. Implement settings persistence with PreferenceDataStore.
+
+# Test Strategy:
+UI tests for settings navigation, verify settings persistence across app restarts

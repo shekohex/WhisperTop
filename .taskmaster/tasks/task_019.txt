@@ -1,0 +1,11 @@
+# Task ID: 19
+# Title: Add Quick Settings Tile
+# Status: pending
+# Dependencies: 10, 2
+# Priority: medium
+# Description: Implement Quick Settings tile for easy recording trigger
+# Details:
+Create WhisperTopTileService extending TileService. Implement tile state management (active/inactive/unavailable). Add tile click handling to start/stop recording. Implement proper tile icon and label updates. Handle service permissions and availability. Add tile customization options in settings.
+
+# Test Strategy:
+Test tile functionality from Quick Settings, verify state updates correctly, test permission handling

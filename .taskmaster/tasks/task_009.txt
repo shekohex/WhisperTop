@@ -1,0 +1,11 @@
+# Task ID: 9
+# Title: Create Floating Microphone Button UI
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Design and implement draggable floating mic button with state indicators
+# Details:
+Create MicButtonOverlay using Jetpack Compose in overlay window. Implement draggable behavior with touch event handling and screen edge snapping. Add state-based visual indicators: gray (idle), red (recording), blue (processing). Implement animated pulsing ring during recording. Add haptic feedback for state changes. Support different screen sizes and orientations.
+
+# Test Strategy:
+Test dragging behavior across screen, verify state animations work correctly, test on different screen sizes
