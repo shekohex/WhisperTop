@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">WhisperTop</string>
+    <string name="quick_settings_tile_label">WhisperTop Recording</string>
+    <string name="audio_recording_notification_title">Recording Audio</string>
+    <string name="audio_recording_notification_content">WhisperTop is recording audio for transcription</string>
+    <string name="audio_recording_channel_name">Audio Recording</string>
+    <string name="audio_recording_channel_description">Notifications for audio recording service</string>
+    <string name="accessibility_service_description">WhisperTop Accessibility Service for text insertion after voice transcription</string>
 </resources>
