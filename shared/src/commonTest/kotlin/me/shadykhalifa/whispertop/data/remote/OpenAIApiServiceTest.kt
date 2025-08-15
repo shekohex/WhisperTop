@@ -32,6 +32,7 @@ class OpenAIApiServiceTest {
                     encodeDefaults = false
                 })
             }
+            installErrorHandling()
         }
     }
 
@@ -278,10 +279,10 @@ class OpenAIApiServiceTest {
     }
 
     @Test
-    fun `transcribe should throw OpenAIApiException on HTTP error`() = runTest {
+    fun `transcribe should throw OpenAIException on HTTP error`() = runTest {
         // Given
         val mockClient = createMockClient(
-            responseContent = """{"error": {"message": "API key invalid"}}""",
+            responseContent = """{"error": {"message": "API key invalid", "type": "invalid_request_error"}}""",
             statusCode = HttpStatusCode.Unauthorized
         )
         val service = OpenAIApiService(mockClient)
@@ -289,7 +290,7 @@ class OpenAIApiServiceTest {
         val fileName = "test.wav"
         
         // When/Then
-        val exception = assertFailsWith<OpenAIApiException> {
+        val exception = assertFailsWith<OpenAIException.AuthenticationException> {
             service.transcribe(
                 audioData = audioData,
                 fileName = fileName,
@@ -298,7 +299,6 @@ class OpenAIApiServiceTest {
         }
         
         assertEquals(401, exception.statusCode)
-        assertTrue(exception.message!!.contains("Transcription failed with status"))
         
         mockClient.close()
     }
@@ -307,7 +307,7 @@ class OpenAIApiServiceTest {
     fun `transcribe should handle server error status codes`() = runTest {
         // Given
         val mockClient = createMockClient(
-            responseContent = """{"error": {"message": "Internal server error"}}""",
+            responseContent = """{"error": {"message": "Internal server error", "type": "server_error"}}""",
             statusCode = HttpStatusCode.InternalServerError
         )
         val service = OpenAIApiService(mockClient)
@@ -315,7 +315,7 @@ class OpenAIApiServiceTest {
         val fileName = "test.wav"
         
         // When/Then
-        val exception = assertFailsWith<OpenAIApiException> {
+        val exception = assertFailsWith<OpenAIException.ServerException> {
             service.transcribe(
                 audioData = audioData,
                 fileName = fileName,

@@ -59,7 +59,7 @@ class OpenAIErrorDtoTest {
         val exception = OpenAIException.AuthenticationException("Invalid API key")
         
         assertEquals("Invalid API key", exception.message)
-        assertTrue(exception is OpenAIException.AuthenticationException)
+        assertEquals(401, exception.statusCode)
     }
 
     @Test
@@ -67,7 +67,7 @@ class OpenAIErrorDtoTest {
         val exception = OpenAIException.RateLimitException("Rate limit exceeded")
         
         assertEquals("Rate limit exceeded", exception.message)
-        assertTrue(exception is OpenAIException.RateLimitException)
+        assertEquals(429, exception.statusCode)
     }
 
     @Test
@@ -75,7 +75,7 @@ class OpenAIErrorDtoTest {
         val exception = OpenAIException.ServerException("Internal server error")
         
         assertEquals("Internal server error", exception.message)
-        assertTrue(exception is OpenAIException.ServerException)
+        assertEquals(500, exception.statusCode)
     }
 
     @Test
@@ -83,7 +83,7 @@ class OpenAIErrorDtoTest {
         val exception = OpenAIException.InvalidRequestException("Invalid request format")
         
         assertEquals("Invalid request format", exception.message)
-        assertTrue(exception is OpenAIException.InvalidRequestException)
+        assertEquals(400, exception.statusCode)
     }
 
     @Test
@@ -93,7 +93,7 @@ class OpenAIErrorDtoTest {
         
         assertEquals("Network error", exception.message)
         assertEquals(cause, exception.cause)
-        assertTrue(exception is OpenAIException.NetworkException)
+        assertEquals(0, exception.statusCode)
     }
 
     @Test
@@ -102,7 +102,7 @@ class OpenAIErrorDtoTest {
         
         assertEquals("Network error", exception.message)
         assertEquals(null, exception.cause)
-        assertTrue(exception is OpenAIException.NetworkException)
+        assertEquals(0, exception.statusCode)
     }
 
     @Test
@@ -110,6 +110,6 @@ class OpenAIErrorDtoTest {
         val exception = OpenAIException.UnknownException("Unknown error")
         
         assertEquals("Unknown error", exception.message)
-        assertTrue(exception is OpenAIException.UnknownException)
+        assertEquals(0, exception.statusCode)
     }
 }

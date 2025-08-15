@@ -3,14 +3,14 @@ package me.shadykhalifa.whispertop.data.remote
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
 class HttpClientProvider(
     private val baseUrl: String = "https://api.openai.com/v1/",
-    private val apiKey: String? = null
+    private val apiKey: String? = null,
+    private val logLevel: OpenAILogLevel = OpenAILogLevel.BASIC
 ) {
     fun createClient(): HttpClient {
         return HttpClient {
@@ -22,9 +22,8 @@ class HttpClientProvider(
                 })
             }
             
-            install(Logging) {
-                level = LogLevel.INFO
-            }
+            installOpenAILogging(logLevel)
+            installErrorHandling()
             
             install(DefaultRequest) {
                 url(baseUrl)

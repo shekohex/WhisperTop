@@ -38,12 +38,7 @@ class OpenAIApiService(
             transcriptionRequest = request
         )
         
-        if (!response.status.isSuccess()) {
-            throw OpenAIApiException(
-                "Transcription failed with status: ${response.status}",
-                response.status.value
-            )
-        }
+        response.validateOrThrow()
         
         return when (responseFormat) {
             AudioResponseFormat.VERBOSE_JSON -> {
@@ -98,16 +93,14 @@ class OpenAIApiService(
     }
 }
 
-class OpenAIApiException(
-    message: String,
-    val statusCode: Int
-) : Exception(message)
+
 
 fun createOpenAIApiService(
     apiKey: String,
-    baseUrl: String = "https://api.openai.com/v1/"
+    baseUrl: String = "https://api.openai.com/v1/",
+    logLevel: OpenAILogLevel = OpenAILogLevel.BASIC
 ): OpenAIApiService {
-    val httpClientProvider = HttpClientProvider(baseUrl, apiKey)
+    val httpClientProvider = HttpClientProvider(baseUrl, apiKey, logLevel)
     val httpClient = httpClientProvider.createClient()
     return OpenAIApiService(httpClient)
 }
