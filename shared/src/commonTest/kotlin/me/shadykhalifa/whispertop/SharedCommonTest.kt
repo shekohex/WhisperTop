@@ -1,0 +1,12 @@
+package me.shadykhalifa.whispertop
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class SharedCommonTest {
+
+    @Test
+    fun example() {
+        assertEquals(3, 1 + 2)
+    }
+}
