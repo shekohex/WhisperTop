@@ -65,4 +65,14 @@ class SettingsRepositoryImpl(
         val updatedSettings = currentSettings.copy(apiKey = "")
         preferencesDataSource.saveSettings(updatedSettings)
     }
+
+    override suspend fun clearAllData(): Result<Unit> = execute {
+        val defaultSettings = AppSettings()
+        preferencesDataSource.saveSettings(defaultSettings.toEntity())
+        preferencesDataSource.clearLastRecording()
+    }
+
+    override suspend fun cleanupTemporaryFiles(): Result<Unit> = execute {
+        preferencesDataSource.clearLastRecording()
+    }
 }

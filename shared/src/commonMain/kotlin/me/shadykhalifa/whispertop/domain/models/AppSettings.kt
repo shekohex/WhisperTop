@@ -12,7 +12,11 @@ data class AppSettings(
     val languagePreference: LanguagePreference = LanguagePreference(),
     val theme: Theme = Theme.System,
     val enableHapticFeedback: Boolean = true,
-    val enableBatteryOptimization: Boolean = false
+    val enableBatteryOptimization: Boolean = false,
+    val enableUsageAnalytics: Boolean = false,
+    val enableApiCallLogging: Boolean = false,
+    val autoCleanupTempFiles: Boolean = true,
+    val tempFileRetentionDays: Int = 7
 )
 
 enum class Theme {

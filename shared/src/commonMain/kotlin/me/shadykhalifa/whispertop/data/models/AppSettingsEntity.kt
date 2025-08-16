@@ -17,7 +17,11 @@ data class AppSettingsEntity(
     val languagePreference: LanguagePreference = LanguagePreference(),
     val theme: String = "System",
     val enableHapticFeedback: Boolean = true,
-    val enableBatteryOptimization: Boolean = false
+    val enableBatteryOptimization: Boolean = false,
+    val enableUsageAnalytics: Boolean = false,
+    val enableApiCallLogging: Boolean = false,
+    val autoCleanupTempFiles: Boolean = true,
+    val tempFileRetentionDays: Int = 7
 )
 
 fun AppSettingsEntity.toDomain(): AppSettings {
@@ -35,7 +39,11 @@ fun AppSettingsEntity.toDomain(): AppSettings {
             else -> Theme.System
         },
         enableHapticFeedback = enableHapticFeedback,
-        enableBatteryOptimization = enableBatteryOptimization
+        enableBatteryOptimization = enableBatteryOptimization,
+        enableUsageAnalytics = enableUsageAnalytics,
+        enableApiCallLogging = enableApiCallLogging,
+        autoCleanupTempFiles = autoCleanupTempFiles,
+        tempFileRetentionDays = tempFileRetentionDays
     )
 }
 
@@ -50,6 +58,10 @@ fun AppSettings.toEntity(): AppSettingsEntity {
         languagePreference = languagePreference,
         theme = theme.name,
         enableHapticFeedback = enableHapticFeedback,
-        enableBatteryOptimization = enableBatteryOptimization
+        enableBatteryOptimization = enableBatteryOptimization,
+        enableUsageAnalytics = enableUsageAnalytics,
+        enableApiCallLogging = enableApiCallLogging,
+        autoCleanupTempFiles = autoCleanupTempFiles,
+        tempFileRetentionDays = tempFileRetentionDays
     )
 }
