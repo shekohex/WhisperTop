@@ -3,6 +3,8 @@ package me.shadykhalifa.whispertop.data.models
 import kotlinx.serialization.Serializable
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
+import me.shadykhalifa.whispertop.domain.models.LanguagePreference
+import me.shadykhalifa.whispertop.domain.models.Language
 
 @Serializable
 data class AppSettingsEntity(
@@ -12,6 +14,7 @@ data class AppSettingsEntity(
     val modelPreferences: Map<String, String> = emptyMap(), // Model ID -> Use case preference
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
+    val languagePreference: LanguagePreference = LanguagePreference(),
     val theme: String = "System",
     val enableHapticFeedback: Boolean = true,
     val enableBatteryOptimization: Boolean = false
@@ -25,6 +28,7 @@ fun AppSettingsEntity.toDomain(): AppSettings {
         modelPreferences = modelPreferences,
         language = language,
         autoDetectLanguage = autoDetectLanguage,
+        languagePreference = languagePreference,
         theme = when (theme) {
             "Light" -> Theme.Light
             "Dark" -> Theme.Dark
@@ -43,6 +47,7 @@ fun AppSettings.toEntity(): AppSettingsEntity {
         modelPreferences = modelPreferences,
         language = language,
         autoDetectLanguage = autoDetectLanguage,
+        languagePreference = languagePreference,
         theme = theme.name,
         enableHapticFeedback = enableHapticFeedback,
         enableBatteryOptimization = enableBatteryOptimization

@@ -48,6 +48,42 @@ class OpenAIApiService(
             else -> response.body<CreateTranscriptionResponseDto>()
         }
     }
+
+    /**
+     * Transcribe with language detection support
+     * Returns verbose response for language detection information
+     */
+    suspend fun transcribeWithLanguageDetection(
+        audioData: ByteArray,
+        fileName: String,
+        model: WhisperModel = WhisperModel.GPT_4O_TRANSCRIBE,
+        language: String? = null,
+        prompt: String? = null,
+        temperature: Float = 0.0f
+    ): CreateTranscriptionResponseVerboseDto {
+        validateParameters(model, temperature)
+        
+        val request = CreateTranscriptionRequestDto(
+            model = model.modelId,
+            language = language,
+            prompt = prompt,
+            responseFormat = AudioResponseFormat.VERBOSE_JSON.format,
+            temperature = temperature
+        )
+        
+        val contentType = determineContentType(fileName)
+        
+        val response = httpClient.uploadAudioFile(
+            endpoint = "audio/transcriptions",
+            audioData = audioData,
+            fileName = fileName,
+            contentType = contentType,
+            transcriptionRequest = request
+        )
+        
+        response.validateOrThrow()
+        return response.body<CreateTranscriptionResponseVerboseDto>()
+    }
     
     suspend fun transcribe(
         audioData: ByteArray,

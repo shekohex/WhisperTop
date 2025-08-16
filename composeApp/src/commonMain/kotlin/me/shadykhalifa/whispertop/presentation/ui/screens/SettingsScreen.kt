@@ -34,6 +34,7 @@ import me.shadykhalifa.whispertop.presentation.ui.components.ModelSelectionDropd
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelCapabilityCard
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelRecommendationChip
 import me.shadykhalifa.whispertop.presentation.ui.components.CustomModelInput
+import me.shadykhalifa.whispertop.presentation.ui.components.LanguagePreferenceSection
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -135,11 +136,9 @@ fun SettingsScreen(
                 HorizontalDivider()
                 
                 // Language Preferences Section
-                LanguagePreferencesSection(
-                    language = uiState.settings.language,
-                    autoDetectLanguage = uiState.settings.autoDetectLanguage,
-                    onLanguageChange = viewModel::updateLanguage,
-                    onToggleAutoDetect = viewModel::toggleAutoDetectLanguage
+                LanguagePreferenceSection(
+                    preference = uiState.settings.languagePreference,
+                    onPreferenceChange = viewModel::updateLanguagePreference
                 )
                 
                 HorizontalDivider()
@@ -534,63 +533,7 @@ private fun ModelSelectionSection(
     }
 }
 
-@Composable
-private fun LanguagePreferencesSection(
-    language: String?,
-    autoDetectLanguage: Boolean,
-    onLanguageChange: (String?) -> Unit,
-    onToggleAutoDetect: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "Language Preferences",
-                style = MaterialTheme.typography.titleMedium
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
-                ) {
-                    Text(
-                        text = "Auto-detect Language",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Automatically detect the language in audio",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = autoDetectLanguage,
-                    onCheckedChange = { onToggleAutoDetect() }
-                )
-            }
-            
-            if (!autoDetectLanguage) {
-                OutlinedTextField(
-                    value = language ?: "",
-                    onValueChange = { onLanguageChange(it.takeIf { it.isNotBlank() }) },
-                    label = { Text("Language Code (e.g., en, es, fr)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Leave empty for auto-detection") }
-                )
-            }
-        }
-    }
-}
+
 
 @Composable
 private fun ThemeCustomizationSection(

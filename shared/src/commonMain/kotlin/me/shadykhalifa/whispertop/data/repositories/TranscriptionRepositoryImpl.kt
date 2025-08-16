@@ -11,12 +11,18 @@ import me.shadykhalifa.whispertop.data.models.OpenAIException
 import me.shadykhalifa.whispertop.data.models.TranscriptionRequestDto
 import me.shadykhalifa.whispertop.data.models.TranscriptionResponseDto
 import me.shadykhalifa.whispertop.data.models.toDomain
+import me.shadykhalifa.whispertop.data.models.WhisperModel
+import me.shadykhalifa.whispertop.data.remote.OpenAIApiService
+import me.shadykhalifa.whispertop.data.remote.createOpenAIApiService
 import me.shadykhalifa.whispertop.domain.models.TranscriptionError
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.models.TranscriptionResponse
+import me.shadykhalifa.whispertop.domain.models.Language
+import me.shadykhalifa.whispertop.domain.models.LanguageDetectionResult
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
+import me.shadykhalifa.whispertop.domain.usecases.LanguageDetectionUseCase
 import me.shadykhalifa.whispertop.utils.Result
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -24,7 +30,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 class TranscriptionRepositoryImpl(
     private val httpClient: HttpClient,
     private val settingsRepository: SettingsRepository,
-    private val fileReaderService: FileReaderService
+    private val fileReaderService: FileReaderService,
+    private val languageDetectionUseCase: LanguageDetectionUseCase = LanguageDetectionUseCase()
 ) : BaseRepository(), TranscriptionRepository {
 
     private companion object {
@@ -107,6 +114,79 @@ class TranscriptionRepositoryImpl(
             response.status.isSuccess()
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override suspend fun transcribeWithLanguageDetection(
+        request: TranscriptionRequest,
+        userLanguageOverride: Language?
+    ): Result<TranscriptionResponse> = execute {
+        val settings = settingsRepository.getSettings()
+        
+        if (settings.apiKey.isBlank()) {
+            throw TranscriptionError.ApiKeyMissing()
+        }
+
+        try {
+            val audioData = fileReaderService.readFileAsBytes(request.audioFile.path)
+            
+            // Check file size (OpenAI limit is 25MB)
+            if (audioData.size > 25 * 1024 * 1024) {
+                throw TranscriptionError.AudioTooLarge()
+            }
+
+            // Create OpenAI API service
+            val apiService = createOpenAIApiService(settings.apiKey)
+
+            // Determine language for transcription
+            val transcriptionLanguage = languageDetectionUseCase.determineTranscriptionLanguage(
+                preference = settings.languagePreference,
+                userOverride = userLanguageOverride
+            )
+
+            // Use the best model for language detection
+            val modelForDetection = when (request.model) {
+                "gpt-4o-transcribe", "gpt-4o-mini-transcribe" -> WhisperModel.fromString(request.model)
+                else -> WhisperModel.GPT_4O_TRANSCRIBE // Default to best model for language detection
+            } ?: WhisperModel.GPT_4O_TRANSCRIBE
+
+            // Get verbose response for language detection
+            val verboseResponse = apiService.transcribeWithLanguageDetection(
+                audioData = audioData,
+                fileName = "audio.wav",
+                model = modelForDetection,
+                language = transcriptionLanguage,
+                prompt = null,
+                temperature = 0.0f
+            )
+
+            // Create language detection result
+            val languageDetection = languageDetectionUseCase.createDetectionResult(
+                detectedLanguageCode = verboseResponse.language,
+                userOverride = userLanguageOverride,
+                confidence = null // OpenAI doesn't provide confidence scores
+            )
+
+            // Convert to domain model with language detection
+            TranscriptionResponse(
+                text = verboseResponse.text,
+                language = verboseResponse.language,
+                duration = verboseResponse.duration,
+                languageDetection = languageDetection
+            )
+            
+        } catch (e: TranscriptionError) {
+            throw e
+        } catch (e: OpenAIException) {
+            throw TranscriptionError.fromOpenAIException(e)
+        } catch (e: Exception) {
+            if (e.message?.contains("network", ignoreCase = true) == true ||
+                e.message?.contains("timeout", ignoreCase = true) == true ||
+                e.message?.contains("connection", ignoreCase = true) == true) {
+                throw TranscriptionError.NetworkError(e)
+            } else {
+                throw TranscriptionError.UnexpectedError(e)
+            }
         }
     }
 

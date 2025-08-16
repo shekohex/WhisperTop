@@ -55,6 +55,11 @@ fun CreateTranscriptionResponseVerboseDto.toDomain(): me.shadykhalifa.whispertop
     return me.shadykhalifa.whispertop.domain.models.TranscriptionResponse(
         text = text,
         language = language,
-        duration = duration
+        duration = duration,
+        languageDetection = language?.let { langCode ->
+            val detectedLanguage = me.shadykhalifa.whispertop.domain.models.Language.fromCode(langCode) 
+                ?: me.shadykhalifa.whispertop.domain.models.Language.AUTO
+            me.shadykhalifa.whispertop.domain.models.LanguageDetectionResult.autoDetected(detectedLanguage)
+        }
     )
 }

@@ -10,6 +10,7 @@ import me.shadykhalifa.whispertop.data.services.AudioRecorderServiceImpl
 import me.shadykhalifa.whispertop.data.services.FileReaderServiceImpl
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.services.AudioCacheService
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
@@ -70,6 +71,6 @@ val sharedModule = module {
     
     // ViewModels
     singleOf(::RecordingViewModel)
-    factory { SettingsViewModel(get(), get()) }
+    factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>()) }
     singleOf(::ModelSelectionViewModel)
 }

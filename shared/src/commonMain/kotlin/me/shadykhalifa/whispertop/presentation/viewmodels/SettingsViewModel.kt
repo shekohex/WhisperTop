@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
+import me.shadykhalifa.whispertop.domain.models.Language
+import me.shadykhalifa.whispertop.domain.models.LanguagePreference
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
@@ -169,6 +171,22 @@ class SettingsViewModel(
             autoDetectLanguage = !currentSettings.autoDetectLanguage
         )
         updateSettings(updatedSettings)
+    }
+
+    fun updateLanguagePreference(preference: LanguagePreference) {
+        val currentSettings = _uiState.value.settings
+        val updatedSettings = currentSettings.copy(
+            languagePreference = preference
+        )
+        updateSettings(updatedSettings)
+    }
+
+    fun updatePreferredLanguage(language: Language) {
+        val currentSettings = _uiState.value.settings
+        val updatedPreference = currentSettings.languagePreference.copy(
+            preferredLanguage = language
+        )
+        updateLanguagePreference(updatedPreference)
     }
     
     fun toggleHapticFeedback() {
