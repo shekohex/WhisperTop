@@ -8,6 +8,8 @@ import me.shadykhalifa.whispertop.domain.models.Theme
 data class AppSettingsEntity(
     val apiKey: String = "",
     val selectedModel: String = "whisper-1",
+    val customModels: List<String> = emptyList(),
+    val modelPreferences: Map<String, String> = emptyMap(), // Model ID -> Use case preference
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
     val theme: String = "System",
@@ -19,6 +21,8 @@ fun AppSettingsEntity.toDomain(): AppSettings {
     return AppSettings(
         apiKey = apiKey,
         selectedModel = selectedModel,
+        customModels = customModels,
+        modelPreferences = modelPreferences,
         language = language,
         autoDetectLanguage = autoDetectLanguage,
         theme = when (theme) {
@@ -35,6 +39,8 @@ fun AppSettings.toEntity(): AppSettingsEntity {
     return AppSettingsEntity(
         apiKey = apiKey,
         selectedModel = selectedModel,
+        customModels = customModels,
+        modelPreferences = modelPreferences,
         language = language,
         autoDetectLanguage = autoDetectLanguage,
         theme = theme.name,

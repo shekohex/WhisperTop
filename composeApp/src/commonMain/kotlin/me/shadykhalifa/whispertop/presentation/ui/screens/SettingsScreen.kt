@@ -2,6 +2,8 @@ package me.shadykhalifa.whispertop.presentation.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,25 +18,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
+import me.shadykhalifa.whispertop.domain.models.OpenAIModel
+import me.shadykhalifa.whispertop.domain.models.ModelUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ConnectionTestResult
+import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
+import me.shadykhalifa.whispertop.presentation.ui.components.ModelSelectionDropdown
+import me.shadykhalifa.whispertop.presentation.ui.components.ModelCapabilityCard
+import me.shadykhalifa.whispertop.presentation.ui.components.ModelRecommendationChip
+import me.shadykhalifa.whispertop.presentation.ui.components.CustomModelInput
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    viewModel: SettingsViewModel = koinInject()
+    viewModel: SettingsViewModel = koinInject(),
+    modelSelectionViewModel: ModelSelectionViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val modelSelectionState by modelSelectionViewModel.uiState.collectAsStateWithLifecycle()
     
     val snackbarHostState = remember { SnackbarHostState() }
     
@@ -48,8 +60,16 @@ fun SettingsScreen(
         }
     }
     
+    LaunchedEffect(modelSelectionState.error) {
+        modelSelectionState.error?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            modelSelectionViewModel.clearModelSelectionError()
+        }
+    }
 
-    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,8 +92,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // API Configuration Section
                 ApiConfigurationSection(
@@ -100,11 +120,16 @@ fun SettingsScreen(
                 
                 HorizontalDivider()
                 
-                // Model Selection Section
-                ModelSelectionSection(
-                    selectedModel = uiState.settings.selectedModel,
-                    availableModels = uiState.availableModels,
-                    onModelSelected = viewModel::updateSelectedModel
+                // Enhanced Model Selection Section
+                EnhancedModelSelectionSection(
+                    modelSelectionState = modelSelectionState,
+                    onModelSelected = modelSelectionViewModel::selectModel,
+                    onUseCaseRecommendationSelected = modelSelectionViewModel::selectModelByUseCase,
+                    onAddCustomModel = modelSelectionViewModel::showAddCustomModelDialog,
+                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
+                    onCustomModelInputChange = modelSelectionViewModel::updateCustomModelInput,
+                    onConfirmAddCustomModel = modelSelectionViewModel::addCustomModel,
+                    onCancelAddCustomModel = modelSelectionViewModel::hideAddCustomModelDialog
                 )
                 
                 HorizontalDivider()
@@ -137,7 +162,7 @@ fun SettingsScreen(
                 )
             }
             
-            if (isLoading) {
+            if (isLoading || modelSelectionState.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -161,6 +186,88 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EnhancedModelSelectionSection(
+    modelSelectionState: me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionUiState,
+    onModelSelected: (OpenAIModel) -> Unit,
+    onUseCaseRecommendationSelected: (ModelUseCase) -> Unit,
+    onAddCustomModel: () -> Unit,
+    onRemoveCustomModel: (String) -> Unit,
+    onCustomModelInputChange: (String) -> Unit,
+    onConfirmAddCustomModel: () -> Unit,
+    onCancelAddCustomModel: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Model Selection",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            // Model Selection Dropdown
+            ModelSelectionDropdown(
+                selectedModel = modelSelectionState.selectedModel,
+                availableModels = modelSelectionState.availableModels,
+                onModelSelected = onModelSelected,
+                onAddCustomModel = onAddCustomModel,
+                enabled = !modelSelectionState.isLoading
+            )
+            
+            // Show selected model capabilities
+            modelSelectionState.selectedModel?.let { selectedModel ->
+                if (!selectedModel.isCustom) {
+                    ModelCapabilityCard(
+                        model = selectedModel
+                    )
+                }
+            }
+            
+            // Use case recommendations
+            if (modelSelectionState.recommendations.isNotEmpty()) {
+                Text(
+                    text = "Quick Selection",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(
+                        items = modelSelectionState.recommendations.entries.toList(),
+                        key = { it.key }
+                    ) { (useCase, model) ->
+                        ModelRecommendationChip(
+                            useCase = useCase,
+                            recommendedModel = model,
+                            onRecommendationSelected = { onUseCaseRecommendationSelected(useCase) }
+                        )
+                    }
+                }
+            }
+            
+            // Custom Model Input Dialog
+            if (modelSelectionState.showAddCustomModelDialog) {
+                CustomModelInput(
+                    customModelName = modelSelectionState.customModelInput,
+                    onCustomModelNameChange = onCustomModelInputChange,
+                    onAddCustomModel = onConfirmAddCustomModel,
+                    onCancel = onCancelAddCustomModel,
+                    isValid = modelSelectionState.customModelError == null,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -192,8 +299,8 @@ private fun ApiConfigurationSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "API Configuration",
@@ -392,8 +499,8 @@ private fun ModelSelectionSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "Model Selection",
@@ -438,8 +545,8 @@ private fun LanguagePreferencesSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "Language Preferences",
@@ -451,7 +558,11 @@ private fun LanguagePreferencesSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Text(
                         text = "Auto-detect Language",
                         style = MaterialTheme.typography.bodyMedium
@@ -491,8 +602,8 @@ private fun ThemeCustomizationSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "Theme",
@@ -534,8 +645,8 @@ private fun PrivacyControlsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "Privacy & Performance",
@@ -547,7 +658,11 @@ private fun PrivacyControlsSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Text(
                         text = "Haptic Feedback",
                         style = MaterialTheme.typography.bodyMedium
@@ -569,7 +684,11 @@ private fun PrivacyControlsSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Text(
                         text = "Battery Optimization",
                         style = MaterialTheme.typography.bodyMedium

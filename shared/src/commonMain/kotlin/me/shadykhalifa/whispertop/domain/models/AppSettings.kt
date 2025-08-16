@@ -3,6 +3,8 @@ package me.shadykhalifa.whispertop.domain.models
 data class AppSettings(
     val apiKey: String = "",
     val selectedModel: String = "whisper-1",
+    val customModels: List<String> = emptyList(),
+    val modelPreferences: Map<String, String> = emptyMap(),
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
     val theme: Theme = Theme.System,

@@ -397,7 +397,7 @@
           12,
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -405,7 +405,7 @@
             "description": "Define data structures for OpenAI transcription models including names, capabilities, pricing, and descriptions",
             "dependencies": [],
             "details": "Create data classes for OpenAIModel with fields for modelId, displayName, description, capabilities (speed/accuracy), pricing information, and use case recommendations. Include predefined models: whisper-1, whisper-3-turbo, gpt-4o-audio-preview. Add sealed class for ModelCapability and data class for PricingInfo.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for data class serialization, validation of predefined models, and capability comparison logic"
           },
           {
@@ -416,7 +416,7 @@
               "14.1"
             ],
             "details": "Add DataStore dependency to build.gradle.kts. Create PreferencesManager with DataStore<Preferences> for storing selected model ID, custom model names, and user preferences. Implement suspend functions for saving and retrieving model selection. Create default model selection logic based on use case.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for preferences storage/retrieval, integration tests for persistence across app restarts, test default model selection"
           },
           {
@@ -427,7 +427,7 @@
               "14.1"
             ],
             "details": "Create ModelSelectionDropdown composable with ExposedDropdownMenuBox using Material 3 components. Add ModelCapabilityCard to display model descriptions and pricing. Implement CustomModelInput composable for advanced users. Add ModelRecommendationChip for use case-based suggestions. Include proper accessibility support and loading states.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests for dropdown interaction, custom input validation, recommendation selection, and accessibility compliance"
           },
           {
@@ -438,7 +438,7 @@
               "14.2"
             ],
             "details": "Create ModelSelectionViewModel extending ViewModel with StateFlow for UI state management. Implement model selection logic, custom model validation, and preference persistence. Add use case recommendation algorithm (speed vs accuracy). Handle loading states and error scenarios. Create sealed class for ModelSelectionUiState.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for ViewModel state transitions, model selection persistence, recommendation logic, and error handling scenarios"
           },
           {
@@ -450,7 +450,7 @@
               "14.4"
             ],
             "details": "Create ModelSelectionSection composable that combines dropdown, custom input, and recommendations. Integrate with SettingsScreen from task 12 infrastructure. Add navigation between model selection and main settings. Implement proper state sharing and lifecycle management. Add confirmation dialogs for model changes that affect ongoing operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for settings navigation, state persistence across screen changes, and confirmation dialog behavior"
           }
         ]
@@ -466,7 +466,7 @@
           6,
           12
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
@@ -733,7 +733,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-16T16:58:02.644Z",
+      "updated": "2025-08-16T17:32:44.285Z",
       "description": "Tasks for master context"
     }
   }

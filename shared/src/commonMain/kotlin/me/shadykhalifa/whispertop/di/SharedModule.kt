@@ -29,6 +29,8 @@ import me.shadykhalifa.whispertop.domain.usecases.TranscriptionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
+import me.shadykhalifa.whispertop.data.local.ModelSelectionPreferencesManager
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -42,6 +44,9 @@ val sharedModule = module {
     single<AudioRecorderService> { AudioRecorderServiceImpl(get()) }
     single<FileReaderService> { FileReaderServiceImpl(get()) }
     singleOf(::AudioCacheServiceImpl) { bind<AudioCacheService>() }
+    
+    // Model Selection Preferences Manager
+    singleOf(::ModelSelectionPreferencesManager)
     
     // Error Handling Services
     singleOf(::RetryServiceImpl) { bind<RetryService>() }
@@ -66,4 +71,5 @@ val sharedModule = module {
     // ViewModels
     singleOf(::RecordingViewModel)
     factory { SettingsViewModel(get(), get()) }
+    singleOf(::ModelSelectionViewModel)
 }
