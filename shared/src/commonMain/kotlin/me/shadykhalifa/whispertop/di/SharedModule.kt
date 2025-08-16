@@ -14,6 +14,14 @@ import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.services.AudioCacheService
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
+import me.shadykhalifa.whispertop.domain.services.RetryService
+import me.shadykhalifa.whispertop.domain.services.RetryServiceImpl
+import me.shadykhalifa.whispertop.domain.services.ErrorLoggingService
+import me.shadykhalifa.whispertop.domain.services.ErrorLoggingServiceImpl
+import me.shadykhalifa.whispertop.domain.services.ConnectionStatusService
+import me.shadykhalifa.whispertop.domain.services.ConnectionStatusServiceImpl
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationServiceImpl
 import me.shadykhalifa.whispertop.domain.managers.RecordingManager
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
@@ -34,6 +42,12 @@ val sharedModule = module {
     single<AudioRecorderService> { AudioRecorderServiceImpl(get()) }
     single<FileReaderService> { FileReaderServiceImpl(get()) }
     singleOf(::AudioCacheServiceImpl) { bind<AudioCacheService>() }
+    
+    // Error Handling Services
+    singleOf(::RetryServiceImpl) { bind<RetryService>() }
+    singleOf(::ErrorLoggingServiceImpl) { bind<ErrorLoggingService>() }
+    singleOf(::ErrorNotificationServiceImpl) { bind<ErrorNotificationService>() }
+    singleOf(::ConnectionStatusServiceImpl) { bind<ConnectionStatusService>() }
     
     // Repositories - Now depend on service interfaces instead of platform-specific implementations
     singleOf(::SettingsRepositoryImpl) { bind<SettingsRepository>() }

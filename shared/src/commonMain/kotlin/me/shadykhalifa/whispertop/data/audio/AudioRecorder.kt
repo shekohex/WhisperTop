@@ -40,7 +40,7 @@ sealed class AudioRecordingResult {
     data class Error(val error: AudioRecordingError) : AudioRecordingResult()
 }
 
-sealed class AudioRecordingError(val message: String, val cause: Throwable? = null) {
+sealed class AudioRecordingError(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class PermissionDenied(cause: Throwable? = null) : AudioRecordingError("Audio recording permission denied", cause)
     class DeviceUnavailable(cause: Throwable? = null) : AudioRecordingError("Audio recording device unavailable", cause)
     class ConfigurationError(cause: Throwable? = null) : AudioRecordingError("Audio configuration error", cause)
