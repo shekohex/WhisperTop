@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import me.shadykhalifa.whispertop.data.audio.getCurrentTimeMillis
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSource
 import me.shadykhalifa.whispertop.data.models.toDomain
 import me.shadykhalifa.whispertop.data.models.toEntity
@@ -26,16 +27,16 @@ class AudioRepositoryImpl(
             throw IllegalStateException("Recording already in progress")
         }
         
-        _recordingState.value = RecordingState.Recording
+        _recordingState.value = RecordingState.Recording(startTime = getCurrentTimeMillis())
         audioRecorderService.startRecording()
     }
 
     override suspend fun stopRecording(): Result<AudioFile> = execute {
-        if (_recordingState.value != RecordingState.Recording) {
+        if (_recordingState.value !is RecordingState.Recording) {
             throw IllegalStateException("No recording in progress")
         }
         
-        _recordingState.value = RecordingState.Processing
+        _recordingState.value = RecordingState.Processing()
         
         try {
             val audioFile = audioRecorderService.stopRecording()
@@ -43,13 +44,13 @@ class AudioRepositoryImpl(
             _recordingState.value = RecordingState.Idle
             audioFile
         } catch (e: Exception) {
-            _recordingState.value = RecordingState.Error("Failed to stop recording", e)
+            _recordingState.value = RecordingState.Error(throwable = e, retryable = true)
             throw e
         }
     }
 
     override suspend fun cancelRecording(): Result<Unit> = execute {
-        if (_recordingState.value != RecordingState.Recording) {
+        if (_recordingState.value !is RecordingState.Recording) {
             throw IllegalStateException("No recording in progress")
         }
         
@@ -58,7 +59,7 @@ class AudioRepositoryImpl(
     }
 
     override fun isRecording(): Boolean {
-        return _recordingState.value == RecordingState.Recording
+        return _recordingState.value is RecordingState.Recording
     }
 
     override suspend fun getLastRecording(): AudioFile? {

@@ -12,6 +12,7 @@ import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
+import me.shadykhalifa.whispertop.domain.managers.RecordingManager
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
@@ -33,6 +34,9 @@ val sharedModule = module {
     singleOf(::SettingsRepositoryImpl) { bind<SettingsRepository>() }
     singleOf(::AudioRepositoryImpl) { bind<AudioRepository>() }
     singleOf(::TranscriptionRepositoryImpl) { bind<TranscriptionRepository>() }
+    
+    // Managers
+    singleOf(::RecordingManager)
     
     // Use Cases
     factoryOf(::StartRecordingUseCase)

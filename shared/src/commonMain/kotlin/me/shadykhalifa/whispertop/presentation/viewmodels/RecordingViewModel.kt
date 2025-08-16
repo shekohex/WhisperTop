@@ -3,6 +3,8 @@ package me.shadykhalifa.whispertop.presentation.viewmodels
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import me.shadykhalifa.whispertop.data.audio.getCurrentTimeMillis
+import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
@@ -22,12 +24,12 @@ class RecordingViewModel(
         launchSafely { 
             when (val result = startRecordingUseCase()) {
                 is Result.Success -> {
-                    _recordingState.value = RecordingState.Recording
+                    _recordingState.value = RecordingState.Recording(startTime = getCurrentTimeMillis())
                 }
                 is Result.Error -> {
                     _recordingState.value = RecordingState.Error(
-                        message = result.exception.message ?: "Failed to start recording",
-                        exception = result.exception
+                        throwable = result.exception,
+                        retryable = true
                     )
                 }
                 is Result.Loading -> {
@@ -39,16 +41,28 @@ class RecordingViewModel(
     
     fun stopRecording() {
         launchSafely {
-            _recordingState.value = RecordingState.Processing
+            _recordingState.value = RecordingState.Processing()
             
             when (val result = stopRecordingUseCase()) {
                 is Result.Success -> {
-                    _recordingState.value = RecordingState.Success(result.data)
+                    // Get the last recorded file from the repository
+                    val audioFile = audioRepository.getLastRecording()
+                    if (audioFile != null) {
+                        _recordingState.value = RecordingState.Success(
+                            audioFile = audioFile,
+                            transcription = result.data
+                        )
+                    } else {
+                        _recordingState.value = RecordingState.Error(
+                            throwable = IllegalStateException("Could not retrieve recorded audio file"),
+                            retryable = false
+                        )
+                    }
                 }
                 is Result.Error -> {
                     _recordingState.value = RecordingState.Error(
-                        message = result.exception.message ?: "Failed to process recording",
-                        exception = result.exception
+                        throwable = result.exception,
+                        retryable = true
                     )
                 }
                 is Result.Loading -> {
