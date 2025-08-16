@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -156,8 +158,22 @@ fun SettingsScreen(
                 // Privacy Controls Section
                 PrivacyControlsSection(
                     settings = uiState.settings,
+                    showClearAllDataDialog = uiState.showClearAllDataDialog,
+                    showPrivacyPolicyDialog = uiState.showPrivacyPolicyDialog,
+                    clearingAllData = uiState.clearingAllData,
+                    cleaningTempFiles = uiState.cleaningTempFiles,
                     onToggleHapticFeedback = viewModel::toggleHapticFeedback,
-                    onToggleBatteryOptimization = viewModel::toggleBatteryOptimization
+                    onToggleBatteryOptimization = viewModel::toggleBatteryOptimization,
+                    onToggleUsageAnalytics = viewModel::toggleUsageAnalytics,
+                    onToggleApiCallLogging = viewModel::toggleApiCallLogging,
+                    onToggleAutoCleanupTempFiles = viewModel::toggleAutoCleanupTempFiles,
+                    onUpdateTempFileRetentionDays = viewModel::updateTempFileRetentionDays,
+                    onShowClearAllDataDialog = viewModel::showClearAllDataDialog,
+                    onConfirmClearAllData = viewModel::confirmClearAllData,
+                    onDismissClearAllDataDialog = viewModel::dismissClearAllDataDialog,
+                    onCleanupTemporaryFiles = viewModel::cleanupTemporaryFiles,
+                    onShowPrivacyPolicyDialog = viewModel::showPrivacyPolicyDialog,
+                    onDismissPrivacyPolicyDialog = viewModel::dismissPrivacyPolicyDialog
                 )
             }
             
@@ -580,8 +596,22 @@ private fun ThemeCustomizationSection(
 @Composable
 private fun PrivacyControlsSection(
     settings: AppSettings,
+    showClearAllDataDialog: Boolean,
+    showPrivacyPolicyDialog: Boolean,
+    clearingAllData: Boolean,
+    cleaningTempFiles: Boolean,
     onToggleHapticFeedback: () -> Unit,
-    onToggleBatteryOptimization: () -> Unit
+    onToggleBatteryOptimization: () -> Unit,
+    onToggleUsageAnalytics: () -> Unit,
+    onToggleApiCallLogging: () -> Unit,
+    onToggleAutoCleanupTempFiles: () -> Unit,
+    onUpdateTempFileRetentionDays: (Int) -> Unit,
+    onShowClearAllDataDialog: () -> Unit,
+    onConfirmClearAllData: () -> Unit,
+    onDismissClearAllDataDialog: () -> Unit,
+    onCleanupTemporaryFiles: () -> Unit,
+    onShowPrivacyPolicyDialog: () -> Unit,
+    onDismissPrivacyPolicyDialog: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -591,8 +621,192 @@ private fun PrivacyControlsSection(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Privacy & Performance",
+                text = "Privacy & Data Management",
                 style = MaterialTheme.typography.titleMedium
+            )
+            
+            // Data Usage Transparency
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Data Usage",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "WhisperTop only uses your own OpenAI API key to process audio.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• Audio files are processed locally and sent directly to OpenAI",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• No data is stored on our servers",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• API keys are stored securely on your device",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            
+            HorizontalDivider()
+            
+            // Privacy Settings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
+                    Text(
+                        text = "Usage Analytics",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Help improve the app by sharing anonymous usage data",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.enableUsageAnalytics,
+                    onCheckedChange = { onToggleUsageAnalytics() }
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
+                    Text(
+                        text = "API Call Logging",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Log API calls for debugging purposes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.enableApiCallLogging,
+                    onCheckedChange = { onToggleApiCallLogging() }
+                )
+            }
+            
+            HorizontalDivider()
+            
+            // Temporary File Management
+            Text(
+                text = "File Management",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
+                    Text(
+                        text = "Auto-cleanup Temporary Files",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Automatically delete audio files after ${settings.tempFileRetentionDays} days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.autoCleanupTempFiles,
+                    onCheckedChange = { onToggleAutoCleanupTempFiles() }
+                )
+            }
+            
+            if (settings.autoCleanupTempFiles) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Retention Days: ${settings.tempFileRetentionDays}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { onUpdateTempFileRetentionDays(settings.tempFileRetentionDays - 1) },
+                            enabled = settings.tempFileRetentionDays > 1
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease days")
+                        }
+                        IconButton(
+                            onClick = { onUpdateTempFileRetentionDays(settings.tempFileRetentionDays + 1) },
+                            enabled = settings.tempFileRetentionDays < 30
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Increase days")
+                        }
+                    }
+                }
+            }
+            
+            Button(
+                onClick = onCleanupTemporaryFiles,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !cleaningTempFiles
+            ) {
+                if (cleaningTempFiles) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Clean Up Temporary Files Now")
+            }
+            
+            HorizontalDivider()
+            
+            // Performance Settings
+            Text(
+                text = "Performance",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
             
             Row(
@@ -644,6 +858,113 @@ private fun PrivacyControlsSection(
                 Switch(
                     checked = settings.enableBatteryOptimization,
                     onCheckedChange = { onToggleBatteryOptimization() }
+                )
+            }
+            
+            HorizontalDivider()
+            
+            // Data Management Actions
+            Text(
+                text = "Data Management",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onShowPrivacyPolicyDialog,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Privacy Policy")
+                }
+                
+                Button(
+                    onClick = onShowClearAllDataDialog,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    enabled = !clearingAllData
+                ) {
+                    if (clearingAllData) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text("Clear All Data")
+                }
+            }
+            
+            // Clear All Data Confirmation Dialog
+            if (showClearAllDataDialog) {
+                AlertDialog(
+                    onDismissRequest = onDismissClearAllDataDialog,
+                    title = {
+                        Text("Clear All Data")
+                    },
+                    text = {
+                        Text(
+                            "This will permanently delete:\n" +
+                                    "• Your API key and settings\n" +
+                                    "• All temporary audio files\n" +
+                                    "• All stored preferences\n\n" +
+                                    "This action cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = onConfirmClearAllData,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Clear All Data")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = onDismissClearAllDataDialog) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+            
+            // Privacy Policy Dialog
+            if (showPrivacyPolicyDialog) {
+                AlertDialog(
+                    onDismissRequest = onDismissPrivacyPolicyDialog,
+                    title = {
+                        Text("Privacy Policy")
+                    },
+                    text = {
+                        Text(
+                            "WhisperTop Privacy Policy\n\n" +
+                                    "Data Collection:\n" +
+                                    "• We do not collect any personal data\n" +
+                                    "• Audio files are processed locally\n" +
+                                    "• API keys are stored securely on your device\n\n" +
+                                    "Data Usage:\n" +
+                                    "• Audio is sent directly to OpenAI using your API key\n" +
+                                    "• No data passes through our servers\n" +
+                                    "• Usage analytics are anonymous and optional\n\n" +
+                                    "Data Storage:\n" +
+                                    "• Temporary audio files are automatically cleaned up\n" +
+                                    "• Settings are stored locally\n" +
+                                    "• You can clear all data at any time\n\n" +
+                                    "Contact: For questions about privacy, please contact support."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = onDismissPrivacyPolicyDialog) {
+                            Text("Close")
+                        }
+                    }
                 )
             }
         }
