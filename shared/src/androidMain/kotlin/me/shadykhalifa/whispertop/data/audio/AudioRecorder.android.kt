@@ -31,6 +31,8 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     private val context: Context by inject()
     private val configuration: AudioConfigurationProvider = AudioConfiguration()
     private val audioFocusManager: AudioFocusManager = AudioFocusManagerImpl()
+    private val qualityManager: AudioQualityManager = AudioQualityManager()
+    private val audioProcessor: AudioProcessor = AudioProcessor()
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recordingExecutor = Executors.newSingleThreadExecutor { Thread(it, "AudioRecorder") }
@@ -95,10 +97,24 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
                     audioRecord = audioRecord!!,
                     outputPath = outputPath,
                     bufferSize = bufferSize,
+                    qualityManager = qualityManager,
+                    audioProcessor = audioProcessor,
                     onError = { error ->
                         scope.launch {
                             cleanupRecording()
                             notifyStateListeners { onRecordingError(error) }
+                        }
+                    },
+                    onFileSizeLimit = {
+                        scope.launch {
+                            stopRecording()
+                            notifyStateListeners { 
+                                onRecordingError(
+                                    AudioRecordingError.IOError(
+                                        Exception("Recording stopped: Maximum file size reached (25MB)")
+                                    )
+                                )
+                            }
                         }
                     }
                 )
@@ -109,6 +125,7 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
                 // Start recording
                 audioRecord!!.startRecording()
                 recordingThread!!.start()
+                qualityManager.startMonitoring()
                 
                 notifyStateListeners { onRecordingStarted() }
                 AudioRecordingResult.Success
@@ -263,6 +280,12 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
         }
     }
     
+    fun getQualityReport(): QualityReport = qualityManager.getQualityReport()
+    
+    fun getCurrentMetrics(): AudioMetrics = qualityManager.currentMetrics.value
+    
+    fun getRecordingStatistics(): RecordingStatistics? = qualityManager.recordingStatistics.value
+    
     fun cleanup() {
         scope.cancel()
         recordingExecutor.shutdown()
@@ -274,7 +297,10 @@ private class AudioRecordingThread(
     private val audioRecord: AudioRecord,
     private val outputPath: String,
     private val bufferSize: Int,
-    private val onError: (AudioRecordingError) -> Unit
+    private val qualityManager: AudioQualityManager,
+    private val audioProcessor: AudioProcessor,
+    private val onError: (AudioRecordingError) -> Unit,
+    private val onFileSizeLimit: () -> Unit
 ) : Thread("AudioRecordingThread") {
     
     private val quit = AtomicBoolean(false)
@@ -289,6 +315,7 @@ private class AudioRecordingThread(
             startTime.set(System.currentTimeMillis())
             val buffer = ShortArray(bufferSize / 2)
             val allData = mutableListOf<Short>()
+            var totalBytes = 0L
             
             while (!quit.get()) {
                 if (paused.get()) {
@@ -298,6 +325,27 @@ private class AudioRecordingThread(
                 
                 val read = audioRecord.read(buffer, 0, buffer.size)
                 if (read > 0) {
+                    // Process buffer for quality metrics
+                    val bufferSlice = if (read < buffer.size) {
+                        buffer.sliceArray(0 until read)
+                    } else {
+                        buffer
+                    }
+                    
+                    qualityManager.processAudioBuffer(bufferSlice)
+                    
+                    // Check if we should stop due to file size
+                    totalBytes += read * 2 // 2 bytes per sample
+                    if (totalBytes >= RecordingConstraints.MAX_FILE_SIZE_BYTES * 0.95) {
+                        onFileSizeLimit()
+                        break
+                    }
+                    
+                    // Check if quality manager suggests stopping
+                    if (qualityManager.shouldStopRecording()) {
+                        break
+                    }
+                    
                     for (i in 0 until read) {
                         allData.add(buffer[i])
                     }
@@ -309,8 +357,11 @@ private class AudioRecordingThread(
             
             endTime.set(System.currentTimeMillis())
             
+            // Process audio before saving
+            val processedData = audioProcessor.processAudio(allData.toShortArray())
+            
             // Write WAV file
-            WAVFileWriter().encodeWaveFile(outputPath, allData.toShortArray())
+            WAVFileWriter().encodeWaveFile(outputPath, processedData)
             
         } catch (e: Exception) {
             endTime.set(System.currentTimeMillis())
