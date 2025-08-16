@@ -7,9 +7,11 @@ import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.shadykhalifa.whispertop.data.models.OpenAIException
 import me.shadykhalifa.whispertop.data.models.TranscriptionRequestDto
 import me.shadykhalifa.whispertop.data.models.TranscriptionResponseDto
 import me.shadykhalifa.whispertop.data.models.toDomain
+import me.shadykhalifa.whispertop.domain.models.TranscriptionError
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.models.TranscriptionResponse
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
@@ -34,36 +36,61 @@ class TranscriptionRepositoryImpl(
         val settings = settingsRepository.getSettings()
         
         if (settings.apiKey.isBlank()) {
-            throw IllegalStateException("API key not configured")
+            throw TranscriptionError.ApiKeyMissing()
         }
 
-        val audioData = fileReaderService.readFileAsBytes(request.audioFile.path)
-        
-        val response = httpClient.submitFormWithBinaryData(
-            url = TRANSCRIPTIONS_ENDPOINT,
-            formData = formData {
-                append("file", audioData, Headers.build {
-                    append(HttpHeaders.ContentType, "audio/wav")
-                    append(HttpHeaders.ContentDisposition, "filename=\"audio.wav\"")
-                })
-                append("model", request.model)
-                append("response_format", "json")
-                if (request.language != null) {
-                    append("language", request.language)
+        try {
+            val audioData = fileReaderService.readFileAsBytes(request.audioFile.path)
+            
+            // Check file size (OpenAI limit is 25MB)
+            if (audioData.size > 25 * 1024 * 1024) {
+                throw TranscriptionError.AudioTooLarge()
+            }
+            
+            val response = httpClient.submitFormWithBinaryData(
+                url = TRANSCRIPTIONS_ENDPOINT,
+                formData = formData {
+                    append("file", audioData, Headers.build {
+                        append(HttpHeaders.ContentType, "audio/wav")
+                        append(HttpHeaders.ContentDisposition, "filename=\"audio.wav\"")
+                    })
+                    append("model", request.model)
+                    append("response_format", "json")
+                    if (request.language != null) {
+                        append("language", request.language)
+                    }
+                }
+            ) {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer ${settings.apiKey}")
                 }
             }
-        ) {
-            headers {
-                append(HttpHeaders.Authorization, "Bearer ${settings.apiKey}")
+
+            if (!response.status.isSuccess()) {
+                when (response.status.value) {
+                    401 -> throw TranscriptionError.AuthenticationError()
+                    429 -> throw TranscriptionError.RateLimitError()
+                    in 500..599 -> throw TranscriptionError.ApiError(response.status.value, "Server error")
+                    else -> throw TranscriptionError.ApiError(response.status.value, "API error: ${response.status}")
+                }
+            }
+
+            val transcriptionResponse: TranscriptionResponseDto = response.body()
+            transcriptionResponse.toDomain()
+            
+        } catch (e: TranscriptionError) {
+            throw e
+        } catch (e: OpenAIException) {
+            throw TranscriptionError.fromOpenAIException(e)
+        } catch (e: Exception) {
+            if (e.message?.contains("network", ignoreCase = true) == true ||
+                e.message?.contains("timeout", ignoreCase = true) == true ||
+                e.message?.contains("connection", ignoreCase = true) == true) {
+                throw TranscriptionError.NetworkError(e)
+            } else {
+                throw TranscriptionError.UnexpectedError(e)
             }
         }
-
-        if (!response.status.isSuccess()) {
-            throw Exception("Transcription failed with status: ${response.status}")
-        }
-
-        val transcriptionResponse: TranscriptionResponseDto = response.body()
-        transcriptionResponse.toDomain()
     }
 
     override suspend fun validateApiKey(apiKey: String): Result<Boolean> = execute {
