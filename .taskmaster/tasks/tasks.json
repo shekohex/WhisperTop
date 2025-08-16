@@ -681,11 +681,59 @@
             "parentTaskId": 26
           }
         ]
+      },
+      {
+        "id": 27,
+        "title": "Fix API Key Input Field Validation Bug",
+        "description": "Resolve premature validation triggering in OpenAI API key input field that shows error messages before user interaction and fix validation logic in SettingsViewModel.updateApiKey() method.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "**Root Cause Identified:** The validation logic in `SettingsViewModel.updateApiKey()` at lines 46-51 runs immediately when called, including for empty strings. The default `AppSettings.apiKey` is empty (\"\"), which triggers validation error 'API Key cannot be empty' on initial load. Validation also triggers on every keystroke via `onValueChange = onApiKeyChange` in `SettingsScreen.kt:174`, preventing users from typing 's', 'sk', 'sk-' without seeing errors.\n\n**Current Problematic Logic:**\n```kotlin\nval validationError = when {\n    apiKey.isBlank() -> \"API Key cannot be empty\"\n    !apiKey.startsWith(\"sk-\") -> \"Invalid API key format. OpenAI API keys start with 'sk-'\"\n    apiKey.length < 40 -> \"API key is too short. OpenAI API keys are typically 51 characters long\"\n    else -> null\n}\n```\n\n**Required Changes:**\n1. Add user interaction tracking to SettingsViewModel state\n2. Modify validation to only run after user has interacted with the field\n3. Implement proper validation timing (onBlur or after typing completion)\n4. Consider different validation states (untouched vs empty vs invalid vs valid)",
+        "testStrategy": "Test that the input field allows typing immediately without showing validation errors on initial render. Verify validation only triggers after user has started interacting with the field (first keystroke or focus). Test that progressive typing ('s' -> 'sk' -> 'sk-' -> full key) doesn't show premature errors. Verify final validation works correctly for valid and invalid API keys. Test field focus/blur behavior and ensure validation state persists correctly.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add User Interaction Tracking to SettingsViewModel",
+            "description": "Add state to track whether user has interacted with API key field",
+            "status": "done",
+            "dependencies": [],
+            "details": "Add `hasUserInteracted` boolean state to SettingsViewModel. Initialize to false and set to true on first user input. This will be used to determine when validation should be active.",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Modify Validation Logic in updateApiKey Method",
+            "description": "Update validation in SettingsViewModel.updateApiKey() to respect user interaction state",
+            "status": "done",
+            "dependencies": [],
+            "details": "Modify the validation logic at lines 46-51 to only run validation when `hasUserInteracted` is true. For untouched fields, return null for validationError to prevent showing errors on initial load.",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Update SettingsScreen to Handle Interaction State",
+            "description": "Modify SettingsScreen.kt to properly set interaction state on user input",
+            "status": "done",
+            "dependencies": [],
+            "details": "Update the `onValueChange = onApiKeyChange` callback at line 174 to mark user interaction on first keystroke. Ensure the interaction state is properly communicated to the ViewModel.",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Comprehensive Testing for Fixed Validation",
+            "description": "Add tests to verify validation behavior with user interaction tracking",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create unit tests for SettingsViewModel to verify: 1) No validation errors on initial load, 2) Validation triggers after user interaction, 3) Progressive typing doesn't show premature errors, 4) Final validation works correctly for valid/invalid keys. Add UI tests for the complete user interaction flow.",
+            "testStrategy": ""
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-16T13:51:15.486Z",
+      "updated": "2025-08-16T15:27:03.189Z",
       "description": "Tasks for master context"
     }
   }

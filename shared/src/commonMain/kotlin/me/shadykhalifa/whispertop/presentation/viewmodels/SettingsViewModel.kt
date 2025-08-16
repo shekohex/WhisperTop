@@ -1,5 +1,7 @@
 package me.shadykhalifa.whispertop.presentation.viewmodels
 
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,11 +18,11 @@ data class SettingsUiState(
     val availableModels: List<WhisperModel> = WhisperModel.entries,
     val availableThemes: List<Theme> = Theme.entries,
     val isApiKeyVisible: Boolean = false,
-    val validationErrors: Map<String, String> = emptyMap(),
     val savingApiKey: Boolean = false,
     val savingModel: Boolean = false,
     val savingLanguage: Boolean = false,
-    val savingTheme: Boolean = false
+    val savingTheme: Boolean = false,
+    val optimisticApiKey: String? = null
 )
 
 class SettingsViewModel(
@@ -29,6 +31,13 @@ class SettingsViewModel(
     
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    
+    private var saveApiKeyJob: Job? = null
+    private val apiKeySaveDebounceMs = 500L
+    
+    // Computed property to get the current API key value (optimistic or saved)
+    val currentApiKey: String
+        get() = _uiState.value.optimisticApiKey ?: _uiState.value.settings.apiKey
     
     init {
         loadSettings()
@@ -43,43 +52,36 @@ class SettingsViewModel(
     }
     
     fun updateApiKey(apiKey: String) {
-        val validationError = when {
-            apiKey.isBlank() -> "API Key cannot be empty"
-            !apiKey.startsWith("sk-") -> "Invalid API key format. OpenAI API keys start with 'sk-'"
-            apiKey.length < 40 -> "API key is too short. OpenAI API keys are typically 51 characters long"
-            else -> null
-        }
+        // Optimistic update - immediately update UI
+        _uiState.value = _uiState.value.copy(optimisticApiKey = apiKey)
         
-        _uiState.value = _uiState.value.copy(
-            validationErrors = _uiState.value.validationErrors.toMutableMap().apply {
-                if (validationError != null) {
-                    put("apiKey", validationError)
-                } else {
-                    remove("apiKey")
-                }
-            }
-        )
+        // Cancel previous save job if still running
+        saveApiKeyJob?.cancel()
         
-        if (validationError == null) {
+        // Debounce the actual save operation
+        saveApiKeyJob = viewModelScope.launch {
+            delay(apiKeySaveDebounceMs)
+            
             _uiState.value = _uiState.value.copy(savingApiKey = true)
-            viewModelScope.launch { 
-                try {
-                    when (val result = settingsRepository.updateApiKey(apiKey)) {
-                        is Result.Success -> {
-                            // Success handled by flow collection
-                        }
+            try {
+                when (val result = settingsRepository.updateApiKey(apiKey)) {
+                    is Result.Success -> {
+                        // Clear optimistic value when successfully saved
+                        _uiState.value = _uiState.value.copy(optimisticApiKey = null)
+                    }
                     is Result.Error -> {
                         handleError(result.exception)
-                        }
-                        is Result.Loading -> {
-                            // Loading state handled by granular state
-                        }
+                        // Keep optimistic value on error so user doesn't lose their input
                     }
-                } catch (e: Exception) {
-                    handleError(e)
-                } finally {
-                    _uiState.value = _uiState.value.copy(savingApiKey = false)
+                    is Result.Loading -> {
+                        // Loading state handled by granular state
+                    }
                 }
+            } catch (e: Exception) {
+                handleError(e)
+                // Keep optimistic value on error so user doesn't lose their input
+            } finally {
+                _uiState.value = _uiState.value.copy(savingApiKey = false)
             }
         }
     }
@@ -175,14 +177,23 @@ class SettingsViewModel(
     }
     
     fun clearApiKey() {
+        // Cancel any pending save job
+        saveApiKeyJob?.cancel()
+        
+        // Optimistic update - immediately clear the UI
+        _uiState.value = _uiState.value.copy(optimisticApiKey = "")
+        
         viewModelScope.launch { 
             try {
                 when (val result = settingsRepository.clearApiKey()) {
                     is Result.Success -> {
-                        // Success handled by flow collection
+                        // Clear optimistic value when successfully cleared
+                        _uiState.value = _uiState.value.copy(optimisticApiKey = null)
                     }
                     is Result.Error -> {
                         handleError(result.exception)
+                        // Revert optimistic change on error
+                        _uiState.value = _uiState.value.copy(optimisticApiKey = null)
                     }
                     is Result.Loading -> {
                         // Loading state handled by individual operations
@@ -190,6 +201,8 @@ class SettingsViewModel(
                 }
             } catch (e: Exception) {
                 handleError(e)
+                // Revert optimistic change on error
+                _uiState.value = _uiState.value.copy(optimisticApiKey = null)
             }
         }
     }
