@@ -32,7 +32,11 @@ data class SettingsUiState(
     val testingConnection: Boolean = false,
     val connectionTestResult: ConnectionTestResult? = null,
     val apiEndpoint: String = "https://api.openai.com/v1/",
-    val showClearApiKeyDialog: Boolean = false
+    val showClearApiKeyDialog: Boolean = false,
+    val showClearAllDataDialog: Boolean = false,
+    val showPrivacyPolicyDialog: Boolean = false,
+    val clearingAllData: Boolean = false,
+    val cleaningTempFiles: Boolean = false
 )
 
 enum class ConnectionTestResult {
@@ -203,6 +207,111 @@ class SettingsViewModel(
             enableBatteryOptimization = !currentSettings.enableBatteryOptimization
         )
         updateSettings(updatedSettings)
+    }
+    
+    fun toggleUsageAnalytics() {
+        val currentSettings = _uiState.value.settings
+        val updatedSettings = currentSettings.copy(
+            enableUsageAnalytics = !currentSettings.enableUsageAnalytics
+        )
+        updateSettings(updatedSettings)
+    }
+    
+    fun toggleApiCallLogging() {
+        val currentSettings = _uiState.value.settings
+        val updatedSettings = currentSettings.copy(
+            enableApiCallLogging = !currentSettings.enableApiCallLogging
+        )
+        updateSettings(updatedSettings)
+    }
+    
+    fun toggleAutoCleanupTempFiles() {
+        val currentSettings = _uiState.value.settings
+        val updatedSettings = currentSettings.copy(
+            autoCleanupTempFiles = !currentSettings.autoCleanupTempFiles
+        )
+        updateSettings(updatedSettings)
+    }
+    
+    fun updateTempFileRetentionDays(days: Int) {
+        val currentSettings = _uiState.value.settings
+        val updatedSettings = currentSettings.copy(
+            tempFileRetentionDays = days.coerceIn(1, 30)
+        )
+        updateSettings(updatedSettings)
+    }
+    
+    fun showClearAllDataDialog() {
+        _uiState.value = _uiState.value.copy(showClearAllDataDialog = true)
+    }
+    
+    fun dismissClearAllDataDialog() {
+        _uiState.value = _uiState.value.copy(showClearAllDataDialog = false)
+    }
+    
+    fun confirmClearAllData() {
+        _uiState.value = _uiState.value.copy(
+            showClearAllDataDialog = false,
+            clearingAllData = true
+        )
+        
+        viewModelScope.launch {
+            try {
+                when (val result = settingsRepository.clearAllData()) {
+                    is Result.Success -> {
+                        // Clear optimistic values as well
+                        _uiState.value = _uiState.value.copy(
+                            optimisticApiKey = null,
+                            apiKeyValue = "",
+                            validationErrors = emptyMap(),
+                            connectionTestResult = null
+                        )
+                    }
+                    is Result.Error -> {
+                        handleError(result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Loading state handled by individual operations
+                    }
+                }
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _uiState.value = _uiState.value.copy(clearingAllData = false)
+            }
+        }
+    }
+    
+    fun cleanupTemporaryFiles() {
+        _uiState.value = _uiState.value.copy(cleaningTempFiles = true)
+        
+        viewModelScope.launch {
+            try {
+                when (val result = settingsRepository.cleanupTemporaryFiles()) {
+                    is Result.Success -> {
+                        // Show success message or update UI as needed
+                    }
+                    is Result.Error -> {
+                        handleError(result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Loading state handled by individual operations
+                    }
+                }
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _uiState.value = _uiState.value.copy(cleaningTempFiles = false)
+            }
+        }
+    }
+    
+    fun showPrivacyPolicyDialog() {
+        _uiState.value = _uiState.value.copy(showPrivacyPolicyDialog = true)
+    }
+    
+    fun dismissPrivacyPolicyDialog() {
+        _uiState.value = _uiState.value.copy(showPrivacyPolicyDialog = false)
     }
     
     fun toggleApiKeyVisibility() {

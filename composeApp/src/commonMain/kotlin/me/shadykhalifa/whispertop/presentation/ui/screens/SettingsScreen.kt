@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
 import me.shadykhalifa.whispertop.domain.models.OpenAIModel
@@ -154,8 +155,7 @@ fun SettingsScreen(
                 
                 // Privacy Controls Section
                 PrivacyControlsSection(
-                    enableHapticFeedback = uiState.settings.enableHapticFeedback,
-                    enableBatteryOptimization = uiState.settings.enableBatteryOptimization,
+                    settings = uiState.settings,
                     onToggleHapticFeedback = viewModel::toggleHapticFeedback,
                     onToggleBatteryOptimization = viewModel::toggleBatteryOptimization
                 )
@@ -579,8 +579,7 @@ private fun ThemeCustomizationSection(
 
 @Composable
 private fun PrivacyControlsSection(
-    enableHapticFeedback: Boolean,
-    enableBatteryOptimization: Boolean,
+    settings: AppSettings,
     onToggleHapticFeedback: () -> Unit,
     onToggleBatteryOptimization: () -> Unit
 ) {
@@ -617,7 +616,7 @@ private fun PrivacyControlsSection(
                     )
                 }
                 Switch(
-                    checked = enableHapticFeedback,
+                    checked = settings.enableHapticFeedback,
                     onCheckedChange = { onToggleHapticFeedback() }
                 )
             }
@@ -643,7 +642,7 @@ private fun PrivacyControlsSection(
                     )
                 }
                 Switch(
-                    checked = enableBatteryOptimization,
+                    checked = settings.enableBatteryOptimization,
                     onCheckedChange = { onToggleBatteryOptimization() }
                 )
             }
