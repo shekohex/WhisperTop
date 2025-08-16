@@ -1,77 +1,96 @@
 package me.shadykhalifa.whispertop.data.local
 
 import android.content.Context
-import android.content.SharedPreferences
-import kotlinx.coroutines.Dispatchers
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.shadykhalifa.whispertop.data.models.AppSettingsEntity
 import me.shadykhalifa.whispertop.data.models.AudioFileEntity
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "whispertop_settings")
 
 class PreferencesDataSourceImpl(
     private val context: Context
 ) : PreferencesDataSource {
 
     private companion object {
-        const val PREFS_NAME = "whispertop_prefs"
-        const val KEY_SETTINGS = "settings"
-        const val KEY_LAST_RECORDING = "last_recording"
+        val KEY_SETTINGS = stringPreferencesKey("settings")
+        val KEY_LAST_RECORDING = stringPreferencesKey("last_recording")
     }
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val dataStore = context.dataStore
     private val json = Json { ignoreUnknownKeys = true }
     
-    private val _settingsFlow = MutableStateFlow(getSettingsSync())
-    
-    override suspend fun getSettings(): AppSettingsEntity = withContext(Dispatchers.IO) {
-        getSettingsSync()
-    }
-    
-    private fun getSettingsSync(): AppSettingsEntity {
-        val settingsJson = prefs.getString(KEY_SETTINGS, null)
-        return if (settingsJson != null) {
-            try {
-                json.decodeFromString<AppSettingsEntity>(settingsJson)
-            } catch (e: Exception) {
+    override suspend fun getSettings(): AppSettingsEntity {
+        return dataStore.data.map { preferences ->
+            val settingsJson = preferences[KEY_SETTINGS]
+            if (settingsJson != null) {
+                try {
+                    json.decodeFromString<AppSettingsEntity>(settingsJson)
+                } catch (e: Exception) {
+                    AppSettingsEntity()
+                }
+            } else {
                 AppSettingsEntity()
             }
-        } else {
-            AppSettingsEntity()
+        }.first()
+    }
+
+    override suspend fun saveSettings(settings: AppSettingsEntity) {
+        val settingsJson = json.encodeToString(settings)
+        dataStore.edit { preferences ->
+            preferences[KEY_SETTINGS] = settingsJson
         }
     }
 
-    override suspend fun saveSettings(settings: AppSettingsEntity) = withContext(Dispatchers.IO) {
-        val settingsJson = json.encodeToString(settings)
-        prefs.edit().putString(KEY_SETTINGS, settingsJson).apply()
-        _settingsFlow.value = settings
+    override fun getSettingsFlow(): Flow<AppSettingsEntity> {
+        return dataStore.data.map { preferences ->
+            val settingsJson = preferences[KEY_SETTINGS]
+            if (settingsJson != null) {
+                try {
+                    json.decodeFromString<AppSettingsEntity>(settingsJson)
+                } catch (e: Exception) {
+                    AppSettingsEntity()
+                }
+            } else {
+                AppSettingsEntity()
+            }
+        }
     }
 
-    override fun getSettingsFlow(): Flow<AppSettingsEntity> = _settingsFlow.asStateFlow()
-
-    override suspend fun getLastRecording(): AudioFileEntity? = withContext(Dispatchers.IO) {
-        val recordingJson = prefs.getString(KEY_LAST_RECORDING, null)
-        return@withContext if (recordingJson != null) {
-            try {
-                json.decodeFromString<AudioFileEntity>(recordingJson)
-            } catch (e: Exception) {
+    override suspend fun getLastRecording(): AudioFileEntity? {
+        return dataStore.data.map { preferences ->
+            val recordingJson = preferences[KEY_LAST_RECORDING]
+            if (recordingJson != null) {
+                try {
+                    json.decodeFromString<AudioFileEntity>(recordingJson)
+                } catch (e: Exception) {
+                    null
+                }
+            } else {
                 null
             }
-        } else {
-            null
+        }.first()
+    }
+
+    override suspend fun saveLastRecording(audioFile: AudioFileEntity) {
+        val recordingJson = json.encodeToString(audioFile)
+        dataStore.edit { preferences ->
+            preferences[KEY_LAST_RECORDING] = recordingJson
         }
     }
 
-    override suspend fun saveLastRecording(audioFile: AudioFileEntity) = withContext(Dispatchers.IO) {
-        val recordingJson = json.encodeToString(audioFile)
-        prefs.edit().putString(KEY_LAST_RECORDING, recordingJson).apply()
-    }
-
-    override suspend fun clearLastRecording() = withContext(Dispatchers.IO) {
-        prefs.edit().remove(KEY_LAST_RECORDING).apply()
+    override suspend fun clearLastRecording() {
+        dataStore.edit { preferences ->
+            preferences.remove(KEY_LAST_RECORDING)
+        }
     }
 }
 

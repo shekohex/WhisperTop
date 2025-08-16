@@ -24,6 +24,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.lifecycle.service)
             implementation("androidx.lifecycle:lifecycle-process:${libs.versions.androidx.lifecycle.get()}")
+            implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.security.crypto)
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.koin.android)
