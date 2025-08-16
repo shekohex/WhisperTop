@@ -7,9 +7,11 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.runBlocking
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.utils.Result
 import org.junit.After
@@ -19,6 +21,7 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -28,6 +31,9 @@ class SettingsViewModelTest {
     
     @Mock
     private lateinit var settingsRepository: SettingsRepository
+    
+    @Mock
+    private lateinit var securePreferencesRepository: SecurePreferencesRepository
     
     private lateinit var viewModel: SettingsViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -48,8 +54,15 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         
         whenever(settingsRepository.settings).thenReturn(flowOf(defaultSettings))
+        whenever(securePreferencesRepository.validateApiKey("sk-proj-new-api-key-that-is-long-enough-for-validation")).thenReturn(true)
+        whenever(securePreferencesRepository.validateApiKey("")).thenReturn(false)
+        whenever(securePreferencesRepository.validateApiKey("invalid-key")).thenReturn(false)
+        whenever(securePreferencesRepository.validateApiKey("sk-short")).thenReturn(false)
+        runBlocking {
+            whenever(securePreferencesRepository.getApiEndpoint()).thenReturn(Result.Success("https://api.openai.com/v1/"))
+        }
         
-        viewModel = SettingsViewModel(settingsRepository)
+        viewModel = SettingsViewModel(settingsRepository, securePreferencesRepository)
     }
     
     @After

@@ -8,11 +8,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -20,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.ConnectionTestResult
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,10 +78,23 @@ fun SettingsScreen(
                 // API Configuration Section
                 ApiConfigurationSection(
                     apiKey = uiState.optimisticApiKey ?: uiState.settings.apiKey,
+                    apiKeyValue = uiState.apiKeyValue,
+                    apiEndpoint = uiState.apiEndpoint,
                     isApiKeyVisible = uiState.isApiKeyVisible,
+                    validationErrors = uiState.validationErrors,
+                    testingConnection = uiState.testingConnection,
+                    connectionTestResult = uiState.connectionTestResult,
+                    showClearApiKeyDialog = uiState.showClearApiKeyDialog,
                     onApiKeyChange = viewModel::updateApiKey,
+                    onApiKeyValueChange = viewModel::updateApiKeyValue,
+                    onApiEndpointChange = viewModel::updateApiEndpoint,
                     onToggleApiKeyVisibility = viewModel::toggleApiKeyVisibility,
                     onClearApiKey = viewModel::clearApiKey,
+                    onConfirmClearApiKey = viewModel::confirmClearApiKey,
+                    onDismissClearApiKeyDialog = viewModel::dismissClearApiKeyDialog,
+                    onValidateAndSave = viewModel::validateAndSaveApiKey,
+                    onTestConnection = viewModel::testConnection,
+                    onClearConnectionResult = viewModel::clearConnectionTestResult,
                     isLoading = uiState.savingApiKey
                 )
                 
@@ -152,10 +169,23 @@ fun SettingsScreen(
 @Composable
 private fun ApiConfigurationSection(
     apiKey: String,
+    apiKeyValue: String,
+    apiEndpoint: String,
     isApiKeyVisible: Boolean,
+    validationErrors: Map<String, String>,
+    testingConnection: Boolean,
+    connectionTestResult: ConnectionTestResult?,
+    showClearApiKeyDialog: Boolean,
     onApiKeyChange: (String) -> Unit,
+    onApiKeyValueChange: (String) -> Unit,
+    onApiEndpointChange: (String) -> Unit,
     onToggleApiKeyVisibility: () -> Unit,
     onClearApiKey: () -> Unit,
+    onConfirmClearApiKey: () -> Unit,
+    onDismissClearApiKeyDialog: () -> Unit,
+    onValidateAndSave: () -> Unit,
+    onTestConnection: () -> Unit,
+    onClearConnectionResult: () -> Unit,
     isLoading: Boolean = false
 ) {
     Card(
@@ -170,15 +200,34 @@ private fun ApiConfigurationSection(
                 style = MaterialTheme.typography.titleMedium
             )
             
+            // API Endpoint Configuration
             OutlinedTextField(
-                value = apiKey,
-                onValueChange = onApiKeyChange,
+                value = apiEndpoint,
+                onValueChange = onApiEndpointChange,
+                label = { Text("API Endpoint") },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("https://api.openai.com/v1/") }
+            )
+            
+            // API Key Input
+            OutlinedTextField(
+                value = if (apiKeyValue.isNotEmpty()) apiKeyValue else apiKey,
+                onValueChange = onApiKeyValueChange,
                 label = { Text("OpenAI API Key") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (isApiKeyVisible) {
                     VisualTransformation.None
                 } else {
                     PasswordVisualTransformation()
+                },
+                isError = validationErrors.containsKey("apiKey"),
+                supportingText = {
+                    validationErrors["apiKey"]?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 },
                 trailingIcon = {
                     Row {
@@ -208,13 +257,126 @@ private fun ApiConfigurationSection(
                 }
             )
             
-            if (apiKey.isNotBlank()) {
-                OutlinedButton(
-                    onClick = onClearApiKey,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Clear API Key")
+            // Action Buttons Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+            ) {
+                if (apiKeyValue.isNotEmpty()) {
+                    Button(
+                        onClick = onValidateAndSave,
+                        enabled = !isLoading
+                    ) {
+                        Text("Save API Key")
+                    }
                 }
+                
+                if (apiKey.isNotBlank()) {
+                    Button(
+                        onClick = onTestConnection,
+                        enabled = !testingConnection && !isLoading
+                    ) {
+                        if (testingConnection) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Test Connection")
+                        }
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onClearApiKey,
+                        enabled = !isLoading
+                    ) {
+                        Text("Clear API Key")
+                    }
+                }
+            }
+            
+            // Connection Test Result
+            connectionTestResult?.let { result ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = when (result) {
+                            ConnectionTestResult.SUCCESS -> Color.Green.copy(alpha = 0.1f)
+                            ConnectionTestResult.INVALID_KEY -> Color.Red.copy(alpha = 0.1f)
+                            ConnectionTestResult.NETWORK_ERROR -> Color(0xFFFF9800).copy(alpha = 0.1f)
+                            ConnectionTestResult.SERVER_ERROR -> Color.Red.copy(alpha = 0.1f)
+                        }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = when (result) {
+                                    ConnectionTestResult.SUCCESS -> Icons.Default.Check
+                                    ConnectionTestResult.INVALID_KEY -> Icons.Default.Close
+                                    ConnectionTestResult.NETWORK_ERROR -> Icons.Default.Warning
+                                    ConnectionTestResult.SERVER_ERROR -> Icons.Default.Close
+                                },
+                                contentDescription = null,
+                                tint = when (result) {
+                                    ConnectionTestResult.SUCCESS -> Color.Green
+                                    ConnectionTestResult.INVALID_KEY -> Color.Red
+                                    ConnectionTestResult.NETWORK_ERROR -> Color(0xFFFF9800)
+                                    ConnectionTestResult.SERVER_ERROR -> Color.Red
+                                }
+                            )
+                            
+                            Text(
+                                text = when (result) {
+                                    ConnectionTestResult.SUCCESS -> "Connection successful! API key is valid."
+                                    ConnectionTestResult.INVALID_KEY -> "Invalid API key. Please check your key."
+                                    ConnectionTestResult.NETWORK_ERROR -> "Network error. Please check your connection."
+                                    ConnectionTestResult.SERVER_ERROR -> "Server error. Please try again later."
+                                },
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        
+                        IconButton(onClick = onClearConnectionResult) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss"
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Clear API Key Confirmation Dialog
+            if (showClearApiKeyDialog) {
+                AlertDialog(
+                    onDismissRequest = onDismissClearApiKeyDialog,
+                    title = {
+                        Text("Clear API Key")
+                    },
+                    text = {
+                        Text("Are you sure you want to clear your API key? This action cannot be undone.")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = onConfirmClearApiKey) {
+                            Text("Clear")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = onDismissClearApiKeyDialog) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
         }
     }

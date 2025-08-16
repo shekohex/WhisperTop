@@ -65,5 +65,5 @@ val sharedModule = module {
     
     // ViewModels
     singleOf(::RecordingViewModel)
-    singleOf(::SettingsViewModel)
+    factory { SettingsViewModel(get(), get()) }
 }
