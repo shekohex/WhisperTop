@@ -285,6 +285,16 @@ class RecordingManagerTest {
             return transcribeResult
         }
         
+        override suspend fun transcribeWithLanguageDetection(
+            request: TranscriptionRequest,
+            userLanguageOverride: me.shadykhalifa.whispertop.domain.models.Language?
+        ): Result<TranscriptionResponse> {
+            if (transcribeDelay > 0) {
+                delay(transcribeDelay)
+            }
+            return transcribeResult
+        }
+        
         override suspend fun validateApiKey(apiKey: String): Result<Boolean> {
             return Result.Success(true)
         }
