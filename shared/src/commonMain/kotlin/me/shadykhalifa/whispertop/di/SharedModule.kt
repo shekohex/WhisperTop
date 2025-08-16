@@ -15,6 +15,7 @@ import me.shadykhalifa.whispertop.domain.services.FileReaderService
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -39,4 +40,5 @@ val sharedModule = module {
     
     // ViewModels
     singleOf(::RecordingViewModel)
+    singleOf(::SettingsViewModel)
 }
