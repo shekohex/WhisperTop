@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,8 @@ fun SettingsScreen(
         }
     }
     
+
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,12 +73,11 @@ fun SettingsScreen(
             ) {
                 // API Configuration Section
                 ApiConfigurationSection(
-                    apiKey = uiState.settings.apiKey,
+                    apiKey = uiState.optimisticApiKey ?: uiState.settings.apiKey,
                     isApiKeyVisible = uiState.isApiKeyVisible,
                     onApiKeyChange = viewModel::updateApiKey,
                     onToggleApiKeyVisibility = viewModel::toggleApiKeyVisibility,
                     onClearApiKey = viewModel::clearApiKey,
-                    validationError = uiState.validationErrors["apiKey"],
                     isLoading = uiState.savingApiKey
                 )
                 
@@ -154,7 +156,6 @@ private fun ApiConfigurationSection(
     onApiKeyChange: (String) -> Unit,
     onToggleApiKeyVisibility: () -> Unit,
     onClearApiKey: () -> Unit,
-    validationError: String?,
     isLoading: Boolean = false
 ) {
     Card(
@@ -204,9 +205,7 @@ private fun ApiConfigurationSection(
                             )
                         }
                     }
-                },
-                isError = validationError != null,
-                supportingText = validationError?.let { { Text(it) } }
+                }
             )
             
             if (apiKey.isNotBlank()) {

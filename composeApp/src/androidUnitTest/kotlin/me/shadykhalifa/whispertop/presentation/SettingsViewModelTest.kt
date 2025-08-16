@@ -65,13 +65,14 @@ class SettingsViewModelTest {
     }
     
     @Test
-    fun `updateApiKey should call repository when valid`() = runTest {
+    fun `validateAndSaveApiKey should call repository when valid`() = runTest {
         // Given
         val newApiKey = "sk-proj-new-api-key-that-is-long-enough-for-validation"
         whenever(settingsRepository.updateApiKey(newApiKey)).thenReturn(Result.Success(Unit))
         
         // When
-        viewModel.updateApiKey(newApiKey)
+        viewModel.updateApiKeyValue(newApiKey)
+        viewModel.validateAndSaveApiKey()
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
@@ -79,9 +80,22 @@ class SettingsViewModelTest {
     }
     
     @Test
-    fun `updateApiKey should show validation error when empty`() = runTest {
+    fun `updateApiKeyValue should NOT show validation error`() = runTest {
         // When
-        viewModel.updateApiKey("")
+        viewModel.updateApiKeyValue("")
+        
+        // Then
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("", viewModel.uiState.value.apiKeyValue)
+    }
+    
+    @Test
+    fun `validateAndSaveApiKey should show validation error when empty`() = runTest {
+        // Given
+        viewModel.updateApiKeyValue("")
+        
+        // When
+        viewModel.validateAndSaveApiKey()
         
         // Then
         assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
@@ -89,9 +103,22 @@ class SettingsViewModelTest {
     }
     
     @Test
-    fun `updateApiKey should show validation error when invalid format`() = runTest {
+    fun `updateApiKeyValue should allow typing without validation`() = runTest {
         // When
-        viewModel.updateApiKey("invalid-key")
+        viewModel.updateApiKeyValue("invalid-key")
+        
+        // Then
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("invalid-key", viewModel.uiState.value.apiKeyValue)
+    }
+    
+    @Test
+    fun `validateAndSaveApiKey should show validation error when invalid format`() = runTest {
+        // Given
+        viewModel.updateApiKeyValue("invalid-key")
+        
+        // When
+        viewModel.validateAndSaveApiKey()
         
         // Then
         assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
@@ -205,5 +232,85 @@ class SettingsViewModelTest {
         
         // Then
         verify(settingsRepository).clearApiKey()
+    }
+    
+    @Test
+    fun `clearApiKeyValidation should clear validation errors`() = runTest {
+        // Given there's a validation error
+        viewModel.updateApiKeyValue("invalid")
+        viewModel.validateAndSaveApiKey()
+        assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        
+        // When
+        viewModel.clearApiKeyValidation()
+        
+        // Then
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+    }
+    
+    @Test
+    fun `progressive typing should not show validation errors during typing`() = runTest {
+        // Test typing 's' -> 'sk' -> 'sk-' progression without validation
+        viewModel.updateApiKeyValue("s")
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("s", viewModel.uiState.value.apiKeyValue)
+        
+        viewModel.updateApiKeyValue("sk")
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("sk", viewModel.uiState.value.apiKeyValue)
+        
+        viewModel.updateApiKeyValue("sk-")
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("sk-", viewModel.uiState.value.apiKeyValue)
+    }
+    
+    @Test
+    fun `validation only happens on validateAndSaveApiKey call`() = runTest {
+        // Test typing 's' -> 'sk' -> 'sk-' progression then validate
+        viewModel.updateApiKeyValue("s")
+        viewModel.updateApiKeyValue("sk")
+        viewModel.updateApiKeyValue("sk-")
+        
+        // No validation errors during typing
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        
+        // When validation is triggered
+        viewModel.validateAndSaveApiKey()
+        
+        // Then validation error should appear
+        assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("API key is too short. OpenAI API keys are typically 51 characters long", viewModel.uiState.value.validationErrors["apiKey"])
+    }
+    
+    @Test
+    fun `valid api key should clear validation errors and save`() = runTest {
+        // Given there's a validation error
+        viewModel.updateApiKeyValue("invalid")
+        viewModel.validateAndSaveApiKey()
+        assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        
+        // When a valid API key is entered and validated
+        val validApiKey = "sk-proj-" + "a".repeat(46) // 51 characters total
+        whenever(settingsRepository.updateApiKey(validApiKey)).thenReturn(Result.Success(Unit))
+        viewModel.updateApiKeyValue(validApiKey)
+        viewModel.validateAndSaveApiKey()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then validation error should be cleared and repository called
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        verify(settingsRepository).updateApiKey(validApiKey)
+    }
+    
+    @Test
+    fun `api key too short should show specific validation error`() = runTest {
+        // Given
+        viewModel.updateApiKeyValue("sk-short")
+        
+        // When validation is triggered
+        viewModel.validateAndSaveApiKey()
+        
+        // Then specific error should be shown
+        assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        assertEquals("API key is too short. OpenAI API keys are typically 51 characters long", viewModel.uiState.value.validationErrors["apiKey"])
     }
 }
