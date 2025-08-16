@@ -28,7 +28,7 @@ class WhisperTopAccessibilityService : AccessibilityService() {
         super.onCreate()
         instance = this
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        serviceRecoveryManager = ServiceRecoveryManager()
+        serviceRecoveryManager = ServiceRecoveryManager(this)
         Log.d(TAG, "WhisperTop Accessibility Service created")
     }
 

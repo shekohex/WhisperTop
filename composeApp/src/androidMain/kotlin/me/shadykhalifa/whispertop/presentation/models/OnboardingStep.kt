@@ -35,8 +35,15 @@ enum class OnboardingStep(
         description = "Allow automatic text insertion after transcription",
         icon = "accessibility_new"
     ),
-    COMPLETE(
+    BATTERY_OPTIMIZATION(
         stepNumber = 5,
+        route = "onboarding_battery",
+        title = "Battery Optimization",
+        description = "Ensure reliable background recording by exempting from battery optimization",
+        icon = "battery_full"
+    ),
+    COMPLETE(
+        stepNumber = 6,
         route = "onboarding_complete",
         title = "Setup Complete!",
         description = "You're all set! Start using WhisperTop for voice transcription.",

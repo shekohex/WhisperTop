@@ -38,6 +38,7 @@ import me.shadykhalifa.whispertop.presentation.ui.components.ModelCapabilityCard
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelRecommendationChip
 import me.shadykhalifa.whispertop.presentation.ui.components.CustomModelInput
 import me.shadykhalifa.whispertop.presentation.ui.components.LanguagePreferenceSection
+import me.shadykhalifa.whispertop.presentation.ui.components.BatteryOptimizationSection
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,6 +147,11 @@ fun SettingsScreen(
                 
                 HorizontalDivider()
                 
+                // Battery Optimization Section
+                BatteryOptimizationSection()
+                
+                HorizontalDivider()
+                
                 // Theme Customization Section
                 ThemeCustomizationSection(
                     selectedTheme = uiState.settings.theme,
@@ -163,7 +169,7 @@ fun SettingsScreen(
                     clearingAllData = uiState.clearingAllData,
                     cleaningTempFiles = uiState.cleaningTempFiles,
                     onToggleHapticFeedback = viewModel::toggleHapticFeedback,
-                    onToggleBatteryOptimization = viewModel::toggleBatteryOptimization,
+
                     onToggleUsageAnalytics = viewModel::toggleUsageAnalytics,
                     onToggleApiCallLogging = viewModel::toggleApiCallLogging,
                     onToggleAutoCleanupTempFiles = viewModel::toggleAutoCleanupTempFiles,
@@ -601,7 +607,7 @@ private fun PrivacyControlsSection(
     clearingAllData: Boolean,
     cleaningTempFiles: Boolean,
     onToggleHapticFeedback: () -> Unit,
-    onToggleBatteryOptimization: () -> Unit,
+
     onToggleUsageAnalytics: () -> Unit,
     onToggleApiCallLogging: () -> Unit,
     onToggleAutoCleanupTempFiles: () -> Unit,
@@ -835,31 +841,7 @@ private fun PrivacyControlsSection(
                 )
             }
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
-                ) {
-                    Text(
-                        text = "Battery Optimization",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Optimize for battery life",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = settings.enableBatteryOptimization,
-                    onCheckedChange = { onToggleBatteryOptimization() }
-                )
-            }
+
             
             HorizontalDivider()
             

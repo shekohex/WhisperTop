@@ -84,6 +84,7 @@ class OnboardingViewModel : ViewModel(), KoinComponent {
             OnboardingStep.AUDIO_PERMISSION -> OnboardingStep.AUDIO_PERMISSION in completedSteps
             OnboardingStep.OVERLAY_PERMISSION -> OnboardingStep.OVERLAY_PERMISSION in completedSteps
             OnboardingStep.ACCESSIBILITY_SERVICE -> OnboardingStep.ACCESSIBILITY_SERVICE in completedSteps
+            OnboardingStep.BATTERY_OPTIMIZATION -> OnboardingStep.BATTERY_OPTIMIZATION in completedSteps
             OnboardingStep.COMPLETE -> true
         }
         

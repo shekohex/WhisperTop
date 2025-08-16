@@ -1,5 +1,7 @@
 package me.shadykhalifa.whispertop.managers
 
+import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -9,12 +11,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import me.shadykhalifa.whispertop.service.AudioRecordingService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 import kotlin.math.pow
 
-class ServiceRecoveryManager : KoinComponent {
+class ServiceRecoveryManager(private val context: Context) : KoinComponent {
     
     private val audioServiceManager: AudioServiceManager by inject()
     private val permissionHandler: PermissionHandler by inject()
@@ -24,22 +28,44 @@ class ServiceRecoveryManager : KoinComponent {
     private val _recoveryState = MutableStateFlow(RecoveryState.IDLE)
     val recoveryState: StateFlow<RecoveryState> = _recoveryState.asStateFlow()
     
+    private val _serviceHealth = MutableStateFlow(ServiceHealth())
+    val serviceHealth: StateFlow<ServiceHealth> = _serviceHealth.asStateFlow()
+    
     private var retryCount = 0
-    private var isRecovering = false
+    private val isRecovering = AtomicBoolean(false)
+    private var crashCount = 0
+    private var lastCrashTime = 0L
+    
+    private val prefs: SharedPreferences by lazy {
+        context.getSharedPreferences("service_recovery_state", Context.MODE_PRIVATE)
+    }
+    
+    data class ServiceHealth(
+        val isHealthy: Boolean = false,
+        val lastCheckTime: Long = 0L,
+        val consecutiveFailures: Int = 0,
+        val uptime: Long = 0L,
+        val lastRestartTime: Long = 0L
+    )
+    
+    data class ServiceState(
+        val isRecording: Boolean = false,
+        val recordingStartTime: Long = 0L,
+        val currentFilePath: String? = null,
+        val pausedDuration: Long = 0L
+    )
     
     suspend fun attemptServiceRecovery(): RecoveryResult {
-        if (isRecovering) {
+        if (!isRecovering.compareAndSet(false, true)) {
             return RecoveryResult.ALREADY_RECOVERING
         }
-        
-        isRecovering = true
         _recoveryState.value = RecoveryState.ATTEMPTING_RECOVERY
         
         try {
             // Step 1: Check permissions first
             val permissionResult = attemptPermissionRecovery()
             if (permissionResult != RecoveryResult.SUCCESS) {
-                isRecovering = false
+                isRecovering.set(false)
                 _recoveryState.value = RecoveryState.FAILED
                 return permissionResult
             }
@@ -47,7 +73,7 @@ class ServiceRecoveryManager : KoinComponent {
             // Step 2: Attempt service binding with exponential backoff
             val serviceResult = attemptServiceBinding()
             
-            isRecovering = false
+            isRecovering.set(false)
             
             return when (serviceResult) {
                 is ServiceBindingResult.SUCCESS -> {
@@ -65,7 +91,7 @@ class ServiceRecoveryManager : KoinComponent {
                 }
             }
         } catch (e: Exception) {
-            isRecovering = false
+            isRecovering.set(false)
             _recoveryState.value = RecoveryState.FAILED
             return RecoveryResult.UNEXPECTED_ERROR(e)
         }
@@ -110,12 +136,58 @@ class ServiceRecoveryManager : KoinComponent {
             while (true) {
                 delay(PERIODIC_CHECK_INTERVAL)
                 
-                // Check if service is healthy
-                if (!isServiceHealthy()) {
+                val healthCheck = performHealthCheck()
+                _serviceHealth.value = healthCheck
+                
+                // Attempt recovery if service is unhealthy
+                if (!healthCheck.isHealthy) {
                     attemptServiceRecovery()
                 }
             }
         }
+    }
+    
+    private fun performHealthCheck(): ServiceHealth {
+        val currentTime = System.currentTimeMillis()
+        val isHealthy = isServiceHealthy()
+        val previousHealth = _serviceHealth.value
+        
+        val consecutiveFailures = if (isHealthy) {
+            0
+        } else {
+            previousHealth.consecutiveFailures + 1
+        }
+        
+        val uptime = if (isHealthy && previousHealth.isHealthy) {
+            previousHealth.uptime + (currentTime - previousHealth.lastCheckTime)
+        } else if (isHealthy) {
+            currentTime - (previousHealth.lastRestartTime.takeIf { it > 0 } ?: currentTime)
+        } else {
+            0L
+        }
+        
+        return ServiceHealth(
+            isHealthy = isHealthy,
+            lastCheckTime = currentTime,
+            consecutiveFailures = consecutiveFailures,
+            uptime = uptime,
+            lastRestartTime = if (!isHealthy && previousHealth.isHealthy) currentTime else previousHealth.lastRestartTime
+        )
+    }
+    
+    fun getServiceHealthMetrics(): Map<String, Any> {
+        val health = _serviceHealth.value
+        val recovery = _recoveryState.value
+        
+        return mapOf(
+            "isHealthy" to health.isHealthy,
+            "uptime" to health.uptime,
+            "consecutiveFailures" to health.consecutiveFailures,
+            "lastCheckTime" to health.lastCheckTime,
+            "recoveryState" to recovery.name,
+            "crashCount" to crashCount,
+            "retryCount" to retryCount
+        )
     }
     
     private fun isServiceHealthy(): Boolean {
@@ -156,14 +228,111 @@ class ServiceRecoveryManager : KoinComponent {
         }
     }
     
-    fun handleServiceCrash() {
+    fun handleServiceCrash(preserveState: Boolean = true) {
         scope.launch {
             _recoveryState.value = RecoveryState.SERVICE_CRASHED
             
-            // Wait before attempting recovery to avoid immediate crash loop
-            delay(CRASH_RECOVERY_DELAY_MS)
+            val currentTime = System.currentTimeMillis()
             
-            attemptServiceRecovery()
+            // Check for crash loop
+            if (currentTime - lastCrashTime < CRASH_LOOP_DETECTION_WINDOW) {
+                crashCount++
+                if (crashCount >= MAX_CRASHES_IN_WINDOW) {
+                    _recoveryState.value = RecoveryState.CRASH_LOOP_DETECTED
+                    delay(CRASH_LOOP_RECOVERY_DELAY_MS)
+                    crashCount = 0 // Reset after cooling off
+                }
+            } else {
+                crashCount = 1 // Reset crash count
+            }
+            
+            lastCrashTime = currentTime
+            
+            // Preserve service state if requested
+            val savedState = if (preserveState) {
+                saveServiceState()
+            } else null
+            
+            // Wait before attempting recovery to avoid immediate crash loop
+            val delay = calculateCrashRecoveryDelay()
+            delay(delay)
+            
+            val result = attemptServiceRecovery()
+            
+            // Restore state if recovery was successful
+            if (result == RecoveryResult.SUCCESS && savedState != null) {
+                restoreServiceState(savedState)
+            }
+        }
+    }
+    
+    private fun saveServiceState(): ServiceState? {
+        return try {
+            // Get current service state from AudioServiceManager
+            val currentState = audioServiceManager.getCurrentRecordingState()
+            val isRecording = currentState == AudioRecordingService.RecordingState.RECORDING || 
+                             currentState == AudioRecordingService.RecordingState.PAUSED
+            val recordingStartTime = if (isRecording) System.currentTimeMillis() else 0L
+            val currentFilePath: String? = null // Not currently exposed by AudioServiceManager
+            
+            val state = ServiceState(
+                isRecording = isRecording,
+                recordingStartTime = recordingStartTime,
+                currentFilePath = currentFilePath,
+                pausedDuration = 0L
+            )
+            
+            // Persist to SharedPreferences
+            prefs.edit()
+                .putBoolean("was_recording", state.isRecording)
+                .putLong("recording_start_time", state.recordingStartTime)
+                .putString("current_file_path", state.currentFilePath)
+                .putLong("paused_duration", state.pausedDuration)
+                .putLong("crash_time", System.currentTimeMillis())
+                .apply()
+            
+            state
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    private fun restoreServiceState(state: ServiceState) {
+        scope.launch {
+            try {
+                // Only restore if crash was recent (within 5 minutes)
+                val crashTime = prefs.getLong("crash_time", 0L)
+                val timeSinceCrash = System.currentTimeMillis() - crashTime
+                
+                if (timeSinceCrash < 5 * 60 * 1000L && state.isRecording) {
+                    // Attempt to restart the service - automatic recording restoration is risky
+                    // Instead, we just ensure the service is bound and available
+                    when (val result = audioServiceManager.bindService()) {
+                        is AudioServiceManager.ServiceBindResult.SUCCESS,
+                        is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
+                            // Service is available, user can manually restart recording if needed
+                        }
+                        else -> {
+                            // Service binding failed, will be handled by health checks
+                        }
+                    }
+                }
+                
+                // Clear saved state
+                prefs.edit().clear().apply()
+                
+            } catch (e: Exception) {
+                // Handle restoration error
+            }
+        }
+    }
+    
+    private fun calculateCrashRecoveryDelay(): Long {
+        return when (crashCount) {
+            1 -> CRASH_RECOVERY_DELAY_MS
+            2 -> CRASH_RECOVERY_DELAY_MS * 2
+            3 -> CRASH_RECOVERY_DELAY_MS * 4
+            else -> CRASH_LOOP_RECOVERY_DELAY_MS
         }
     }
     
@@ -186,7 +355,7 @@ class ServiceRecoveryManager : KoinComponent {
     
     fun reset() {
         retryCount = 0
-        isRecovering = false
+        isRecovering.set(false)
         _recoveryState.value = RecoveryState.IDLE
     }
     
@@ -199,6 +368,7 @@ class ServiceRecoveryManager : KoinComponent {
         ATTEMPTING_RECOVERY,
         RESTARTING_SERVICE,
         SERVICE_CRASHED,
+        CRASH_LOOP_DETECTED,
         PERMISSION_DENIED,
         RECOVERED,
         FAILED,
@@ -227,5 +397,8 @@ class ServiceRecoveryManager : KoinComponent {
         private const val MAX_RETRY_DELAY_MS = 16000L
         private const val PERIODIC_CHECK_INTERVAL = 30000L // 30 seconds
         private const val CRASH_RECOVERY_DELAY_MS = 5000L
+        private const val CRASH_LOOP_DETECTION_WINDOW = 60000L // 1 minute
+        private const val MAX_CRASHES_IN_WINDOW = 3
+        private const val CRASH_LOOP_RECOVERY_DELAY_MS = 300000L // 5 minutes
     }
 }

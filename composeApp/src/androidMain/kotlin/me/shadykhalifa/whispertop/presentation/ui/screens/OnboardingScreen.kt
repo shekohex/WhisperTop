@@ -111,6 +111,12 @@ fun OnboardingScreen(
                         canProceed = onboardingProgress.canProceed
                     )
                 }
+                OnboardingStep.BATTERY_OPTIMIZATION -> {
+                    BatteryOptimizationPermissionStep(
+                        onPermissionGranted = viewModel::proceedToNextStep,
+                        onSkip = viewModel::skipCurrentStep
+                    )
+                }
                 OnboardingStep.COMPLETE -> {
                     CompleteStep(
                         onGetStarted = viewModel::completeOnboarding,

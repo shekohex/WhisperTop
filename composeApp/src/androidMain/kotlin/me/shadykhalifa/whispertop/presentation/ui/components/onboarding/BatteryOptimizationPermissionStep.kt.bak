@@ -1,0 +1,482 @@
+package me.shadykhalifa.whispertop.presentation.ui.components.onboarding
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
+import me.shadykhalifa.whispertop.presentation.ui.components.onboarding.OnboardingStepLayout
+import org.koin.compose.koinInject
+
+@Composable
+fun BatteryOptimizationPermissionStep(
+    onPermissionGranted: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val batteryUtil: BatteryOptimizationUtil = koinInject()
+    
+    var batteryStatus by remember { mutableStateOf(batteryUtil.getBatteryOptimizationStatus()) }
+    var isRequestingPermission by remember { mutableStateOf(false) }
+    var showExplanationDialog by remember { mutableStateOf(false) }
+    
+    // Check if already optimized
+    LaunchedEffect(batteryStatus) {
+        if (batteryStatus.isIgnoringBatteryOptimizations) {
+            onPermissionGranted()
+        }
+    }
+    
+    OnboardingStepLayout(
+        modifier = modifier
+    ) {
+        // Battery icon animation
+        BatteryOptimizationAnimation(
+            isOptimized = batteryStatus.isIgnoringBatteryOptimizations
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        Text(
+            text = "Battery Optimization",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Ensure reliable background recording",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Status Card
+            BatteryOptimizationStatusCard(
+                status = batteryStatus,
+                isCompact = true
+            )
+            
+            // Educational Content
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Why This Matters",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    Text(
+                        text = "WhisperTop needs to run in the background to capture your voice when triggered. " +
+                                "Battery optimization can interrupt this process, causing:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        BulletPoint("Recording to stop unexpectedly")
+                        BulletPoint("Overlay button to disappear") 
+                        BulletPoint("Delayed or failed transcriptions")
+                        BulletPoint("App not responding to triggers")
+                }
+            }
+        }
+    }
+            
+            // Action Buttons
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (batteryStatus.canRequestIgnore) {
+                    Button(
+                        onClick = {
+                            isRequestingPermission = true
+                            requestBatteryOptimizationExemption(
+                                context = context,
+                                batteryUtil = batteryUtil,
+                                onResult = { success ->
+                                    isRequestingPermission = false
+                                    if (success) {
+                                        // Refresh status
+                                        batteryStatus = batteryUtil.getBatteryOptimizationStatus()
+                                    }
+                                }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isRequestingPermission
+                    ) {
+                        if (isRequestingPermission) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Grant Battery Optimization Exemption")
+                    }
+                }
+                
+                OutlinedButton(
+                    onClick = {
+                        openBatteryOptimizationSettings(context, batteryUtil)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Open Battery Settings")
+                }
+                
+                TextButton(
+                    onClick = { showExplanationDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Learn More")
+                }
+                
+                // Skip option
+                TextButton(
+                    onClick = onSkip,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Skip for Now",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+    
+    // Show manufacturer-specific guidance if needed
+    if (batteryStatus.hasCustomOptimization) {
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFFF9800)
+                        )
+                        Text(
+                            text = "Device-Specific Instructions",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = batteryStatus.manufacturerGuidance,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+    
+    // Explanation Dialog
+    if (showExplanationDialog) {
+        BatteryOptimizationEducationDialog(
+            onDismiss = { showExplanationDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun BatteryOptimizationStatusCard(
+    status: me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil.BatteryOptimizationStatus,
+    isCompact: Boolean = false
+) {
+    val statusColor = when {
+        status.isIgnoringBatteryOptimizations -> Color.Green
+        status.canRequestIgnore -> Color(0xFFFF9800)
+        else -> Color.Red
+    }
+    
+    val statusIcon = when {
+        status.isIgnoringBatteryOptimizations -> Icons.Default.Check
+        status.canRequestIgnore -> Icons.Default.Warning
+        else -> Icons.Default.Error
+    }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = statusColor.copy(alpha = 0.1f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = statusIcon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when {
+                        status.isIgnoringBatteryOptimizations -> "✓ Optimized for Recording"
+                        status.canRequestIgnore -> "Battery Optimization Active"
+                        else -> "Manual Setup Required"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                if (!isCompact) {
+                    Text(
+                        text = status.explanation,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BulletPoint(text: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "•",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun BatteryOptimizationEducationDialog(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Battery Optimization Guide")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Understanding Battery Optimization",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Modern Android devices use aggressive battery optimization to extend battery life. " +
+                            "While this is generally good, it can interfere with apps that need to work in the background.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                
+                Text(
+                    text = "What WhisperTop Needs",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "• Listen for voice triggers while other apps are active\n" +
+                            "• Maintain overlay button visibility\n" +
+                            "• Process audio in real-time\n" +
+                            "• Insert transcribed text automatically",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                
+                Text(
+                    text = "Exemption Safety",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "WhisperTop is designed to use minimal battery when idle. " +
+                            "The exemption only allows it to stay active when needed for recording.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got it")
+            }
+        }
+    )
+}
+
+private fun requestBatteryOptimizationExemption(
+    context: android.content.Context,
+    batteryUtil: BatteryOptimizationUtil,
+    onResult: (Boolean) -> Unit
+) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = batteryUtil.createBatteryOptimizationExemptionIntent()
+            if (intent != null) {
+                context.startActivity(intent)
+                onResult(true)
+            } else {
+                onResult(false)
+            }
+        } else {
+            onResult(false)
+        }
+    } catch (e: Exception) {
+        onResult(false)
+    }
+}
+
+@Composable
+private fun BatteryOptimizationAnimation(
+    isOptimized: Boolean
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "battery_animation")
+    
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "battery_scale"
+    )
+    
+    val batteryIcon = if (isOptimized) Icons.Default.BatteryFull else Icons.Default.BatteryAlert
+    val backgroundColor = if (isOptimized) Color.Green else Color(0xFFFF9800)
+    
+    Box(
+        modifier = Modifier
+            .size(120.dp)
+            .clip(CircleShape)
+            .background(backgroundColor.copy(alpha = 0.1f))
+            .scale(if (isOptimized) 1f else scale),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = batteryIcon,
+            contentDescription = null,
+            modifier = Modifier.size(60.dp),
+            tint = backgroundColor
+        )
+        
+        if (isOptimized) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .offset(x = 20.dp, y = (-20).dp)
+                    .clip(CircleShape)
+                    .background(Color.Green),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+private fun openBatteryOptimizationSettings(
+    context: android.content.Context,
+    batteryUtil: BatteryOptimizationUtil
+) {
+    try {
+        val intent = batteryUtil.createBatteryOptimizationSettingsIntent()
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        // Handle error silently
+    }
+}

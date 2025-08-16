@@ -21,6 +21,8 @@ import me.shadykhalifa.whispertop.MainActivity
 import me.shadykhalifa.whispertop.R
 import me.shadykhalifa.whispertop.data.audio.AudioRecorderImpl
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.managers.PowerManagementUtil
+import me.shadykhalifa.whispertop.managers.createWakeLockConfig
 import org.koin.android.ext.android.inject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -33,9 +35,18 @@ class AudioRecordingService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "audio_recording_channel"
+        private const val CHANNEL_NAME = "Audio Recording"
+        private const val CHANNEL_DESCRIPTION = "Persistent notification for background audio recording"
+        
+        // Notification actions
         private const val ACTION_STOP_RECORDING = "action_stop_recording"
-        private const val ACTION_PAUSE_RECORDING = "action_pause_recording"
+        private const val ACTION_PAUSE_RECORDING = "action_pause_recording" 
         private const val ACTION_RESUME_RECORDING = "action_resume_recording"
+        private const val ACTION_OPEN_APP = "action_open_app"
+        
+        // Service management
+        const val ACTION_START_FOREGROUND = "action_start_foreground"
+        const val ACTION_STOP_FOREGROUND = "action_stop_foreground"
     }
     
     enum class RecordingState {
@@ -43,6 +54,7 @@ class AudioRecordingService : Service() {
     }
     
     private val audioRecorder: AudioRecorderImpl by inject()
+    private val powerManager: PowerManagementUtil by inject()
     private val binder = AudioRecordingBinder()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
@@ -69,14 +81,35 @@ class AudioRecordingService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        acquireWakeLock()
+        powerManager.initialize()
+        acquireIntelligentWakeLock()
+        
+        // Start as foreground service immediately to prevent ANR
+        startForeground(NOTIFICATION_ID, createNotification())
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_START_FOREGROUND -> {
+                // Ensure we're running as foreground service
+                if (!isInForeground()) {
+                    startForeground(NOTIFICATION_ID, createNotification())
+                }
+            }
+            ACTION_STOP_FOREGROUND -> {
+                stopRecording()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
             ACTION_STOP_RECORDING -> stopRecording()
             ACTION_PAUSE_RECORDING -> pauseRecording()
             ACTION_RESUME_RECORDING -> resumeRecording()
+            ACTION_OPEN_APP -> {
+                // Handle opening the main app
+                val mainIntent = Intent(this, MainActivity::class.java)
+                mainIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(mainIntent)
+            }
         }
         return START_STICKY
     }
@@ -85,10 +118,23 @@ class AudioRecordingService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
-        scope.cancel()
-        releaseWakeLock()
-        if (currentState.get() == RecordingState.RECORDING) {
-            scope.launch { stopRecording() }
+        
+        // Stop recording and cleanup resources
+        try {
+            // Stop recording if needed (but don't await it since we're in onDestroy)
+            if (currentState.get() == RecordingState.RECORDING) {
+                currentState.set(RecordingState.IDLE)
+            }
+            
+            // Cleanup power management
+            powerManager.cleanup()
+            
+            // Release wake lock
+            releaseWakeLock()
+            
+        } finally {
+            // Always cancel scope last
+            scope.cancel()
         }
     }
     
@@ -119,7 +165,8 @@ class AudioRecordingService : Service() {
                     return@launch
                 }
                 
-                startForeground(NOTIFICATION_ID, createNotification())
+                // Ensure we're promoted to foreground service
+                ensureForegroundService()
                 updateNotification()
                 
             } catch (e: Exception) {
@@ -140,7 +187,9 @@ class AudioRecordingService : Service() {
                 val audioFile = audioRecorder.stopRecording()
                 setState(RecordingState.IDLE)
                 
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                // Keep service running but remove foreground status
+                stopForeground(STOP_FOREGROUND_DETACH)
+                updateNotification()
                 notifyRecordingComplete(audioFile)
                 
             } catch (e: Exception) {
@@ -196,15 +245,21 @@ class AudioRecordingService : Service() {
             
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                getString(R.string.notification_channel_name),
+                CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = getString(R.string.notification_channel_description)
+                description = CHANNEL_DESCRIPTION
                 setSound(null, null)
                 enableVibration(false)
+                setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                enableLights(false)
+                setBypassDnd(false)
             }
             
             notificationManager?.createNotificationChannel(channel)
+        } else {
+            notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         }
     }
     
@@ -217,24 +272,103 @@ class AudioRecordingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        val stopIntent = Intent(this, AudioRecordingService::class.java).apply {
-            action = ACTION_STOP_RECORDING
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 1, stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getNotificationTitle())
             .setContentText(getNotificationText())
             .setSmallIcon(R.drawable.ic_mic)
             .setContentIntent(mainPendingIntent)
-            .addAction(R.drawable.ic_mic, getString(R.string.stop_recording), stopPendingIntent)
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build()
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)
+            .setLocalOnly(true)
+        
+        // Add action buttons based on current state
+        when (currentState.get()) {
+            RecordingState.RECORDING -> {
+                // Add pause and stop actions
+                val pauseIntent = Intent(this, AudioRecordingService::class.java).apply {
+                    action = ACTION_PAUSE_RECORDING
+                }
+                val pausePendingIntent = PendingIntent.getService(
+                    this, 2, pauseIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                val stopIntent = Intent(this, AudioRecordingService::class.java).apply {
+                    action = ACTION_STOP_RECORDING
+                }
+                val stopPendingIntent = PendingIntent.getService(
+                    this, 1, stopIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                builder.addAction(
+                    R.drawable.ic_pause,
+                    "Pause",
+                    pausePendingIntent
+                )
+                builder.addAction(
+                    R.drawable.ic_stop,
+                    "Stop",
+                    stopPendingIntent
+                )
+            }
+            RecordingState.PAUSED -> {
+                // Add resume and stop actions
+                val resumeIntent = Intent(this, AudioRecordingService::class.java).apply {
+                    action = ACTION_RESUME_RECORDING
+                }
+                val resumePendingIntent = PendingIntent.getService(
+                    this, 3, resumeIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                val stopIntent = Intent(this, AudioRecordingService::class.java).apply {
+                    action = ACTION_STOP_RECORDING
+                }
+                val stopPendingIntent = PendingIntent.getService(
+                    this, 1, stopIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                builder.addAction(
+                    R.drawable.ic_play,
+                    "Resume",
+                    resumePendingIntent
+                )
+                builder.addAction(
+                    R.drawable.ic_stop,
+                    "Stop",
+                    stopPendingIntent
+                )
+            }
+            RecordingState.PROCESSING -> {
+                // Only show stop action during processing
+                val stopIntent = Intent(this, AudioRecordingService::class.java).apply {
+                    action = ACTION_STOP_RECORDING
+                }
+                val stopPendingIntent = PendingIntent.getService(
+                    this, 1, stopIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                builder.addAction(
+                    R.drawable.ic_stop,
+                    "Stop",
+                    stopPendingIntent
+                )
+            }
+            RecordingState.IDLE -> {
+                // Service is running but not recording - minimal notification
+                // No additional actions needed
+            }
+        }
+        
+        return builder.build()
     }
     
     private fun updateNotification() {
@@ -274,13 +408,36 @@ class AudioRecordingService : Service() {
         return File(recordingsDir, fileName).absolutePath
     }
     
-    private fun acquireWakeLock() {
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "WhisperTop::AudioRecordingWakeLock"
+    private fun acquireIntelligentWakeLock() {
+        releaseWakeLock() // Release any existing wake lock first
+        
+        val config = powerManager.createWakeLockConfig(
+            purpose = "AudioRecording",
+            baseDuration = 10 * 60 * 1000L // 10 minutes base duration
         )
-        wakeLock?.acquire(10 * 60 * 1000L) // 10 minutes
+        
+        wakeLock = powerManager.acquireIntelligentWakeLock(config)
+    }
+    
+    private fun acquireWakeLock() {
+        // Fallback method for backward compatibility
+        acquireIntelligentWakeLock()
+    }
+    
+    private fun isInForeground(): Boolean {
+        return try {
+            // Check if service is running in foreground
+            // This is a simplified check - in practice, we track this state
+            currentState.get() != RecordingState.IDLE
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    fun ensureForegroundService() {
+        if (!isInForeground() && currentState.get() != RecordingState.IDLE) {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
     }
     
     private fun releaseWakeLock() {
