@@ -19,11 +19,12 @@ object Screen {
 
 @Composable
 fun NavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    requestPermissions: Boolean = false
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Home
+        startDestination = if (requestPermissions) Screen.Settings else Screen.Home
     ) {
         composable(Screen.Home) {
             HomeScreen(

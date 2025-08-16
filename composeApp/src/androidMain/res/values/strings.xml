@@ -20,4 +20,47 @@
     <string name="stop_recording">Stop</string>
     <string name="pause_recording">Pause</string>
     <string name="resume_recording">Resume</string>
+    
+    <!-- Quick Settings Tile strings -->
+    <string name="tile_label_idle">Voice Recording</string>
+    <string name="tile_label_recording">Recording…</string>
+    <string name="tile_label_paused">Recording Paused</string>
+    <string name="tile_label_processing">Processing…</string>
+    <string name="tile_description_idle">Tap to start voice recording</string>
+    <string name="tile_description_recording">Recording in progress. Tap to stop.</string>
+    <string name="tile_description_paused">Recording paused. Tap to stop.</string>
+    <string name="tile_description_processing">Processing recording. Please wait.</string>
+    
+    <!-- Onboarding strings -->
+    <string name="onboarding_welcome_title">Welcome to WhisperTop</string>
+    <string name="onboarding_welcome_description">Quick and accurate speech-to-text transcription anywhere on your device using OpenAI\'s Whisper technology</string>
+    <string name="onboarding_audio_title">Microphone Access</string>
+    <string name="onboarding_audio_description">WhisperTop needs microphone access to record your speech for transcription</string>
+    <string name="onboarding_overlay_title">Overlay Permission</string>
+    <string name="onboarding_overlay_description">Enable the floating microphone button that works on top of any app</string>
+    <string name="onboarding_accessibility_title">Text Insertion Service</string>
+    <string name="onboarding_accessibility_description">Allow WhisperTop to automatically insert transcribed text into input fields</string>
+    <string name="onboarding_complete_title">Setup Complete!</string>
+    <string name="onboarding_complete_description">You\'re all set! Start using WhisperTop for voice transcription anywhere on your device.</string>
+    
+    <!-- Permission explanations -->
+    <string name="permission_audio_rationale">WhisperTop needs microphone access to capture your speech for transcription. Your audio is processed securely using your own OpenAI API key.</string>
+    <string name="permission_overlay_rationale">The overlay permission allows WhisperTop to show a floating microphone button that works on top of any app, making voice transcription easily accessible.</string>
+    <string name="permission_accessibility_rationale">The accessibility service allows WhisperTop to automatically insert transcribed text directly into input fields, eliminating the need for manual copy-paste.</string>
+    
+    <!-- Permission actions -->
+    <string name="grant_permission">Grant Permission</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="skip_step">Skip This Step</string>
+    <string name="try_again">Try Again</string>
+    <string name="continue_text">Continue</string>
+    <string name="get_started">Get Started</string>
+    <string name="permission_denied">Permission Denied</string>
+    <string name="permission_permanently_denied">Permission Permanently Denied</string>
+    
+    <!-- Fallback messages -->
+    <string name="limited_functionality_title">Limited Functionality</string>
+    <string name="limited_functionality_audio">Without microphone permission, WhisperTop cannot record audio for transcription.</string>
+    <string name="limited_functionality_overlay">Without overlay permission, you\'ll need to open the app manually to use transcription.</string>
+    <string name="limited_functionality_accessibility">Without accessibility permission, you\'ll need to manually paste transcribed text.</string>
 </resources>

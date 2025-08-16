@@ -12,7 +12,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun App() {
+fun App(requestPermissions: Boolean = false) {
     MaterialTheme {
         Surface(
             modifier = Modifier
@@ -21,7 +21,10 @@ fun App() {
             color = MaterialTheme.colorScheme.background
         ) {
             val navController = rememberNavController()
-            NavGraph(navController = navController)
+            NavGraph(
+                navController = navController,
+                requestPermissions = requestPermissions
+            )
         }
     }
 }

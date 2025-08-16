@@ -45,6 +45,12 @@
             </intent-filter>
         </activity>
         
+        <!-- Permission Onboarding Activity -->
+        <activity
+            android:name=".presentation.activities.PermissionOnboardingActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        
         <!-- Audio Recording Foreground Service -->
         <service
             android:name=".service.AudioRecordingService"
@@ -74,7 +80,6 @@
         </service>
         
         <!-- Quick Settings Tile -->
-        <!--
         <service
             android:name=".service.WhisperTopTileService"
             android:exported="true"
@@ -85,7 +90,6 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
-        -->
         
     </application>
 
