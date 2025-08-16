@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeAllMask"
-    android:accessibilityFlags="flagDefault"
-    android:accessibilityFeedbackType="feedbackSpoken"
+    android:accessibilityEventTypes="typeViewFocused|typeViewClicked|typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:accessibilityFeedbackType="feedbackGeneric"
     android:canRetrieveWindowContent="true"
-    android:canPerformGestures="true"
+    android:canPerformGestures="false"
     android:description="@string/accessibility_service_description"
     android:settingsActivity="me.shadykhalifa.whispertop.MainActivity" />

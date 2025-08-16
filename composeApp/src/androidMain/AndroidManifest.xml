@@ -7,8 +7,8 @@
     <!-- Overlay permission for floating UI elements -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     
-    <!-- Accessibility service permission - TODO: Uncomment when accessibility service is implemented -->
-    <!-- <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" /> -->
+    <!-- Accessibility service permission -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     
     <!-- Foreground service permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -55,16 +55,12 @@
         <!-- TODO: Uncomment when services are implemented in future tasks -->
         
         <!-- Overlay Service for floating UI -->
-        <!--
         <service
             android:name=".service.OverlayService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
-        -->
+            android:exported="false" />
         
         <!-- Accessibility Service for text insertion -->
-        <!--
         <service
             android:name=".service.WhisperTopAccessibilityService"
             android:exported="true"
@@ -76,7 +72,6 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-        -->
         
         <!-- Quick Settings Tile -->
         <!--
