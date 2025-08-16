@@ -23,6 +23,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.lifecycle.service)
+            implementation("androidx.lifecycle:lifecycle-process:${libs.versions.androidx.lifecycle.get()}")
             implementation(libs.androidx.security.crypto)
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.koin.android)
@@ -77,11 +78,29 @@ android {
     }
     
     testOptions {
-        unitTests.isIncludeAndroidResources = false
+        unitTests.isReturnDefaultValues = true
     }
 }
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    
+    // Android Test dependencies
+    androidTestImplementation(libs.androidx.testExt.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("org.mockito:mockito-android:5.7.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    androidTestImplementation(libs.koin.test)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    
+    // Unit Test dependencies
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.testJunit)
+    testImplementation("org.mockito:mockito-core:5.7.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation(libs.koin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+
 }
 
