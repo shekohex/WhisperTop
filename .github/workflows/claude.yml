@@ -13,11 +13,13 @@ on:
 jobs:
   claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
-    runs-on: ubuntu-latest
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && github.event.comment.user.login == 'shekohex') ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && github.event.comment.user.login == 'shekohex') ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && github.event.review.user.login == 'shekohex') ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) && github.event.issue.user.login == 'shekohex')
+      )
+    runs-on: macos-latest
     permissions:
       contents: read
       pull-requests: read
@@ -30,35 +32,90 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          target: android-35
+          arch: x86_64
+          profile: Nexus 6
+          
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Xcode (for future iOS support)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+          
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
+          # Use Sonnet 4 for interactive coding tasks
+          model: "claude-sonnet-4-20250514"
+
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
           
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
-          # model: "claude-opus-4-1-20250805"
+          # TaskMaster MCP integration
+          mcp_config: |
+            {
+              "mcpServers": {
+                "taskmaster": {
+                  "command": "npx",
+                  "args": ["-y", "--package=task-master-ai", "task-master-ai"],
+                  "env": {
+                    "ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}"
+                  }
+                }
+              }
+            }
           
-          # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
+          # Android development tools and Gradle commands
+          allowed_tools: |
+            Bash(./gradlew *),
+            Bash(adb *),
+            Bash(git *),
+            Bash(rg *),
+            Bash(fd *),
+            mcp__taskmaster-ai__*
           
-          # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
+          # WhisperTop project-specific instructions
+          custom_instructions: |
+            This is an Android Kotlin Multiplatform project using Compose with future iOS support.
+            - Follow Kotlin coding standards and multiplatform architecture
+            - Keep shared business logic in shared/ module
+            - Android-specific code goes in composeApp/ module
+            - iOS-specific code should go in iosApp/ module (when implemented)
+            - Use Koin for dependency injection across platforms
+            - Follow Clean Architecture principles
+            - Always check TaskMaster for current tasks before implementing features
+            - Update task progress during implementation
+            - Run tests and lint checks before completing tasks
+            - Focus on audio recording, OpenAI API integration, and accessibility services
+            - Consider iOS compatibility when writing shared code
+            - Use expect/actual declarations for platform-specific implementations
           
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
-          
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
-          
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
+          # Android development environment
+          claude_env: |
+            ANDROID_HOME: ${{ env.ANDROID_HOME }}
+            JAVA_HOME: ${{ env.JAVA_HOME }}
+            GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
 
