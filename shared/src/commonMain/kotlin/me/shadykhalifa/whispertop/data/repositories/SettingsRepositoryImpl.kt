@@ -50,9 +50,6 @@ class SettingsRepositoryImpl(
     }
 
     override suspend fun updateSettings(settings: AppSettings): Result<Unit> = execute {
-        if (settings.apiKey.isBlank()) {
-            throw IllegalArgumentException("API key cannot be empty")
-        }
         if (settings.selectedModel.isBlank()) {
             throw IllegalArgumentException("Selected model cannot be empty")
         }
