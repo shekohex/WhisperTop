@@ -63,4 +63,32 @@
     <string name="limited_functionality_audio">Without microphone permission, WhisperTop cannot record audio for transcription.</string>
     <string name="limited_functionality_overlay">Without overlay permission, you\'ll need to open the app manually to use transcription.</string>
     <string name="limited_functionality_accessibility">Without accessibility permission, you\'ll need to manually paste transcribed text.</string>
+    
+    <!-- Accessibility announcements -->
+    <string name="accessibility_recording_idle">Recording stopped</string>
+    <string name="accessibility_recording_started">Recording started, %s elapsed</string>
+    <string name="accessibility_processing">Processing audio, %d percent complete</string>
+    <string name="accessibility_transcription_success">Transcription complete: %s</string>
+    <string name="accessibility_error_retryable">Recording error: %s. You can try again.</string>
+    <string name="accessibility_error_not_retryable">Recording failed: %s</string>
+    
+    <string name="accessibility_mic_button_idle">Microphone button ready</string>
+    <string name="accessibility_mic_button_recording">Microphone button recording</string>
+    <string name="accessibility_mic_button_processing">Microphone button processing</string>
+    
+    <string name="accessibility_audio_level">Audio level %d percent</string>
+    <string name="accessibility_recording_duration">Recording duration %s</string>
+    <string name="accessibility_transcription_progress">Transcription %d percent complete</string>
+    <string name="accessibility_text_inserted">Text inserted: %s</string>
+    
+    <string name="accessibility_position_left">left</string>
+    <string name="accessibility_position_right">right</string>
+    <string name="accessibility_position_center">center</string>
+    <string name="accessibility_position_top">top</string>
+    <string name="accessibility_position_bottom">bottom</string>
+    <string name="accessibility_position_middle">middle</string>
+    <string name="accessibility_position_changed" formatted="false">Microphone button moved to %s %s of screen</string>
+    
+    <string name="accessibility_duration_minutes_seconds" formatted="false">%d minutes %d seconds</string>
+    <string name="accessibility_duration_seconds">%d seconds</string>
 </resources>

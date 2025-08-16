@@ -2,40 +2,45 @@ package me.shadykhalifa.whispertop.ui.overlay
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.AttributeSet
-import android.view.HapticFeedbackConstants
-import android.view.MotionEvent
 import android.view.View
-import android.view.WindowManager
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
+import me.shadykhalifa.whispertop.ui.feedback.HapticFeedbackManager
+import me.shadykhalifa.whispertop.ui.overlay.components.AudioLevelVisualization
+import me.shadykhalifa.whispertop.ui.overlay.components.ErrorPulse
+import me.shadykhalifa.whispertop.ui.overlay.components.ProcessingSpinner
+import me.shadykhalifa.whispertop.ui.overlay.components.PulsingRecordingRing
+import me.shadykhalifa.whispertop.ui.overlay.components.SuccessCheckmark
+import me.shadykhalifa.whispertop.ui.overlay.components.AnimationConstants
+import me.shadykhalifa.whispertop.ui.transitions.RecordingStateTransitions
+import me.shadykhalifa.whispertop.ui.utils.PerformanceMonitor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -46,20 +51,27 @@ class MicButtonOverlay @JvmOverloads constructor(
 ) : OverlayView(context, attrs, defStyleAttr) {
 
     companion object {
-        private const val BUTTON_SIZE_DP = 56
-        private const val SNAP_THRESHOLD_DP = 48
-        private const val EDGE_MARGIN_DP = 16
+        private const val BUTTON_SIZE_DP = AnimationConstants.BUTTON_SIZE_DP
+        private const val SNAP_THRESHOLD_DP = AnimationConstants.SNAP_THRESHOLD_DP
+        private const val EDGE_MARGIN_DP = AnimationConstants.EDGE_MARGIN_DP
     }
 
     private var _currentState by mutableStateOf(MicButtonState.IDLE)
-    private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    private var _audioLevel by mutableFloatStateOf(0f)
+    private var _showSuccessIndicator by mutableStateOf(false)
+    private var _showErrorIndicator by mutableStateOf(false)
     
+    private val hapticFeedbackManager = HapticFeedbackManager(context)
     private val micButtonListeners = mutableSetOf<MicButtonListener>()
+    
+    // Track delayed actions for proper cleanup
+    private val delayedActions = mutableListOf<Runnable>()
     
     interface MicButtonListener {
         fun onStateChanged(newState: MicButtonState)
         fun onMicButtonClicked()
         fun onPositionSnapped(x: Int, y: Int)
+        fun onAudioLevelChanged(level: Float)
     }
     
     init {
@@ -77,21 +89,89 @@ class MicButtonOverlay @JvmOverloads constructor(
     
     fun setState(newState: MicButtonState) {
         if (_currentState != newState) {
+            val previousState = _currentState
             _currentState = newState
-            performHapticFeedback()
+            hapticFeedbackManager.performFeedbackForMicButtonState(newState, this)
             notifyStateChanged(newState)
+            
+            // Handle success/error indicators
+            when (newState) {
+                MicButtonState.IDLE -> {
+                    if (previousState == MicButtonState.PROCESSING) {
+                        showSuccessIndicator()
+                    }
+                    _audioLevel = 0f
+                }
+                MicButtonState.RECORDING -> {
+                    _showSuccessIndicator = false
+                    _showErrorIndicator = false
+                }
+                MicButtonState.PROCESSING -> {
+                    _audioLevel = 0f
+                }
+            }
         }
     }
     
     fun getCurrentState(): MicButtonState = _currentState
+    
+    fun setAudioLevel(level: Float) {
+        val newLevel = level.coerceIn(0f, 1f)
+        
+        // Performance optimization: Only update if change is significant
+        if (kotlin.math.abs(newLevel - _audioLevel) >= AnimationConstants.MIN_AUDIO_LEVEL_CHANGE) {
+            _audioLevel = newLevel
+            notifyAudioLevelChanged(_audioLevel)
+        }
+    }
+    
+    fun showSuccessIndicator() {
+        _showSuccessIndicator = true
+        _showErrorIndicator = false
+        hapticFeedbackManager.performFeedback(HapticFeedbackManager.FeedbackPattern.Success, this)
+        
+        // Hide after delay with proper cleanup tracking
+        val hideAction: Runnable = object : Runnable {
+            override fun run() {
+                _showSuccessIndicator = false
+                delayedActions.remove(this)
+            }
+        }
+        delayedActions.add(hideAction)
+        postDelayed(hideAction, 2000)
+    }
+    
+    fun showErrorIndicator() {
+        _showErrorIndicator = true
+        _showSuccessIndicator = false
+        hapticFeedbackManager.performFeedback(HapticFeedbackManager.FeedbackPattern.Error, this)
+        
+        // Hide after delay with proper cleanup tracking
+        val hideAction: Runnable = object : Runnable {
+            override fun run() {
+                _showErrorIndicator = false
+                delayedActions.remove(this)
+            }
+        }
+        delayedActions.add(hideAction)
+        postDelayed(hideAction, 3000)
+    }
     
     override fun createCollapsedView(): View {
         return ComposeView(context).apply {
             setContent {
                 MicButtonContent(
                     state = _currentState,
-                    size = getButtonSize()
+                    size = getButtonSize(),
+                    audioLevel = _audioLevel,
+                    showSuccessIndicator = _showSuccessIndicator,
+                    showErrorIndicator = _showErrorIndicator
                 )
+                
+                // Monitor performance - can be enabled for debugging
+                // androidx.compose.runtime.LaunchedEffect(Unit) {
+                //     PerformanceMonitor.MemoryMonitor.logMemoryUsage("MicButtonOverlay")
+                // }
             }
         }
     }
@@ -103,59 +183,94 @@ class MicButtonOverlay @JvmOverloads constructor(
     @Composable
     private fun MicButtonContent(
         state: MicButtonState,
-        size: Int
+        size: Int,
+        audioLevel: Float,
+        showSuccessIndicator: Boolean,
+        showErrorIndicator: Boolean
     ) {
+        // Use Material Motion transitions
+        val animatedColor = RecordingStateTransitions.animateRecordingColor(state)
+        val buttonScale = RecordingStateTransitions.animateButtonScale(pressed = false)
+        val successScale = RecordingStateTransitions.animateIndicatorScale(showSuccessIndicator)
+        val errorOpacity = RecordingStateTransitions.animateStateOpacity(showErrorIndicator)
+        val animatedAudioLevel = RecordingStateTransitions.animateAudioLevel(audioLevel)
+        
+        val buttonColor = when {
+            showErrorIndicator -> Color.Red.copy(alpha = errorOpacity)
+            showSuccessIndicator -> Color.Green
+            else -> animatedColor
+        }
+        
         Box(
             modifier = Modifier
-                .size(size.dp)
+                .size((size * buttonScale).dp)
                 .clip(CircleShape)
-                .background(state.color),
+                .background(buttonColor),
             contentAlignment = Alignment.Center
         ) {
-            if (state == MicButtonState.RECORDING) {
-                PulsingRing(size = size)
+            // Background animations
+            when {
+                showErrorIndicator -> {
+                    ErrorPulse(
+                        size = size.dp,
+                        errorColor = Color.Red.copy(alpha = 0.3f)
+                    )
+                }
+                state == MicButtonState.RECORDING -> {
+                    PulsingRecordingRing(
+                        size = size.dp,
+                        pulseColor = Color.White
+                    )
+                }
+                state == MicButtonState.PROCESSING -> {
+                    ProcessingSpinner(
+                        size = (size * AnimationConstants.PROCESSING_SPINNER_SIZE_FACTOR).dp,
+                        color = Color.White
+                    )
+                }
             }
             
-            Icon(
-                imageVector = Icons.Default.Mic,
-                contentDescription = state.description,
-                tint = Color.White,
-                modifier = Modifier.size((size * 0.6f).dp)
-            )
-        }
-    }
-    
-    @Composable
-    private fun PulsingRing(size: Int) {
-        val infiniteTransition = rememberInfiniteTransition(label = "pulsing")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.3f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "scale"
-        )
-        
-        val alpha by infiniteTransition.animateFloat(
-            initialValue = 0.8f,
-            targetValue = 0.2f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "alpha"
-        )
-        
-        Canvas(
-            modifier = Modifier.size((size * scale).dp)
-        ) {
-            drawCircle(
-                color = Color.White.copy(alpha = alpha),
-                radius = this.size.minDimension / 2,
-                style = Stroke(width = 4.dp.toPx())
-            )
+            // Audio level visualization for recording state
+            if (state == MicButtonState.RECORDING && animatedAudioLevel > 0f) {
+                AudioLevelVisualization(
+                    audioLevel = animatedAudioLevel,
+                    size = (size * AnimationConstants.AUDIO_VISUALIZATION_SIZE_FACTOR).dp,
+                    barColor = Color.White,
+                    barCount = 6,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+            
+            // Success indicator with Material Motion scaling
+            AnimatedVisibility(
+                visible = showSuccessIndicator,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
+                SuccessCheckmark(
+                    size = (size * AnimationConstants.SUCCESS_CHECKMARK_SIZE_FACTOR * successScale).dp,
+                    color = Color.White
+                )
+            }
+            
+            // Main icon (hidden when showing success indicator)
+            AnimatedVisibility(
+                visible = !showSuccessIndicator,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
+                val iconVector = when {
+                    showErrorIndicator -> Icons.Default.Error
+                    else -> Icons.Default.Mic
+                }
+                
+                Icon(
+                    imageVector = iconVector,
+                    contentDescription = state.description,
+                    tint = Color.White,
+                    modifier = Modifier.size((size * AnimationConstants.ICON_SIZE_FACTOR).dp)
+                )
+            }
         }
     }
     
@@ -178,7 +293,7 @@ class MicButtonOverlay @JvmOverloads constructor(
             }
             
             override fun onOverlayClicked() {
-                performHapticFeedback()
+                hapticFeedbackManager.performFeedback(HapticFeedbackManager.FeedbackPattern.ButtonPress, this@MicButtonOverlay)
                 notifyMicButtonClicked()
             }
             
@@ -208,6 +323,7 @@ class MicButtonOverlay @JvmOverloads constructor(
         
         if (newX != x || newY != y) {
             updatePosition(newX, newY)
+            hapticFeedbackManager.performFeedback(HapticFeedbackManager.FeedbackPattern.ButtonSnap, this)
             notifyPositionSnapped(newX, newY)
         }
     }
@@ -217,16 +333,6 @@ class MicButtonOverlay @JvmOverloads constructor(
         val (currentX, currentY) = getCurrentPosition()
         handlePositionChange(currentX, currentY)
         updateViewForState()
-    }
-    
-    private fun performHapticFeedback() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(50)
-        }
-        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
     
     private fun notifyStateChanged(newState: MicButtonState) {
@@ -239,5 +345,36 @@ class MicButtonOverlay @JvmOverloads constructor(
     
     private fun notifyPositionSnapped(x: Int, y: Int) {
         micButtonListeners.forEach { it.onPositionSnapped(x, y) }
+    }
+    
+    private fun notifyAudioLevelChanged(level: Float) {
+        micButtonListeners.forEach { it.onAudioLevelChanged(level) }
+    }
+    
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        cleanup()
+    }
+    
+    /**
+     * Clean up resources and prevent memory leaks
+     */
+    fun cleanup() {
+        // Cancel all pending delayed actions
+        delayedActions.forEach { runnable ->
+            removeCallbacks(runnable)
+        }
+        delayedActions.clear()
+        
+        // Clear listeners to prevent potential memory leaks
+        micButtonListeners.clear()
+        
+        // Cleanup haptic feedback manager
+        hapticFeedbackManager.cleanup()
+        
+        // Reset state
+        _showSuccessIndicator = false
+        _showErrorIndicator = false
+        _audioLevel = 0f
     }
 }
