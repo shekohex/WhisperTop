@@ -17,6 +17,9 @@
     <!-- Network access for OpenAI API -->
     <uses-permission android:name="android.permission.INTERNET" />
     
+    <!-- Vibration for haptic feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
     <!-- Wake lock for background processing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     

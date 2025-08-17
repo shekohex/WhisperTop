@@ -23,34 +23,34 @@ fun OnboardingProgressIndicator(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier
     ) {
         Text(
             text = "Step $currentStep of $totalSteps",
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.fillMaxWidth()
         )
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             for (step in 1..totalSteps) {
                 StepIndicator(
                     stepNumber = step,
                     isCompleted = step in completedSteps,
                     isCurrent = step == currentStep,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(24.dp)
                 )
                 
                 if (step < totalSteps) {
                     StepConnector(
-                        isCompleted = step in completedSteps && (step + 1) in completedSteps,
+                        isCompleted = step in completedSteps,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -66,43 +66,33 @@ private fun StepIndicator(
     isCurrent: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val containerColor = when {
+    val backgroundColor = when {
         isCompleted -> MaterialTheme.colorScheme.primary
         isCurrent -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     }
     
-    val contentColor = when {
-        isCompleted -> MaterialTheme.colorScheme.onPrimary
-        isCurrent -> MaterialTheme.colorScheme.onPrimary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    
-    Card(
-        modifier = modifier,
-        shape = CircleShape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isCurrent) 4.dp else 0.dp
-        )
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isCompleted) {
+        when {
+            isCompleted && !isCurrent -> {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Step $stepNumber completed",
-                    tint = contentColor,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(14.dp)
                 )
-            } else {
-                Text(
-                    text = stepNumber.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
+            }
+            isCurrent -> {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary)
                 )
             }
         }
@@ -116,8 +106,8 @@ private fun StepConnector(
 ) {
     Box(
         modifier = modifier
-            .height(3.dp)
-            .clip(CircleShape)
+            .height(2.dp)
+            .padding(horizontal = 8.dp)
             .background(
                 if (isCompleted) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)

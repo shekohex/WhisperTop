@@ -20,21 +20,16 @@ fun WelcomeStep(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    OnboardingStepLayout(
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
-        
         // App icon/logo
         Card(
-            modifier = Modifier.size(140.dp),
+            modifier = Modifier.size(100.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -43,65 +38,54 @@ fun WelcomeStep(
                 Icon(
                     imageVector = Icons.Default.RecordVoiceOver,
                     contentDescription = null,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
-        
         Text(
             text = "Welcome to\nWhisperTop",
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
-            lineHeight = MaterialTheme.typography.headlineLarge.lineHeight * 1.1
+            lineHeight = MaterialTheme.typography.headlineMedium.lineHeight * 1.2
         )
-        
-        Spacer(modifier = Modifier.height(24.dp))
         
         Text(
             text = "Quick and accurate speech-to-text transcription anywhere on your device using OpenAI's Whisper technology",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.3
         )
-        
-        Spacer(modifier = Modifier.height(40.dp))
         
         // Feature highlights
         FeatureHighlights()
-        
-        Spacer(modifier = Modifier.weight(1f))
         
         Button(
             onClick = onContinue,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(48.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
             Text(
                 text = "Get Started",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
             )
         }
-        
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
 @Composable
 private fun FeatureHighlights() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         FeatureItem(
@@ -131,45 +115,30 @@ private fun FeatureItem(
     description: String
 ) {
     Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Card(
-            modifier = Modifier.size(44.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
         
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.3
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

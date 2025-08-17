@@ -278,35 +278,53 @@ class HapticFeedbackManager(private val context: Context) {
     }
     
     private fun performButtonPressFeedback(view: View?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(50)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(50)
+            }
+            view?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        } catch (e: SecurityException) {
+            // Ignore vibration errors - app might not have VIBRATE permission
+        } catch (e: Exception) {
+            // Ignore other vibration errors - device might not support it
         }
-        view?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
     
     private fun performButtonDragFeedback(view: View?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Light feedback for dragging
-            vibrator?.vibrate(VibrationEffect.createOneShot(25, 50))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(25)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Light feedback for dragging
+                vibrator?.vibrate(VibrationEffect.createOneShot(25, 50))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(25)
+            }
+            view?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        } catch (e: SecurityException) {
+            // Ignore vibration errors - app might not have VIBRATE permission
+        } catch (e: Exception) {
+            // Ignore other vibration errors - device might not support it
         }
-        view?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
     }
     
     private fun performButtonSnapFeedback(view: View?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Snap feedback when button snaps to edge
-            vibrator?.vibrate(VibrationEffect.createOneShot(80, 120))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(80)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Snap feedback when button snaps to edge
+                vibrator?.vibrate(VibrationEffect.createOneShot(80, 120))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(80)
+            }
+            view?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        } catch (e: SecurityException) {
+            // Ignore vibration errors - app might not have VIBRATE permission
+        } catch (e: Exception) {
+            // Ignore other vibration errors - device might not support it
         }
-        view?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
     
     /**

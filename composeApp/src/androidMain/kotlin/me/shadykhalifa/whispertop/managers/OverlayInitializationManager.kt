@@ -160,11 +160,16 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
             // Initialize audio recording service first
             audioRecordingViewModel.initializeService()
             
+            // Create layout parameters for the overlay
+            val layoutParams = createMicButtonLayoutParams()
+            val (initialX, initialY) = loadOverlayPosition()
+            layoutParams.x = initialX
+            layoutParams.y = initialY
+            
             // Create mic button overlay
             micButtonOverlay = MicButtonOverlay(context).apply {
-                // Set up position from saved preferences or default
-                val (initialX, initialY) = loadOverlayPosition()
-                updatePosition(initialX, initialY)
+                // Set layout parameters for the overlay view
+                setLayoutParams(layoutParams)
                 
                 // Connect mic button click listener to recording workflow
                 addMicButtonListener(createMicButtonListener())
@@ -172,9 +177,6 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
             
             // Set up state synchronization between recording state and overlay button
             setupStateSync()
-            
-            // Create layout parameters for the overlay
-            val layoutParams = createMicButtonLayoutParams()
             
             // Add overlay to service
             val addResult = overlayManager.addOverlay(
