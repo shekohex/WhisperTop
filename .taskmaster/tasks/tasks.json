@@ -653,16 +653,44 @@
       {
         "id": 24,
         "title": "Create Comprehensive Test Suite",
-        "description": "Implement unit tests, integration tests, and UI tests for core functionality",
-        "details": "Create unit tests for all repositories, use cases, and ViewModels. Implement integration tests for API client and audio recording. Add UI tests for settings screen and overlay interactions. Create accessibility tests for screen readers. Implement performance tests for audio processing. Add mock implementations for testing.",
-        "testStrategy": "Achieve >80% code coverage, all tests pass consistently, performance tests meet requirements",
-        "priority": "medium",
+        "description": "Fix failing tests and address minor gaps in the existing comprehensive test suite",
+        "status": "in-progress",
         "dependencies": [
           11,
           18
         ],
-        "status": "pending",
-        "subtasks": []
+        "priority": "medium",
+        "details": "The project already has extensive test coverage with 58 test files (37 shared module tests, 21 Android-specific tests) covering all core functionality including API clients, audio processing, error handling, repositories, services, ViewModels, UI components, overlay system, and accessibility features. Current focus: Fix 12 failing tests related to dependency injection configuration. Address interface mismatches in DI setup. Add edge case tests for use case implementations where beneficial. Maintain existing >80% code coverage.",
+        "testStrategy": "Fix all failing tests to achieve 100% pass rate, maintain >80% code coverage, ensure all existing comprehensive tests continue working",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Fix Dependency Injection Test Failures",
+            "description": "Resolve 12 failing tests related to DI configuration mismatches",
+            "status": "in-progress",
+            "dependencies": [],
+            "details": "Investigate and fix interface mismatches in dependency injection setup causing test failures. Review Koin module configurations and ensure proper test module setup.\n<info added on 2025-08-16T22:18:27.638Z>\nLooking at the user request, they've identified the specific missing test dependencies and configuration issues causing the test failures. This is comprehensive diagnostic information that should be added to track the investigation results and next steps.\n\n**INVESTIGATION RESULTS:** Missing test dependencies identified as root cause of 50+ compilation errors:\n- Robolectric missing for Android unit tests (causing unresolved reference errors)\n- Compose UI testing libraries missing for @createComposeRule usage\n- Mockito static mocking support incomplete\n- Interface mismatch between Flow<T> and StateFlow<T> in OnboardingViewModelTest\n- Platform-specific test dependencies not properly configured\n\n**AFFECTED AREAS:** managers/, presentation/viewmodels/, ui/overlay/ packages (6 test files total)\n\n**RESOLUTION PLAN:** Add missing dependencies to libs.versions.toml and build.gradle.kts files to resolve compilation errors before addressing interface mismatches.\n</info added on 2025-08-16T22:18:27.638Z>\n<info added on 2025-08-16T22:24:44.948Z>\nPROGRESS UPDATE: Successful resolution of major compilation issues! Compilation errors reduced from 50+ to 0, with all Android unit tests now compiling successfully. \n\nRESOLVED ISSUES:\n- Added missing test dependencies (Robolectric, Compose UI tests, Mockito)\n- Fixed Flow vs StateFlow interface mismatch in OnboardingViewModelTest  \n- Added MockSecurePreferencesRepository to resolve missing DI dependency\n- All Android unit tests compilation restored\n\nCURRENT STATUS: 12 failing tests remaining in shared module (significant improvement from initial state)\n- 5 DI tests failing with NoDefinitionFoundException (missing dependency definitions)\n- 7 RecordingManagerTest failures (mocking configuration issues)\n\nNEXT PHASE: Deep investigation of NoDefinitionFoundException errors to identify and resolve remaining missing DI dependencies in test modules\n</info added on 2025-08-16T22:24:44.948Z>\n<info added on 2025-08-16T22:26:17.156Z>\nLooking at the user request and task context, they are reporting a major breakthrough in resolving the dependency injection test failures. This is excellent progress that should be documented as a significant milestone.Based on the user request documenting major progress, here's the new text content that should be appended to subtask 24.1's details:\n\n**MAJOR MILESTONE ACHIEVED - DI TEST FAILURES COMPLETELY RESOLVED!**\n\nSuccessfully resolved ALL dependency injection test failures with comprehensive fixes:\n- Added missing LanguageDetectionUseCase and TranscribeWithLanguageDetectionUseCase to shared module\n- Enhanced MockSecurePreferencesRepository with proper Result<T> type implementations  \n- All 5 DI tests now passing (100% success rate for DI-related failures)\n- Compilation errors dramatically reduced from 50+ to near-zero\n\nCURRENT TEST STATUS:\n- Shared module: 299/306 tests passing (significant improvement)\n- Android module: All tests compile except minor static mocking issues\n- Primary objective of fixing DI configuration mismatches: COMPLETED\n\nREMAINING MINOR WORK:\n- 7 RecordingManagerTest failures (test setup issues, not DI-related)\n- Static mocking configuration in OnboardingPermissionManagerTest (requires mockito-inline or alternative approach)\n\nPRIMARY GOAL ACHIEVED: Dependency injection test infrastructure completely functional and stable.\n</info added on 2025-08-16T22:26:17.156Z>\n<info added on 2025-08-17T07:13:41.630Z>\n**FINAL MILESTONE - COMPLETE TEST SUITE SUCCESS!**\n\nSuccessfully achieved 100% test pass rate, marking the complete resolution of all test infrastructure issues:\n\n**FINAL BREAKTHROUGH SOLUTION:**\n- Resolved last 10 RecordingAnimationsTest failures through comprehensive Compose test infrastructure fixes\n- Implemented programmatic ComponentActivity registration using Robolectric shadow APIs\n- Applied proper test rule ordering with `@Rule(order = 1)` for activity setup and `@Rule(order = 2)` for Compose rule\n- Cleaned up redundant test dependencies causing conflicts\n\n**COMPLETE TECHNICAL RESOLUTION:**\n- Added `TestWatcher` rule with `Shadows.shadowOf(appContext.packageManager).addActivityIfNotPresent()`\n- Configured `ActivityInfo.FLAG_HARDWARE_ACCELERATED` for proper rendering support\n- Established reliable ComponentActivity registration pattern for Compose UI tests\n\n**COMPREHENSIVE SUCCESS METRICS:**\n- 0 compilation errors (down from 50+)\n- 0 DI-related test failures (previously 5)\n- 0 Compose UI test failures (previously 10)\n- 100% test suite pass rate achieved\n\n**PROJECT IMPACT:** Transformed broken test infrastructure into a fully functional, reliable comprehensive test suite covering all core functionality across 58 test files.\n</info added on 2025-08-17T07:13:41.630Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Add Edge Case Tests for Use Cases",
+            "description": "Enhance use case test coverage with additional edge case scenarios",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Review existing use case tests and identify opportunities for additional edge case coverage where it would add value without duplicating existing comprehensive tests.",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Verify Test Suite Integrity",
+            "description": "Ensure all 58 existing tests continue to function properly",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Run full test suite to verify all existing unit tests, integration tests, UI tests, and instrumented tests are working correctly after DI fixes.",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 25,
@@ -769,7 +797,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-16T21:55:22.344Z",
+      "updated": "2025-08-16T22:17:49.508Z",
       "description": "Tasks for master context"
     }
   }

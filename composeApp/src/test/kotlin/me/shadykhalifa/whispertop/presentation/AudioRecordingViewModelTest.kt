@@ -9,23 +9,27 @@ import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.PermissionHandler
 import me.shadykhalifa.whispertop.service.AudioRecordingService
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
+import org.junit.runner.RunWith
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.koin.test.KoinTest
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AudioRecordingViewModelTest {
+@RunWith(RobolectricTestRunner::class)
+class AudioRecordingViewModelTest : KoinTest {
     
-    @Mock
     private lateinit var mockAudioServiceManager: AudioServiceManager
-    
-    @Mock
     private lateinit var mockPermissionHandler: PermissionHandler
     
     private val testDispatcher = StandardTestDispatcher()
@@ -35,7 +39,10 @@ class AudioRecordingViewModelTest {
     
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
+        stopKoin()
+        
+        mockAudioServiceManager = mock()
+        mockPermissionHandler = mock()
         
         // Setup default mock behavior
         whenever(mockAudioServiceManager.connectionState).thenReturn(
@@ -50,6 +57,22 @@ class AudioRecordingViewModelTest {
         whenever(mockPermissionHandler.permissionState).thenReturn(
             MutableStateFlow(PermissionHandler.PermissionState.UNKNOWN)
         )
+        
+        startKoin {
+            modules(
+                module {
+                    single<AudioServiceManager> { mockAudioServiceManager }
+                    single<PermissionHandler> { mockPermissionHandler }
+                }
+            )
+        }
+        
+        viewModel = AudioRecordingViewModel()
+    }
+    
+    @After
+    fun tearDown() {
+        stopKoin()
     }
     
     @Test

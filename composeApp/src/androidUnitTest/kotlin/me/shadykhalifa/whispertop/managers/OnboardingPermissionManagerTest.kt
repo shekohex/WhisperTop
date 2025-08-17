@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.presentation.models.PermissionState
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
@@ -25,27 +26,31 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.managers.PermissionHandler
+import me.shadykhalifa.whispertop.managers.SystemSettingsProvider
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
 class OnboardingPermissionManagerTest : KoinTest {
     
-    private lateinit var mockContext: Context
     private lateinit var mockActivity: Activity
+    private lateinit var mockSystemSettingsProvider: SystemSettingsProvider
     private lateinit var permissionManager: OnboardingPermissionManager
     
     @Before
     fun setup() {
         stopKoin()
         
-        mockContext = mock()
         mockActivity = mock()
+        mockSystemSettingsProvider = mock()
         
         startKoin {
             modules(
                 module {
-                    single<Context> { mockContext }
+                    single<Context> { mockActivity }
+                    single<SystemSettingsProvider> { mockSystemSettingsProvider }
+                    single<PermissionHandler> { mock<PermissionHandler>() }
                 }
             )
         }
@@ -55,11 +60,11 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should detect granted audio permission correctly`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.FOREGROUND_SERVICE))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.FOREGROUND_SERVICE))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.POST_NOTIFICATIONS))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.POST_NOTIFICATIONS))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
         
         permissionManager.refreshAllPermissionStates()
@@ -72,8 +77,10 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should detect denied audio permission correctly`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_DENIED)
+        whenever(ActivityCompat.shouldShowRequestPermissionRationale(mockActivity, Manifest.permission.RECORD_AUDIO))
+            .thenReturn(true) // This makes it show as "Denied" instead of "PermanentlyDenied"
         
         permissionManager.refreshAllPermissionStates()
         
@@ -83,9 +90,8 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should detect permanently denied permission correctly`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_DENIED)
-        whenever(mockContext).thenReturn(mockActivity)
         whenever(ActivityCompat.shouldShowRequestPermissionRationale(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(false)
         
@@ -97,72 +103,50 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should detect overlay permission correctly when granted`() = runTest {
-        mockStatic(Settings::class.java).use { mockedSettings ->
-            mockedSettings.`when`<Boolean> { Settings.canDrawOverlays(mockContext) }
-                .thenReturn(true)
-            
-            permissionManager.refreshAllPermissionStates()
-            
-            val state = permissionManager.onboardingPermissionState.first()
-            assertEquals(PermissionState.Granted, state.overlay.state)
-        }
+        whenever(mockSystemSettingsProvider.canDrawOverlays()).thenReturn(true)
+        
+        permissionManager.refreshAllPermissionStates()
+        
+        val state = permissionManager.onboardingPermissionState.first()
+        assertEquals(PermissionState.Granted, state.overlay.state)
     }
     
     @Test
     fun `should detect overlay permission correctly when denied`() = runTest {
-        mockStatic(Settings::class.java).use { mockedSettings ->
-            mockedSettings.`when`<Boolean> { Settings.canDrawOverlays(mockContext) }
-                .thenReturn(false)
-            
-            permissionManager.refreshAllPermissionStates()
-            
-            val state = permissionManager.onboardingPermissionState.first()
-            assertEquals(PermissionState.NotRequested, state.overlay.state)
-        }
+        whenever(mockSystemSettingsProvider.canDrawOverlays()).thenReturn(false)
+        
+        permissionManager.refreshAllPermissionStates()
+        
+        val state = permissionManager.onboardingPermissionState.first()
+        assertEquals(PermissionState.NotRequested, state.overlay.state)
     }
     
     @Test
     fun `should detect accessibility service correctly when enabled`() = runTest {
-        val mockContentResolver = mock<android.content.ContentResolver>()
-        whenever(mockContext.contentResolver).thenReturn(mockContentResolver)
-        whenever(mockContext.packageName).thenReturn("me.shadykhalifa.whispertop")
+        whenever(mockActivity.packageName).thenReturn("me.shadykhalifa.whispertop")
+        whenever(mockSystemSettingsProvider.isAccessibilityEnabled()).thenReturn(true)
+        whenever(mockSystemSettingsProvider.getEnabledAccessibilityServices())
+            .thenReturn("me.shadykhalifa.whispertop/me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService")
         
-        mockStatic(Settings.Secure::class.java).use { mockedSecure ->
-            mockedSecure.`when`<Int> { 
-                Settings.Secure.getInt(mockContentResolver, Settings.Secure.ACCESSIBILITY_ENABLED) 
-            }.thenReturn(1)
-            
-            mockedSecure.`when`<String> { 
-                Settings.Secure.getString(mockContentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) 
-            }.thenReturn("me.shadykhalifa.whispertop/me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService")
-            
-            permissionManager.refreshAllPermissionStates()
-            
-            val state = permissionManager.onboardingPermissionState.first()
-            assertEquals(PermissionState.Granted, state.accessibility.state)
-        }
+        permissionManager.refreshAllPermissionStates()
+        
+        val state = permissionManager.onboardingPermissionState.first()
+        assertEquals(PermissionState.Granted, state.accessibility.state)
     }
     
     @Test
     fun `should detect accessibility service correctly when disabled`() = runTest {
-        val mockContentResolver = mock<android.content.ContentResolver>()
-        whenever(mockContext.contentResolver).thenReturn(mockContentResolver)
+        whenever(mockSystemSettingsProvider.isAccessibilityEnabled()).thenReturn(false)
         
-        mockStatic(Settings.Secure::class.java).use { mockedSecure ->
-            mockedSecure.`when`<Int> { 
-                Settings.Secure.getInt(mockContentResolver, Settings.Secure.ACCESSIBILITY_ENABLED) 
-            }.thenReturn(0)
-            
-            permissionManager.refreshAllPermissionStates()
-            
-            val state = permissionManager.onboardingPermissionState.first()
-            assertEquals(PermissionState.NotRequested, state.accessibility.state)
-        }
+        permissionManager.refreshAllPermissionStates()
+        
+        val state = permissionManager.onboardingPermissionState.first()
+        assertEquals(PermissionState.NotRequested, state.accessibility.state)
     }
     
     @Test
     fun `should determine permission denial reason correctly for granted permission`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
         
         permissionManager.refreshAllPermissionStates()
@@ -173,9 +157,8 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should determine permission denial reason correctly for denied permission`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_DENIED)
-        whenever(mockContext).thenReturn(mockActivity)
         whenever(ActivityCompat.shouldShowRequestPermissionRationale(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(true)
         
@@ -187,9 +170,8 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should determine permission denial reason correctly for permanently denied permission`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_DENIED)
-        whenever(mockContext).thenReturn(mockActivity)
         whenever(ActivityCompat.shouldShowRequestPermissionRationale(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(false)
         
@@ -201,46 +183,35 @@ class OnboardingPermissionManagerTest : KoinTest {
     
     @Test
     fun `should check all critical permissions correctly when all granted`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.FOREGROUND_SERVICE))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.FOREGROUND_SERVICE))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.POST_NOTIFICATIONS))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.POST_NOTIFICATIONS))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
         
-        mockStatic(Settings::class.java).use { mockedSettings ->
-            mockedSettings.`when`<Boolean> { Settings.canDrawOverlays(mockContext) }
-                .thenReturn(true)
-            
-            val mockContentResolver = mock<android.content.ContentResolver>()
-            whenever(mockContext.contentResolver).thenReturn(mockContentResolver)
-            whenever(mockContext.packageName).thenReturn("me.shadykhalifa.whispertop")
-            
-            mockStatic(Settings.Secure::class.java).use { mockedSecure ->
-                mockedSecure.`when`<Int> { 
-                    Settings.Secure.getInt(mockContentResolver, Settings.Secure.ACCESSIBILITY_ENABLED) 
-                }.thenReturn(1)
-                
-                mockedSecure.`when`<String> { 
-                    Settings.Secure.getString(mockContentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) 
-                }.thenReturn("me.shadykhalifa.whispertop/me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService")
-                
-                permissionManager.refreshAllPermissionStates()
-                
-                val state = permissionManager.onboardingPermissionState.first()
-                assertTrue(state.allCriticalPermissionsGranted)
-                assertFalse(state.hasAnyDeniedPermissions)
-                assertFalse(state.hasPermanentlyDeniedPermissions)
-            }
-        }
+        whenever(mockActivity.packageName).thenReturn("me.shadykhalifa.whispertop")
+        whenever(mockSystemSettingsProvider.canDrawOverlays()).thenReturn(true)
+        whenever(mockSystemSettingsProvider.isAccessibilityEnabled()).thenReturn(true)
+        whenever(mockSystemSettingsProvider.getEnabledAccessibilityServices())
+            .thenReturn("me.shadykhalifa.whispertop/me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService")
+        
+        permissionManager.refreshAllPermissionStates()
+        
+        val state = permissionManager.onboardingPermissionState.first()
+        assertTrue(state.allCriticalPermissionsGranted)
+        assertFalse(state.hasAnyDeniedPermissions)
+        assertFalse(state.hasPermanentlyDeniedPermissions)
     }
     
     @Test
     fun `should check all critical permissions correctly when some denied`() = runTest {
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.RECORD_AUDIO))
             .thenReturn(PackageManager.PERMISSION_DENIED)
-        whenever(ContextCompat.checkSelfPermission(mockContext, Manifest.permission.FOREGROUND_SERVICE))
+        whenever(ContextCompat.checkSelfPermission(mockActivity, Manifest.permission.FOREGROUND_SERVICE))
             .thenReturn(PackageManager.PERMISSION_GRANTED)
+        whenever(ActivityCompat.shouldShowRequestPermissionRationale(mockActivity, Manifest.permission.RECORD_AUDIO))
+            .thenReturn(true) // Make it show as denied rather than permanently denied
         
         permissionManager.refreshAllPermissionStates()
         

@@ -58,6 +58,10 @@ class SettingsViewModelTest {
         whenever(securePreferencesRepository.validateApiKey("")).thenReturn(false)
         whenever(securePreferencesRepository.validateApiKey("invalid-key")).thenReturn(false)
         whenever(securePreferencesRepository.validateApiKey("sk-short")).thenReturn(false)
+        
+        // For the dynamic API key used in tests
+        val validApiKey = "sk-proj-" + "a".repeat(46) // 51 characters total
+        whenever(securePreferencesRepository.validateApiKey(validApiKey)).thenReturn(true)
         runBlocking {
             whenever(securePreferencesRepository.getApiEndpoint()).thenReturn(Result.Success("https://api.openai.com/v1/"))
         }
@@ -240,7 +244,7 @@ class SettingsViewModelTest {
         whenever(settingsRepository.clearApiKey()).thenReturn(Result.Success(Unit))
         
         // When
-        viewModel.clearApiKey()
+        viewModel.confirmClearApiKey()
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then

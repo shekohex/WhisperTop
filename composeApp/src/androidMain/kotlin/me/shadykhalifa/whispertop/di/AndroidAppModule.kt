@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.di
 
 import me.shadykhalifa.whispertop.data.services.TextInsertionServiceImpl
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
+import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
 import me.shadykhalifa.whispertop.managers.OnboardingPermissionManager
@@ -9,6 +10,7 @@ import me.shadykhalifa.whispertop.managers.PermissionHandler
 import me.shadykhalifa.whispertop.managers.PowerManagementUtil
 import me.shadykhalifa.whispertop.managers.PowerAwareApiManager
 import me.shadykhalifa.whispertop.managers.ServiceRecoveryManager
+import me.shadykhalifa.whispertop.managers.SystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.createApiManager
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
@@ -25,6 +27,9 @@ val androidAppModule = module {
     singleOf(::AudioServiceManager)
     singleOf(::PermissionHandler)
     singleOf(::OnboardingPermissionManager)
+    
+    // System Settings Abstraction
+    single<SystemSettingsProvider> { AndroidSystemSettingsProvider(get()) }
     single { ServiceRecoveryManager(get()) }
     single { BatteryOptimizationUtil(get()) }
     single { PowerManagementUtil(get()) }

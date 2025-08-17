@@ -25,6 +25,7 @@ class OnboardingPermissionManager : KoinComponent {
     
     private val context: Context by inject()
     private val existingPermissionHandler: PermissionHandler by inject()
+    private val systemSettingsProvider: SystemSettingsProvider by inject()
     
     private val _onboardingPermissionState = MutableStateFlow(OnboardingPermissionState())
     val onboardingPermissionState: StateFlow<OnboardingPermissionState> = _onboardingPermissionState.asStateFlow()
@@ -94,12 +95,7 @@ class OnboardingPermissionManager : KoinComponent {
     }
     
     private fun checkOverlayPermission(): IndividualPermissionState {
-        val isGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(context)
-        } else {
-            true
-        }
-        
+        val isGranted = systemSettingsProvider.canDrawOverlays()
         val state = if (isGranted) PermissionState.Granted else PermissionState.NotRequested
         return IndividualPermissionState(Manifest.permission.SYSTEM_ALERT_WINDOW, state)
     }
@@ -111,21 +107,11 @@ class OnboardingPermissionManager : KoinComponent {
     }
     
     private fun isAccessibilityServiceEnabled(): Boolean {
-        val accessibilityEnabled = try {
-            Settings.Secure.getInt(
-                context.contentResolver,
-                Settings.Secure.ACCESSIBILITY_ENABLED
-            ) == 1
-        } catch (e: Settings.SettingNotFoundException) {
-            false
-        }
+        val accessibilityEnabled = systemSettingsProvider.isAccessibilityEnabled()
         
         if (!accessibilityEnabled) return false
         
-        val enabledServices = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
+        val enabledServices = systemSettingsProvider.getEnabledAccessibilityServices() ?: return false
         
         val packageName = context.packageName
         val serviceName = "me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService"

@@ -1,6 +1,9 @@
 package me.shadykhalifa.whispertop.di
 
 import io.ktor.client.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import me.shadykhalifa.whispertop.data.remote.createHttpClient
 import me.shadykhalifa.whispertop.data.repositories.AudioRepositoryImpl
 import me.shadykhalifa.whispertop.data.repositories.SettingsRepositoryImpl
@@ -28,6 +31,8 @@ import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
+import me.shadykhalifa.whispertop.domain.usecases.LanguageDetectionUseCase
+import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
@@ -60,13 +65,18 @@ val sharedModule = module {
     singleOf(::AudioRepositoryImpl) { bind<AudioRepository>() }
     singleOf(::TranscriptionRepositoryImpl) { bind<TranscriptionRepository>() }
     
-    // Managers
-    singleOf(::RecordingManager)
+    // CoroutineScope for managers
+    single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    
+    // Managers  
+    single { RecordingManager(get()) }
     
     // Use Cases
     factoryOf(::StartRecordingUseCase)
     factoryOf(::StopRecordingUseCase)
     factoryOf(::TranscriptionUseCase)
+    factoryOf(::LanguageDetectionUseCase)
+    factoryOf(::TranscribeWithLanguageDetectionUseCase)
     singleOf(::TranscriptionWorkflowUseCase)
     
     // ViewModels

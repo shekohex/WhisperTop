@@ -20,11 +20,11 @@ import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class RecordingManager : KoinComponent {
+class RecordingManager(
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+) : KoinComponent {
     private val audioRepository: AudioRepository by inject()
     private val transcriptionRepository: TranscriptionRepository by inject()
-    
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val _recordingState = MutableStateFlow<RecordingState>(RecordingState.Idle)
     val recordingState: StateFlow<RecordingState> = _recordingState.asStateFlow()

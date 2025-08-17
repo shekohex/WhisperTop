@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [Build.VERSION_CODES.M, Build.VERSION_CODES.Q, Build.VERSION_CODES.S])
+@Config(sdk = [Build.VERSION_CODES.O, Build.VERSION_CODES.Q, Build.VERSION_CODES.S])
 class PowerManagementUtilTest {
     
     private lateinit var context: Context

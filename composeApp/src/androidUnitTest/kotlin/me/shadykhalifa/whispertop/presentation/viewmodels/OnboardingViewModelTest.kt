@@ -2,15 +2,22 @@ package me.shadykhalifa.whispertop.presentation.viewmodels
 
 import android.Manifest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.managers.OnboardingPermissionManager
 import me.shadykhalifa.whispertop.presentation.models.IndividualPermissionState
 import me.shadykhalifa.whispertop.presentation.models.OnboardingPermissionState
 import me.shadykhalifa.whispertop.presentation.models.OnboardingStep
 import me.shadykhalifa.whispertop.presentation.models.PermissionState
+import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel.NavigationEvent
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,13 +37,19 @@ class OnboardingViewModelTest : KoinTest {
     
     private lateinit var mockPermissionManager: OnboardingPermissionManager
     private lateinit var viewModel: OnboardingViewModel
-    private val testScope = TestScope(UnconfinedTestDispatcher())
+    private val testDispatcher = StandardTestDispatcher()
+    private val testScope = TestScope(testDispatcher)
     
     @Before
     fun setup() {
         stopKoin()
+        Dispatchers.setMain(testDispatcher)
         
         mockPermissionManager = mock()
+        
+        // Setup mock behavior for OnboardingPermissionState
+        val mockPermissionState = MutableStateFlow(OnboardingPermissionState())
+        whenever(mockPermissionManager.onboardingPermissionState).thenReturn(mockPermissionState)
         
         startKoin {
             modules(
@@ -47,6 +60,12 @@ class OnboardingViewModelTest : KoinTest {
         }
         
         viewModel = OnboardingViewModel()
+    }
+    
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+        stopKoin()
     }
     
     @Test
@@ -62,7 +81,7 @@ class OnboardingViewModelTest : KoinTest {
     fun `should navigate to next step when current step is completed`() = testScope.runTest {
         // Mock welcome step as completed
         whenever(mockPermissionManager.onboardingPermissionState).thenReturn(
-            kotlinx.coroutines.flow.flowOf(createMockPermissionState())
+            MutableStateFlow(createMockPermissionState())
         )
         
         viewModel.proceedToNextStep()
@@ -76,15 +95,17 @@ class OnboardingViewModelTest : KoinTest {
         val permissionState = createMockPermissionState(
             audioRecording = PermissionState.Granted,
             foregroundService = PermissionState.Granted,
-            notifications = PermissionState.Granted
+            notifications = PermissionState.Granted,
+            foregroundServiceMicrophone = PermissionState.Granted
         )
         
         whenever(mockPermissionManager.onboardingPermissionState).thenReturn(
-            kotlinx.coroutines.flow.flowOf(permissionState)
+            MutableStateFlow(permissionState)
         )
         
         // Re-create viewModel to trigger state observation
         viewModel = OnboardingViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         val progress = viewModel.onboardingProgress.first()
         assertTrue(progress.completedSteps.contains(OnboardingStep.AUDIO_PERMISSION))
@@ -97,10 +118,11 @@ class OnboardingViewModelTest : KoinTest {
         )
         
         whenever(mockPermissionManager.onboardingPermissionState).thenReturn(
-            kotlinx.coroutines.flow.flowOf(permissionState)
+            MutableStateFlow(permissionState)
         )
         
         viewModel = OnboardingViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         val progress = viewModel.onboardingProgress.first()
         assertTrue(progress.completedSteps.contains(OnboardingStep.OVERLAY_PERMISSION))
@@ -113,10 +135,11 @@ class OnboardingViewModelTest : KoinTest {
         )
         
         whenever(mockPermissionManager.onboardingPermissionState).thenReturn(
-            kotlinx.coroutines.flow.flowOf(permissionState)
+            MutableStateFlow(permissionState)
         )
         
         viewModel = OnboardingViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         val progress = viewModel.onboardingProgress.first()
         assertTrue(progress.completedSteps.contains(OnboardingStep.ACCESSIBILITY_SERVICE))
@@ -126,25 +149,36 @@ class OnboardingViewModelTest : KoinTest {
     fun `should mark onboarding as complete when all permissions are granted`() = testScope.runTest {
         val permissionState = createMockPermissionState(
             audioRecording = PermissionState.Granted,
-            foregroundService = PermissionState.Granted,
-            notifications = PermissionState.Granted,
             overlay = PermissionState.Granted,
-            accessibility = PermissionState.Granted
+            accessibility = PermissionState.Granted,
+            notifications = PermissionState.Granted,
+            foregroundService = PermissionState.Granted,
+            foregroundServiceMicrophone = PermissionState.Granted
         )
         
         whenever(mockPermissionManager.onboardingPermissionState).thenReturn(
-            kotlinx.coroutines.flow.flowOf(permissionState)
+            MutableStateFlow(permissionState)
         )
         
         viewModel = OnboardingViewModel()
         
+        // Navigate past welcome to trigger its completion
+        viewModel.navigateToStep(OnboardingStep.AUDIO_PERMISSION)
+        testDispatcher.scheduler.advanceUntilIdle()
+        
         val progress = viewModel.onboardingProgress.first()
+        // Check that the required steps are completed (we don't include BATTERY_OPTIMIZATION or COMPLETE in the ViewModel logic check)
+        assertTrue(progress.completedSteps.contains(OnboardingStep.WELCOME))
+        assertTrue(progress.completedSteps.contains(OnboardingStep.AUDIO_PERMISSION))
+        assertTrue(progress.completedSteps.contains(OnboardingStep.OVERLAY_PERMISSION))
+        assertTrue(progress.completedSteps.contains(OnboardingStep.ACCESSIBILITY_SERVICE))
         assertTrue(progress.completedSteps.contains(OnboardingStep.COMPLETE))
     }
     
     @Test
     fun `should request audio permission when requestAudioPermission is called`() = testScope.runTest {
         viewModel.requestAudioPermission()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         verify(mockPermissionManager).requestAudioPermission()
     }
@@ -152,6 +186,7 @@ class OnboardingViewModelTest : KoinTest {
     @Test
     fun `should request overlay permission when requestOverlayPermission is called`() = testScope.runTest {
         viewModel.requestOverlayPermission()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         verify(mockPermissionManager).requestOverlayPermission()
     }
@@ -159,6 +194,7 @@ class OnboardingViewModelTest : KoinTest {
     @Test
     fun `should request accessibility permission when requestAccessibilityPermission is called`() = testScope.runTest {
         viewModel.requestAccessibilityPermission()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         verify(mockPermissionManager).requestAccessibilityPermission()
     }
@@ -166,16 +202,22 @@ class OnboardingViewModelTest : KoinTest {
     @Test
     fun `should open app settings when openAppSettings is called`() = testScope.runTest {
         viewModel.openAppSettings()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         verify(mockPermissionManager).openAppSettings()
     }
     
     @Test
     fun `should skip optional steps correctly`() = testScope.runTest {
-        // Navigate to overlay permission step
+        // Navigate to audio permission step first, then to overlay permission step
+        viewModel.navigateToStep(OnboardingStep.AUDIO_PERMISSION)
+        testDispatcher.scheduler.advanceUntilIdle()
+        
         viewModel.navigateToStep(OnboardingStep.OVERLAY_PERMISSION)
+        testDispatcher.scheduler.advanceUntilIdle()
         
         viewModel.skipCurrentStep()
+        testDispatcher.scheduler.advanceUntilIdle()
         
         val progress = viewModel.onboardingProgress.first()
         assertTrue(progress.completedSteps.contains(OnboardingStep.OVERLAY_PERMISSION))
@@ -203,10 +245,22 @@ class OnboardingViewModelTest : KoinTest {
     
     @Test
     fun `should emit complete onboarding navigation event`() = testScope.runTest {
-        viewModel.completeOnboarding()
+        // Use a simpler approach - collect the first emission with timeout
+        var receivedEvent: NavigationEvent? = null
+        val job = launch {
+            viewModel.navigationEvent.collect { 
+                receivedEvent = it
+            }
+        }
         
-        val event = viewModel.navigationEvent.first()
-        assertEquals(OnboardingViewModel.NavigationEvent.CompleteOnboarding, event)
+        viewModel.completeOnboarding()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Wait a bit for the emission
+        testDispatcher.scheduler.advanceTimeBy(100)
+        
+        job.cancel()
+        assertEquals(NavigationEvent.CompleteOnboarding, receivedEvent)
     }
     
     @Test
