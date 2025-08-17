@@ -7,6 +7,8 @@ data class AppSettings(
     val selectedModel: String = "whisper-1",
     val customModels: List<String> = emptyList(),
     val modelPreferences: Map<String, String> = emptyMap(),
+    val baseUrl: String = "https://api.openai.com/v1/",
+    val isCustomEndpoint: Boolean = false,
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
     val languagePreference: LanguagePreference = LanguagePreference(),
@@ -33,7 +35,19 @@ data class AppSettings(
     val metricsRetentionDays: Int = 30,
     val enableMetricsExport: Boolean = true,
     val autoCleanupMetrics: Boolean = true
-)
+) {
+    /**
+     * Determines if the current baseUrl is an OpenAI endpoint
+     */
+    fun isOpenAIEndpoint(): Boolean {
+        val isOpenAI = baseUrl.isBlank() || 
+                      baseUrl.equals("https://api.openai.com/v1", ignoreCase = true) ||
+                      baseUrl.contains("openai.com", ignoreCase = true)
+        
+        println("AppSettings: Endpoint detection - baseUrl='$baseUrl', isOpenAI=$isOpenAI")
+        return isOpenAI
+    }
+}
 
 enum class Theme {
     Light, Dark, System
