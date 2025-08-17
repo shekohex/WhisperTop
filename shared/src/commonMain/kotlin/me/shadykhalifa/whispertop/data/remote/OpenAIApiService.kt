@@ -6,6 +6,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import me.shadykhalifa.whispertop.data.models.*
 
+// Logging functions - implemented per platform
 expect fun apiLog(tag: String, message: String)
 expect fun apiLogError(tag: String, message: String, throwable: Throwable? = null)
 
@@ -24,8 +25,12 @@ class OpenAIApiService(
         responseFormat: AudioResponseFormat = AudioResponseFormat.JSON,
         temperature: Float = 0.0f
     ): CreateTranscriptionResponseDto {
-        apiLog(TAG, "Starting transcription: file=$fileName, model=${model.modelId}, language=$language, format=${responseFormat.format}")
-        apiLog(TAG, "Audio data size: ${audioData.size} bytes")
+        println("$TAG: Starting transcription with built-in model - " +
+                "model='${model.modelId}', " +
+                "fileName='$fileName', " +
+                "responseFormat='${responseFormat.format}', " +
+                "language='$language', " +
+                "audioSize=${audioData.size} bytes")
         
         validateParameters(model, temperature)
         
@@ -38,9 +43,9 @@ class OpenAIApiService(
         )
         
         val contentType = determineContentType(fileName)
-        apiLog(TAG, "Determined content type: $contentType")
+        println("$TAG: Determined content type: '$contentType' for file: '$fileName'")
         
-        apiLog(TAG, "Uploading audio file to OpenAI API...")
+        println("$TAG: Sending request to endpoint 'audio/transcriptions'")
         val response = httpClient.uploadAudioFile(
             endpoint = "audio/transcriptions",
             audioData = audioData,
@@ -49,23 +54,23 @@ class OpenAIApiService(
             transcriptionRequest = request
         )
         
-        apiLog(TAG, "API response received: ${response.status}")
+        println("$TAG: Response status: ${response.status}")
         response.validateOrThrow()
         
-        return when (responseFormat) {
+        val result = when (responseFormat) {
             AudioResponseFormat.VERBOSE_JSON -> {
-                apiLog(TAG, "Parsing verbose JSON response...")
+                println("$TAG: Parsing verbose JSON response")
                 val verboseResponse = response.body<CreateTranscriptionResponseVerboseDto>()
-                apiLog(TAG, "Verbose response parsed: text length=${verboseResponse.text?.length ?: 0}")
                 CreateTranscriptionResponseDto(text = verboseResponse.text)
             }
             else -> {
-                apiLog(TAG, "Parsing standard JSON response...")
-                val result = response.body<CreateTranscriptionResponseDto>()
-                apiLog(TAG, "Standard response parsed: text length=${result.text?.length ?: 0}")
-                result
+                println("$TAG: Parsing standard JSON response")
+                response.body<CreateTranscriptionResponseDto>()
             }
         }
+        
+        println("$TAG: Transcription completed successfully - text length: ${result.text.length}")
+        return result
     }
 
     /**
@@ -80,9 +85,6 @@ class OpenAIApiService(
         prompt: String? = null,
         temperature: Float = 0.0f
     ): CreateTranscriptionResponseVerboseDto {
-        apiLog(TAG, "Starting transcription with language detection: file=$fileName, model=${model.modelId}")
-        apiLog(TAG, "Language detection params: language=$language, audio size=${audioData.size} bytes")
-        
         validateParameters(model, temperature)
         
         val request = CreateTranscriptionRequestDto(
@@ -103,13 +105,9 @@ class OpenAIApiService(
             transcriptionRequest = request
         )
         
-        apiLog(TAG, "Language detection API response received: ${response.status}")
         response.validateOrThrow()
         
-        apiLog(TAG, "Parsing verbose response for language detection...")
-        val result = response.body<CreateTranscriptionResponseVerboseDto>()
-        apiLog(TAG, "Language detection completed: text='${result.text}', detected_language='${result.language}'")
-        return result
+        return response.body<CreateTranscriptionResponseVerboseDto>()
     }
     
     suspend fun transcribe(
@@ -121,20 +119,99 @@ class OpenAIApiService(
         responseFormat: String = "json",
         temperature: Float = 0.0f
     ): CreateTranscriptionResponseDto {
-        val whisperModel = WhisperModel.fromString(model) 
-            ?: throw IllegalArgumentException("Unsupported model: $model")
-        val audioFormat = AudioResponseFormat.fromString(responseFormat)
-            ?: throw IllegalArgumentException("Unsupported response format: $responseFormat")
-            
-        return transcribe(
+        println("$TAG: Starting transcription with custom model - " +
+                "model='$model', " +
+                "fileName='$fileName', " +
+                "responseFormat='$responseFormat', " +
+                "language='$language', " +
+                "audioSize=${audioData.size} bytes")
+        
+        // Try built-in models first
+        val whisperModel = WhisperModel.fromString(model)
+        if (whisperModel != null) {
+            println("$TAG: Using built-in WhisperModel: ${whisperModel.modelId}")
+            val audioFormat = AudioResponseFormat.fromString(responseFormat)
+                ?: throw IllegalArgumentException("Unsupported response format: $responseFormat")
+                
+            return transcribe(
+                audioData = audioData,
+                fileName = fileName,
+                model = whisperModel,
+                language = language,
+                prompt = prompt,
+                responseFormat = audioFormat,
+                temperature = temperature
+            )
+        }
+        
+        // Handle custom models - use raw HTTP request
+        println("$TAG: Using custom model (not built-in): '$model'")
+        return transcribeCustomModel(
             audioData = audioData,
             fileName = fileName,
-            model = whisperModel,
+            model = model,
             language = language,
             prompt = prompt,
-            responseFormat = audioFormat,
+            responseFormat = responseFormat,
             temperature = temperature
         )
+    }
+    
+    private suspend fun transcribeCustomModel(
+        audioData: ByteArray,
+        fileName: String,
+        model: String,
+        language: String? = null,
+        prompt: String? = null,
+        responseFormat: String = "json",
+        temperature: Float = 0.0f
+    ): CreateTranscriptionResponseDto {
+        println("$TAG: transcribeCustomModel - " +
+                "model='$model', " +
+                "responseFormat='$responseFormat', " +
+                "temperature=$temperature")
+        
+        if (temperature < 0.0f || temperature > 1.0f) {
+            throw IllegalArgumentException("Temperature must be between 0.0 and 1.0")
+        }
+        
+        val request = CreateTranscriptionRequestDto(
+            model = model,
+            language = language,
+            prompt = prompt,
+            responseFormat = responseFormat,
+            temperature = temperature
+        )
+        
+        val contentType = determineContentType(fileName)
+        println("$TAG: Determined content type: '$contentType' for file: '$fileName'")
+        
+        println("$TAG: Sending request to endpoint 'audio/transcriptions'")
+        val response = httpClient.uploadAudioFile(
+            endpoint = "audio/transcriptions",
+            audioData = audioData,
+            fileName = fileName,
+            contentType = contentType,
+            transcriptionRequest = request
+        )
+        
+        println("$TAG: Response status: ${response.status}")
+        response.validateOrThrow()
+        
+        val result = when (responseFormat) {
+            "verbose_json" -> {
+                println("$TAG: Parsing verbose JSON response")
+                val verboseResponse = response.body<CreateTranscriptionResponseVerboseDto>()
+                CreateTranscriptionResponseDto(text = verboseResponse.text)
+            }
+            else -> {
+                println("$TAG: Parsing standard JSON response")
+                response.body<CreateTranscriptionResponseDto>()
+            }
+        }
+        
+        println("$TAG: Transcription completed successfully - text length: ${result.text.length}")
+        return result
     }
     
     private fun validateParameters(model: WhisperModel, temperature: Float) {

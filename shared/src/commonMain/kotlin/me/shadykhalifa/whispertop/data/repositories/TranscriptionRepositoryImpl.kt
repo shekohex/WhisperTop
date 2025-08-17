@@ -55,6 +55,9 @@ class TranscriptionRepositoryImpl(
         
         log(TAG, "Session ID: $sessionId")
         log(TAG, "API key configured: ${settings.apiKey.isNotBlank()}")
+        log(TAG, "Base URL: '${settings.baseUrl}'")
+        log(TAG, "Is custom endpoint: ${settings.isCustomEndpoint}")
+        log(TAG, "Is OpenAI endpoint: ${settings.isOpenAIEndpoint()}")
         
         if (settings.apiKey.isBlank()) {
             logError(TAG, "API key is missing or empty")
@@ -101,8 +104,10 @@ class TranscriptionRepositoryImpl(
                     log(TAG, "Attempt ${attempt + 1}/3: Starting API call to OpenAI")
                     val connectionStartTime = System.currentTimeMillis()
                     
+                    val transcriptionUrl = "${settings.baseUrl.trimEnd('/')}/audio/transcriptions"
+                    log(TAG, "Making request to URL: '$transcriptionUrl'")
                     val response = httpClient.submitFormWithBinaryData(
-                        url = TRANSCRIPTIONS_ENDPOINT,
+                        url = transcriptionUrl,
                         formData = formData {
                             append("file", audioData, Headers.build {
                                 append(HttpHeaders.ContentType, "audio/wav")
@@ -240,7 +245,9 @@ class TranscriptionRepositoryImpl(
         }
 
         try {
-            val response = httpClient.get("$OPENAI_BASE_URL/models") {
+            val settings = settingsRepository.getSettings()
+            val modelsUrl = "${settings.baseUrl.trimEnd('/')}/models"
+            val response = httpClient.get(modelsUrl) {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $apiKey")
                 }
@@ -270,7 +277,10 @@ class TranscriptionRepositoryImpl(
             }
 
             // Create OpenAI API service
-            val apiService = createOpenAIApiService(settings.apiKey)
+            val apiService = createOpenAIApiService(
+                apiKey = settings.apiKey,
+                baseUrl = settings.baseUrl
+            )
 
             // Determine language for transcription
             val transcriptionLanguage = languageDetectionUseCase.determineTranscriptionLanguage(
@@ -279,20 +289,41 @@ class TranscriptionRepositoryImpl(
             )
 
             // Use the best model for language detection
-            val modelForDetection = when (request.model) {
-                "gpt-4o-transcribe", "gpt-4o-mini-transcribe" -> WhisperModel.fromString(request.model)
-                else -> WhisperModel.GPT_4O_TRANSCRIBE // Default to best model for language detection
-            } ?: WhisperModel.GPT_4O_TRANSCRIBE
+            val modelForDetection = when {
+                WhisperModel.isBuiltIn(request.model) -> WhisperModel.fromString(request.model) ?: WhisperModel.GPT_4O_TRANSCRIBE
+                settings.isOpenAIEndpoint() -> WhisperModel.GPT_4O_TRANSCRIBE // Default to best OpenAI model
+                else -> null // For custom endpoints, use the custom model as-is
+            }
 
             // Get verbose response for language detection
-            val verboseResponse = apiService.transcribeWithLanguageDetection(
-                audioData = audioData,
-                fileName = "audio.wav",
-                model = modelForDetection,
-                language = transcriptionLanguage,
-                prompt = null,
-                temperature = 0.0f
-            )
+            val verboseResponse = if (modelForDetection != null) {
+                // Use built-in model with language detection
+                apiService.transcribeWithLanguageDetection(
+                    audioData = audioData,
+                    fileName = "audio.wav",
+                    model = modelForDetection,
+                    language = transcriptionLanguage,
+                    prompt = null,
+                    temperature = 0.0f
+                )
+            } else {
+                // Use custom model - fall back to standard transcribe with string model
+                val standardResponse = apiService.transcribe(
+                    audioData = audioData,
+                    fileName = "audio.wav",
+                    model = request.model,
+                    language = transcriptionLanguage,
+                    prompt = null,
+                    responseFormat = "verbose_json",
+                    temperature = 0.0f
+                )
+                // Convert to verbose format - custom endpoints may not support all verbose fields
+                me.shadykhalifa.whispertop.data.models.CreateTranscriptionResponseVerboseDto(
+                    text = standardResponse.text,
+                    language = transcriptionLanguage ?: "en", // Default fallback
+                    duration = 0.0f // Not available from custom endpoints
+                )
+            }
 
             // Create language detection result
             val languageDetection = languageDetectionUseCase.createDetectionResult(
