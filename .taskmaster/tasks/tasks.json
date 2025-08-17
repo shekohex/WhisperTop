@@ -1070,11 +1070,26 @@
             "parentTaskId": 29
           }
         ]
+      },
+      {
+        "id": 30,
+        "title": "Implement Overlay Notification System",
+        "description": "Create an overlay-based notification system that displays transcription feedback directly over other apps, similar to chat heads, with animated notifications for success, error, and loading states.",
+        "details": "Create NotificationOverlayService extending Service to manage overlay notifications with TYPE_APPLICATION_OVERLAY window type. Implement NotificationOverlayView with WindowManager.LayoutParams for positioning relative to mic button. Create notification types (success, error, warning, info) with different visual styles and Material Design components. Implement slide-in/slide-out animations using ObjectAnimator and ViewPropertyAnimator. Add notification queue system with NotificationQueue class to handle multiple notifications sequentially. Create auto-dismiss functionality with configurable timeouts (3-5 seconds) and manual dismiss with swipe gestures. Position notifications using screen bounds detection and relative positioning to avoid UI interference. Handle orientation changes and screen density variations. Add haptic feedback integration for important notifications using HapticFeedbackManager. Implement proper z-index layering with WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY and FLAG_NOT_TOUCH_MODAL. Create accessibility support with content descriptions and TalkBack announcements. Add notification persistence for critical errors until user acknowledgment.",
+        "testStrategy": "Unit tests for NotificationQueue management and notification lifecycle. Integration tests for overlay positioning relative to mic button across different screen sizes. Test notification animations and timing with Espresso UI tests. Verify haptic feedback works on various devices. Test auto-dismiss and manual dismiss functionality. Verify accessibility with TalkBack enabled. Test notification layering doesn't interfere with other apps. Test queue system with rapid successive notifications. Verify orientation change handling and screen boundary detection.",
+        "status": "pending",
+        "dependencies": [
+          7,
+          20,
+          10
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-17T14:42:14.041Z",
+      "updated": "2025-08-17T15:39:08.818Z",
       "description": "Tasks for master context"
     }
   }

@@ -6,9 +6,15 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import me.shadykhalifa.whispertop.data.models.*
 
+expect fun apiLog(tag: String, message: String)
+expect fun apiLogError(tag: String, message: String, throwable: Throwable? = null)
+
 class OpenAIApiService(
     private val httpClient: HttpClient
 ) {
+    private companion object {
+        const val TAG = "OpenAIApiService"
+    }
     suspend fun transcribe(
         audioData: ByteArray,
         fileName: String,
@@ -18,6 +24,9 @@ class OpenAIApiService(
         responseFormat: AudioResponseFormat = AudioResponseFormat.JSON,
         temperature: Float = 0.0f
     ): CreateTranscriptionResponseDto {
+        apiLog(TAG, "Starting transcription: file=$fileName, model=${model.modelId}, language=$language, format=${responseFormat.format}")
+        apiLog(TAG, "Audio data size: ${audioData.size} bytes")
+        
         validateParameters(model, temperature)
         
         val request = CreateTranscriptionRequestDto(
@@ -29,7 +38,9 @@ class OpenAIApiService(
         )
         
         val contentType = determineContentType(fileName)
+        apiLog(TAG, "Determined content type: $contentType")
         
+        apiLog(TAG, "Uploading audio file to OpenAI API...")
         val response = httpClient.uploadAudioFile(
             endpoint = "audio/transcriptions",
             audioData = audioData,
@@ -38,14 +49,22 @@ class OpenAIApiService(
             transcriptionRequest = request
         )
         
+        apiLog(TAG, "API response received: ${response.status}")
         response.validateOrThrow()
         
         return when (responseFormat) {
             AudioResponseFormat.VERBOSE_JSON -> {
+                apiLog(TAG, "Parsing verbose JSON response...")
                 val verboseResponse = response.body<CreateTranscriptionResponseVerboseDto>()
+                apiLog(TAG, "Verbose response parsed: text length=${verboseResponse.text?.length ?: 0}")
                 CreateTranscriptionResponseDto(text = verboseResponse.text)
             }
-            else -> response.body<CreateTranscriptionResponseDto>()
+            else -> {
+                apiLog(TAG, "Parsing standard JSON response...")
+                val result = response.body<CreateTranscriptionResponseDto>()
+                apiLog(TAG, "Standard response parsed: text length=${result.text?.length ?: 0}")
+                result
+            }
         }
     }
 
@@ -61,6 +80,9 @@ class OpenAIApiService(
         prompt: String? = null,
         temperature: Float = 0.0f
     ): CreateTranscriptionResponseVerboseDto {
+        apiLog(TAG, "Starting transcription with language detection: file=$fileName, model=${model.modelId}")
+        apiLog(TAG, "Language detection params: language=$language, audio size=${audioData.size} bytes")
+        
         validateParameters(model, temperature)
         
         val request = CreateTranscriptionRequestDto(
@@ -81,8 +103,13 @@ class OpenAIApiService(
             transcriptionRequest = request
         )
         
+        apiLog(TAG, "Language detection API response received: ${response.status}")
         response.validateOrThrow()
-        return response.body<CreateTranscriptionResponseVerboseDto>()
+        
+        apiLog(TAG, "Parsing verbose response for language detection...")
+        val result = response.body<CreateTranscriptionResponseVerboseDto>()
+        apiLog(TAG, "Language detection completed: text='${result.text}', detected_language='${result.language}'")
+        return result
     }
     
     suspend fun transcribe(

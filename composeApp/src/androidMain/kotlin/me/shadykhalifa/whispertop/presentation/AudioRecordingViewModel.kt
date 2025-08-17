@@ -1,6 +1,8 @@
 package me.shadykhalifa.whispertop.presentation
 
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,9 +11,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
+import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.PermissionHandler
 import me.shadykhalifa.whispertop.service.AudioRecordingService
+import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -23,6 +28,8 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     
     private val audioServiceManager: AudioServiceManager by inject()
     private val permissionHandler: PermissionHandler by inject()
+    private val transcriptionUseCase: TranscribeWithLanguageDetectionUseCase by inject()
+    private val context: Context by inject()
     
     private val _uiState = MutableStateFlow(AudioRecordingUiState())
     val uiState: StateFlow<AudioRecordingUiState> = _uiState.asStateFlow()
@@ -71,10 +78,25 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         // Observe recording completion events
         viewModelScope.launch {
             audioServiceManager.recordingCompleteEvents.collect { audioFile ->
+                Log.d(TAG, "Recording completed: ${audioFile?.path}, size: ${audioFile?.let { java.io.File(it.path).length() }} bytes")
+                
                 _uiState.value = _uiState.value.copy(
                     lastRecording = audioFile,
-                    isLoading = false
+                    isLoading = true // Keep loading while transcribing
                 )
+                
+                // Start transcription immediately after recording completes
+                audioFile?.let { file ->
+                    showToast("Recording complete, transcribing...")
+                    startTranscription(file)
+                } ?: run {
+                    Log.w(TAG, "Recording completed but no audio file received")
+                    showToast("Recording failed - no audio file created", isError = true)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Recording completed but no audio file was created"
+                    )
+                }
             }
         }
         
@@ -171,6 +193,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         when (val result = audioServiceManager.startRecording()) {
             is AudioServiceManager.RecordingActionResult.SUCCESS -> {
                 Log.d(TAG, "Recording started successfully")
+                showToast("Recording started")
             }
             is AudioServiceManager.RecordingActionResult.SERVICE_NOT_BOUND -> {
                 Log.w(TAG, "Failed to start recording: service not bound")
@@ -256,6 +279,79 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         )
     }
     
+    private fun startTranscription(audioFile: AudioFile) {
+        viewModelScope.launch {
+            Log.d(TAG, "Starting transcription for audio file: ${audioFile.path}")
+            
+            try {
+                val transcriptionRequest = TranscriptionRequest(
+                    audioFile = audioFile,
+                    model = "whisper-1", // Default model
+                    language = null // Auto-detect language
+                )
+                
+                Log.d(TAG, "Transcription request created: model=${transcriptionRequest.model}, file=${transcriptionRequest.audioFile.path}")
+                
+                when (val result = transcriptionUseCase.execute(transcriptionRequest)) {
+                    is Result.Success -> {
+                        Log.d(TAG, "Transcription successful: '${result.data.text}' (${result.data.text.length} chars)")
+                        Log.d(TAG, "Detected language: ${result.data.language}")
+                        
+                        // Show success toast with transcription preview
+                        val previewText = if (result.data.text.length > 50) {
+                            "${result.data.text.take(47)}..."
+                        } else {
+                            result.data.text
+                        }
+                        showToast("Transcribed: $previewText")
+                        
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            transcriptionResult = result.data.text,
+                            transcriptionLanguage = result.data.language
+                        )
+                    }
+                    is Result.Error -> {
+                        Log.e(TAG, "Transcription failed", result.exception)
+                        
+                        // Show error toast with brief error message
+                        val errorMsg = result.exception.message?.let { msg ->
+                            when {
+                                msg.contains("network", ignoreCase = true) -> "Network error - check connection"
+                                msg.contains("api key", ignoreCase = true) -> "API key issue - check settings"
+                                msg.contains("rate limit", ignoreCase = true) -> "Rate limited - try again later"
+                                msg.contains("authentication", ignoreCase = true) -> "Authentication failed"
+                                else -> "Transcription failed"
+                            }
+                        } ?: "Transcription failed"
+                        showToast(errorMsg, isError = true)
+                        
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Transcription failed: ${result.exception.message}"
+                        )
+                    }
+                    is Result.Loading -> {
+                        Log.d(TAG, "Transcription is loading...")
+                        // Keep loading state as is
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during transcription", e)
+                showToast("Transcription error occurred", isError = true)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Transcription error: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    private fun showToast(message: String, isError: Boolean = false) {
+        val duration = if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        Toast.makeText(context, message, duration).show()
+    }
+    
     override fun onCleared() {
         super.onCleared()
         audioServiceManager.cleanup()
@@ -270,6 +366,8 @@ data class AudioRecordingUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val lastRecording: AudioFile? = null,
+    val transcriptionResult: String? = null,
+    val transcriptionLanguage: String? = null,
     val showPermissionRationale: Boolean = false,
     val rationalePermissions: List<String> = emptyList()
 )

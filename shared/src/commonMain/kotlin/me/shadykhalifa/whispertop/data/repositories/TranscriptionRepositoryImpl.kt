@@ -29,6 +29,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 
+expect fun log(tag: String, message: String)
+expect fun logError(tag: String, message: String, throwable: Throwable? = null)
+
 class TranscriptionRepositoryImpl(
     private val httpClient: HttpClient,
     private val settingsRepository: SettingsRepository,
@@ -38,24 +41,35 @@ class TranscriptionRepositoryImpl(
 ) : BaseRepository(), TranscriptionRepository {
 
     private companion object {
+        const val TAG = "TranscriptionRepo"
         const val OPENAI_BASE_URL = "https://api.openai.com/v1"
         const val TRANSCRIPTIONS_ENDPOINT = "$OPENAI_BASE_URL/audio/transcriptions"
     }
 
     override suspend fun transcribe(request: TranscriptionRequest): Result<TranscriptionResponse> = execute {
+        log(TAG, "Starting transcription for audio file: ${request.audioFile.path}")
+        log(TAG, "Request details: model=${request.model}, language=${request.language}")
+        
         val settings = settingsRepository.getSettings()
         val sessionId = request.audioFile.sessionId ?: generateSessionId()
         
+        log(TAG, "Session ID: $sessionId")
+        log(TAG, "API key configured: ${settings.apiKey.isNotBlank()}")
+        
         if (settings.apiKey.isBlank()) {
+            logError(TAG, "API key is missing or empty")
             throw TranscriptionError.ApiKeyMissing()
         }
 
         try {
             // Start transcription metrics
+            log(TAG, "Starting transcription metrics collection")
             val metrics = metricsCollector.startTranscriptionMetrics(sessionId)
             
+            log(TAG, "Reading audio file: ${request.audioFile.path}")
             val audioData = fileReaderService.readFileAsBytes(request.audioFile.path)
             val audioFileSize = audioData.size.toLong()
+            log(TAG, "Audio file read successfully: $audioFileSize bytes")
             
             // Update metrics with initial data
             metricsCollector.updateTranscriptionMetrics(sessionId) { currentMetrics ->
@@ -69,17 +83,22 @@ class TranscriptionRepositoryImpl(
             
             // Check file size (OpenAI limit is 25MB)
             if (audioData.size > 25 * 1024 * 1024) {
+                logError(TAG, "Audio file too large: $audioFileSize bytes (limit: 25MB)")
                 metricsCollector.endTranscriptionMetrics(sessionId, false, "Audio file too large")
                 throw TranscriptionError.AudioTooLarge()
             }
+            
+            log(TAG, "Audio file size check passed: $audioFileSize bytes")
             
             val requestStartTime = System.currentTimeMillis()
             var retryCount = 0
             var lastException: Exception? = null
             
             // Retry logic with metrics
+            log(TAG, "Starting HTTP request attempts (max 3 retries)")
             repeat(3) { attempt ->
                 try {
+                    log(TAG, "Attempt ${attempt + 1}/3: Starting API call to OpenAI")
                     val connectionStartTime = System.currentTimeMillis()
                     
                     val response = httpClient.submitFormWithBinaryData(
@@ -102,6 +121,7 @@ class TranscriptionRepositoryImpl(
                     }
                     
                     val connectionTime = System.currentTimeMillis() - connectionStartTime
+                    log(TAG, "API request completed in ${connectionTime}ms, status: ${response.status}")
                     
                     // Update metrics with network timing
                     metricsCollector.updateTranscriptionMetrics(sessionId) { currentMetrics ->
@@ -115,6 +135,7 @@ class TranscriptionRepositoryImpl(
 
                     if (!response.status.isSuccess()) {
                         retryCount++
+                        logError(TAG, "API request failed with status: ${response.status.value} ${response.status.description}")
                         val error = when (response.status.value) {
                             401 -> TranscriptionError.AuthenticationError()
                             429 -> TranscriptionError.RateLimitError()
@@ -123,20 +144,27 @@ class TranscriptionRepositoryImpl(
                         }
                         
                         if (attempt == 2) { // Last attempt
+                            logError(TAG, "All retry attempts failed, throwing error: ${error.message}")
                             metricsCollector.endTranscriptionMetrics(sessionId, false, error.message ?: "API error")
                             throw error
                         } else {
+                            log(TAG, "Retrying after failure (attempt $attempt), waiting ${1000L * (attempt + 1)}ms")
                             lastException = error
                             delay(1000L * (attempt + 1)) // Exponential backoff
                             return@repeat
                         }
                     }
 
+                    log(TAG, "Parsing response body...")
                     val transcriptionResponse: TranscriptionResponseDto = response.body()
                     val responseSize = transcriptionResponse.toString().length.toLong() // Approximate size
                     val transferTime = System.currentTimeMillis() - requestStartTime
                     
+                    log(TAG, "Response parsed successfully, transcription length: ${transcriptionResponse.text?.length ?: 0} chars")
+                    log(TAG, "Total request time: ${transferTime}ms")
+                    
                     val result = transcriptionResponse.toDomain()
+                    log(TAG, "Transcription result: '${result.text}' (language: ${result.language})")
                     
                     // Update final metrics
                     metricsCollector.updateTranscriptionMetrics(sessionId) { currentMetrics ->
@@ -149,14 +177,17 @@ class TranscriptionRepositoryImpl(
                     }
                     
                     metricsCollector.endTranscriptionMetrics(sessionId, true)
+                    log(TAG, "Transcription completed successfully!")
                     return@execute result
                     
                 } catch (e: Exception) {
                     retryCount++
                     lastException = e
+                    logError(TAG, "API request attempt ${attempt + 1} failed", e)
                     
                     if (attempt == 2) { // Last attempt
                         val errorMessage = "Network error after retries: ${e.message}"
+                        logError(TAG, "All retry attempts exhausted: $errorMessage")
                         metricsCollector.updateTranscriptionMetrics(sessionId) { currentMetrics ->
                             currentMetrics.copy(retryCount = retryCount)
                         }
@@ -169,6 +200,7 @@ class TranscriptionRepositoryImpl(
                             TranscriptionError.UnexpectedError(e)
                         }
                     } else {
+                        log(TAG, "Retrying after exception (attempt $attempt), waiting ${1000L * (attempt + 1)}ms")
                         delay(1000L * (attempt + 1)) // Exponential backoff
                     }
                 }
