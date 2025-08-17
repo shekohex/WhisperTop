@@ -42,7 +42,9 @@ data class AppSettings(
     fun isOpenAIEndpoint(): Boolean {
         val isOpenAI = baseUrl.isBlank() || 
                       baseUrl.equals("https://api.openai.com/v1", ignoreCase = true) ||
-                      baseUrl.contains("openai.com", ignoreCase = true)
+                      baseUrl.contains("api.openai.com", ignoreCase = true) ||
+                      baseUrl.contains("openai.azure.com", ignoreCase = true) ||
+                      baseUrl.contains("oai.azure.com", ignoreCase = true)
         
         println("AppSettings: Endpoint detection - baseUrl='$baseUrl', isOpenAI=$isOpenAI")
         return isOpenAI

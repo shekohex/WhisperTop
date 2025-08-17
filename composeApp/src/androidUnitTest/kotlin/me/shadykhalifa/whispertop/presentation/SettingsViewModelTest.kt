@@ -107,7 +107,7 @@ class SettingsViewModelTest {
     }
     
     @Test
-    fun `validateAndSaveApiKey should show validation error when empty`() = runTest {
+    fun `validateAndSaveApiKey should show validation error when empty for OpenAI endpoint`() = runTest {
         // Given
         viewModel.updateApiKeyValue("")
         
@@ -116,7 +116,7 @@ class SettingsViewModelTest {
         
         // Then
         assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
-        assertEquals("API Key cannot be empty", viewModel.uiState.value.validationErrors["apiKey"])
+        assertEquals("API Key cannot be empty for OpenAI endpoints", viewModel.uiState.value.validationErrors["apiKey"])
     }
     
     @Test
@@ -329,5 +329,43 @@ class SettingsViewModelTest {
         // Then specific error should be shown
         assertTrue(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
         assertEquals("API key is too short. OpenAI API keys are typically 51 characters long", viewModel.uiState.value.validationErrors["apiKey"])
+    }
+    
+    @Test
+    fun `validateAndSaveApiKey should allow empty key for custom endpoint`() = runTest {
+        // Given: Set up custom endpoint in viewModel state
+        viewModel.updateApiEndpoint("https://api.groq.com/openai/v1/")
+        
+        // Mock validation for custom endpoint (empty key allowed)
+        whenever(securePreferencesRepository.validateApiKey("", false)).thenReturn(true)
+        whenever(settingsRepository.updateApiKey("")).thenReturn(Result.Success(Unit))
+        
+        // When empty key is entered for custom endpoint
+        viewModel.updateApiKeyValue("")
+        viewModel.validateAndSaveApiKey()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then no validation error should appear and repository should be called
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        verify(settingsRepository).updateApiKey("")
+    }
+    
+    @Test
+    fun `validateAndSaveApiKey should allow custom key format for custom endpoint`() = runTest {
+        // Given: Set up custom endpoint in viewModel state
+        viewModel.updateApiEndpoint("https://api.groq.com/openai/v1/")
+        
+        // Mock validation for custom endpoint
+        whenever(securePreferencesRepository.validateApiKey("gsk_1234567890", false)).thenReturn(true)
+        whenever(settingsRepository.updateApiKey("gsk_1234567890")).thenReturn(Result.Success(Unit))
+        
+        // When custom key is entered for custom endpoint
+        viewModel.updateApiKeyValue("gsk_1234567890")
+        viewModel.validateAndSaveApiKey()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then no validation error should appear and repository should be called
+        assertFalse(viewModel.uiState.value.validationErrors.containsKey("apiKey"))
+        verify(settingsRepository).updateApiKey("gsk_1234567890")
     }
 }

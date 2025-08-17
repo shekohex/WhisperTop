@@ -369,18 +369,27 @@ class SettingsViewModel(
     
     fun validateAndSaveApiKey() {
         val apiKey = _uiState.value.apiKeyValue.trim()
+        val currentEndpoint = _uiState.value.apiEndpoint
+        val isOpenAIEndpoint = isOpenAIEndpoint(currentEndpoint)
         
         val validationErrors = mutableMapOf<String, String>()
         
-        if (apiKey.isEmpty()) {
-            validationErrors["apiKey"] = "API Key cannot be empty"
-        } else if (!securePreferencesRepository.validateApiKey(apiKey)) {
-            if (!apiKey.startsWith("sk-")) {
-                validationErrors["apiKey"] = "Invalid API key format. OpenAI API keys start with 'sk-'"
-            } else if (apiKey.length < 51) {
-                validationErrors["apiKey"] = "API key is too short. OpenAI API keys are typically 51 characters long"
+        // For custom endpoints, allow empty API keys
+        if (!isOpenAIEndpoint && apiKey.isEmpty()) {
+            // Empty API key is allowed for custom endpoints
+        } else if (isOpenAIEndpoint && apiKey.isEmpty()) {
+            validationErrors["apiKey"] = "API Key cannot be empty for OpenAI endpoints"
+        } else if (!securePreferencesRepository.validateApiKey(apiKey, isOpenAIEndpoint)) {
+            if (isOpenAIEndpoint) {
+                if (!apiKey.startsWith("sk-")) {
+                    validationErrors["apiKey"] = "Invalid API key format. OpenAI API keys start with 'sk-'"
+                } else if (apiKey.length < 51) {
+                    validationErrors["apiKey"] = "API key is too short. OpenAI API keys are typically 51 characters long"
+                } else {
+                    validationErrors["apiKey"] = "Invalid API key format"
+                }
             } else {
-                validationErrors["apiKey"] = "Invalid API key format"
+                validationErrors["apiKey"] = "Invalid API key format for custom endpoint"
             }
         }
         
@@ -581,5 +590,11 @@ class SettingsViewModel(
                 handleError(e)
             }
         }
+    }
+    
+    private fun isOpenAIEndpoint(endpoint: String): Boolean {
+        return endpoint.contains("api.openai.com") || 
+               endpoint.contains("openai.azure.com") ||
+               endpoint.contains("oai.azure.com")
     }
 }

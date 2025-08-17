@@ -54,9 +54,11 @@ class CustomEndpointValidationTest {
         }
 
         private fun isOpenAIEndpoint(endpoint: String): Boolean {
-            return endpoint.contains("api.openai.com") || 
-                   endpoint.contains("openai.azure.com") ||
-                   endpoint.contains("oai.azure.com")
+            return endpoint.isBlank() ||
+                   endpoint.equals("https://api.openai.com/v1", ignoreCase = true) ||
+                   endpoint.contains("api.openai.com", ignoreCase = true) || 
+                   endpoint.contains("openai.azure.com", ignoreCase = true) ||
+                   endpoint.contains("oai.azure.com", ignoreCase = true)
         }
     }
 
