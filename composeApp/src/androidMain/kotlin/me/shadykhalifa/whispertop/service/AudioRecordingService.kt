@@ -22,13 +22,15 @@ import me.shadykhalifa.whispertop.R
 import me.shadykhalifa.whispertop.data.audio.AudioRecorderImpl
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.managers.PowerManagementUtil
-import me.shadykhalifa.whispertop.managers.createWakeLockConfig
+import me.shadykhalifa.whispertop.domain.services.MetricsCollector
+import me.shadykhalifa.whispertop.ui.utils.PerformanceMonitor
 import org.koin.android.ext.android.inject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicReference
+import java.util.UUID
 
 class AudioRecordingService : Service() {
     
@@ -55,6 +57,7 @@ class AudioRecordingService : Service() {
     
     private val audioRecorder: AudioRecorderImpl by inject()
     private val powerManager: PowerManagementUtil by inject()
+    private val metricsCollector: MetricsCollector by inject()
     private val binder = AudioRecordingBinder()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
@@ -65,6 +68,8 @@ class AudioRecordingService : Service() {
     private var pausedDuration: Long = 0
     private var lastPauseTime: Long = 0
     private var currentOutputPath: String? = null
+    private var currentSessionId: String? = null
+    private var bufferUnderrunCount: Int = 0
     
     private val stateListeners = mutableSetOf<RecordingStateListener>()
     
@@ -153,24 +158,57 @@ class AudioRecordingService : Service() {
             try {
                 setState(RecordingState.RECORDING)
                 
+                // Start performance session
+                currentSessionId = UUID.randomUUID().toString()
+                metricsCollector.startSession(currentSessionId!!)
+                
                 val outputPath = generateOutputPath()
                 currentOutputPath = outputPath
                 recordingStartTime = System.currentTimeMillis()
                 pausedDuration = 0
+                bufferUnderrunCount = 0
                 
-                val result = audioRecorder.startRecording(outputPath)
+                // Start recording metrics
+                metricsCollector.startRecordingMetrics(currentSessionId!!)
+                
+                // Record initial memory snapshot
+                PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                    sessionId = currentSessionId,
+                    context = "recording_start"
+                )
+                
+                val result = PerformanceMonitor.TimingMonitor.measureTimeAsync("audio_recording_start", currentSessionId) {
+                    audioRecorder.startRecording(outputPath)
+                }
+                
                 if (result !is me.shadykhalifa.whispertop.data.audio.AudioRecordingResult.Success) {
                     setState(RecordingState.IDLE)
+                    metricsCollector.endRecordingMetrics(currentSessionId!!, false, "Failed to start recording")
                     notifyError("Failed to start recording")
                     return@launch
+                }
+                
+                // Update recording metrics with initial audio parameters
+                metricsCollector.updateRecordingMetrics(currentSessionId!!) { metrics ->
+                    metrics.copy(
+                        sampleRate = 16000, // Default sample rate for WhisperTop
+                        channels = 1, // Mono recording
+                        bitRate = 16 // 16-bit PCM
+                    )
                 }
                 
                 // Ensure we're promoted to foreground service
                 ensureForegroundService()
                 updateNotification()
                 
+                // Start periodic memory monitoring
+                startMemoryMonitoring()
+                
             } catch (e: Exception) {
                 setState(RecordingState.IDLE)
+                currentSessionId?.let { sessionId ->
+                    metricsCollector.endRecordingMetrics(sessionId, false, "Recording error: ${e.message}")
+                }
                 notifyError("Recording error: ${e.message}")
             }
         }
@@ -184,8 +222,44 @@ class AudioRecordingService : Service() {
                 setState(RecordingState.PROCESSING)
                 updateNotification()
                 
-                val audioFile = audioRecorder.stopRecording()
+                // Record memory snapshot before processing
+                currentSessionId?.let { sessionId ->
+                    PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                        sessionId = sessionId,
+                        context = "recording_processing"
+                    )
+                }
+                
+                val audioFile = PerformanceMonitor.TimingMonitor.measureTimeAsync("audio_recording_stop", currentSessionId) {
+                    audioRecorder.stopRecording()
+                }
+                
                 setState(RecordingState.IDLE)
+                
+                // Update recording metrics with final data
+                currentSessionId?.let { sessionId ->
+                    val recordingDuration = System.currentTimeMillis() - recordingStartTime
+                    val audioFileSize = audioFile?.let { File(it.path).length() } ?: 0
+                    
+                    metricsCollector.updateRecordingMetrics(sessionId) { metrics ->
+                        metrics.copy(
+                            duration = recordingDuration,
+                            audioFileSize = audioFileSize,
+                            pauseCount = if (pausedDuration > 0) 1 else 0,
+                            totalPauseTime = pausedDuration,
+                            bufferUnderrunCount = bufferUnderrunCount
+                        )
+                    }
+                    
+                    metricsCollector.endRecordingMetrics(sessionId, audioFile != null, 
+                        if (audioFile == null) "Failed to create audio file" else null)
+                    
+                    // Record final memory snapshot
+                    PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                        sessionId = sessionId,
+                        context = "recording_complete"
+                    )
+                }
                 
                 // Keep service running but remove foreground status
                 stopForeground(STOP_FOREGROUND_DETACH)
@@ -194,6 +268,9 @@ class AudioRecordingService : Service() {
                 
             } catch (e: Exception) {
                 setState(RecordingState.IDLE)
+                currentSessionId?.let { sessionId ->
+                    metricsCollector.endRecordingMetrics(sessionId, false, "Error stopping recording: ${e.message}")
+                }
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 notifyError("Error stopping recording: ${e.message}")
             }
@@ -205,6 +282,17 @@ class AudioRecordingService : Service() {
         
         lastPauseTime = System.currentTimeMillis()
         setState(RecordingState.PAUSED)
+        
+        // Record memory snapshot during pause
+        currentSessionId?.let { sessionId ->
+            scope.launch {
+                PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                    sessionId = sessionId,
+                    context = "recording_paused"
+                )
+            }
+        }
+        
         updateNotification()
     }
     
@@ -213,6 +301,17 @@ class AudioRecordingService : Service() {
         
         pausedDuration += System.currentTimeMillis() - lastPauseTime
         setState(RecordingState.RECORDING)
+        
+        // Record memory snapshot during resume
+        currentSessionId?.let { sessionId ->
+            scope.launch {
+                PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                    sessionId = sessionId,
+                    context = "recording_resumed"
+                )
+            }
+        }
+        
         updateNotification()
     }
     
@@ -401,22 +500,48 @@ class AudioRecordingService : Service() {
     private fun generateOutputPath(): String {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "recording_$timestamp.wav"
-        val recordingsDir = File(filesDir, "recordings")
-        if (!recordingsDir.exists()) {
-            recordingsDir.mkdirs()
-        }
-        return File(recordingsDir, fileName).absolutePath
+        return File(cacheDir, fileName).absolutePath
     }
+    
+    private fun startMemoryMonitoring() {
+        scope.launch {
+            while (currentState.get() == RecordingState.RECORDING || currentState.get() == RecordingState.PAUSED) {
+                currentSessionId?.let { sessionId ->
+                    try {
+                        PerformanceMonitor.MemoryMonitor.logMemoryUsage(
+                            sessionId = sessionId,
+                            context = "recording_monitoring"
+                        )
+                        
+                        // Check for memory pressure and potential buffer issues
+                        val memoryInfo = PerformanceMonitor.MemoryMonitor.getCurrentMemoryInfo()
+                        if (memoryInfo.usagePercent > 85f) {
+                            // Simulate buffer underrun detection (in real implementation, 
+                            // this would come from the audio recorder)
+                            bufferUnderrunCount++
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("AudioRecordingService", "Memory monitoring error: ${e.message}")
+                    }
+                }
+                
+                // Monitor every 5 seconds during recording
+                kotlinx.coroutines.delay(5000)
+            }
+        }
+    }
+    
+    fun getCurrentSessionId(): String? = currentSessionId
     
     private fun acquireIntelligentWakeLock() {
         releaseWakeLock() // Release any existing wake lock first
         
-        val config = powerManager.createWakeLockConfig(
-            purpose = "AudioRecording",
-            baseDuration = 10 * 60 * 1000L // 10 minutes base duration
+        val systemPowerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = systemPowerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "WhisperTop::AudioRecording"
         )
-        
-        wakeLock = powerManager.acquireIntelligentWakeLock(config)
+        wakeLock?.acquire(10 * 60 * 1000L) // 10 minutes timeout
     }
     
     private fun acquireWakeLock() {
