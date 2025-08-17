@@ -52,7 +52,9 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
     
     private var saveApiKeyJob: Job? = null
+    private var saveApiEndpointJob: Job? = null
     private val apiKeySaveDebounceMs = 500L
+    private val apiEndpointSaveDebounceMs = 500L
     
     // Computed property to get the current API key value (optimistic or saved)
     val currentApiKey: String
@@ -461,7 +463,16 @@ class SettingsViewModel(
     }
     
     fun updateApiEndpoint(endpoint: String) {
-        viewModelScope.launch {
+        // Optimistic update - immediately update UI
+        _uiState.value = _uiState.value.copy(apiEndpoint = endpoint)
+        
+        // Cancel previous save job if still running
+        saveApiEndpointJob?.cancel()
+        
+        // Debounce the actual save operation
+        saveApiEndpointJob = viewModelScope.launch {
+            delay(apiEndpointSaveDebounceMs)
+            
             try {
                 // Save to secure preferences for API client usage
                 when (val secureResult = securePreferencesRepository.saveApiEndpoint(endpoint)) {
@@ -469,7 +480,7 @@ class SettingsViewModel(
                         // Also save to settings repository
                         when (val settingsResult = settingsRepository.updateBaseUrl(endpoint)) {
                             is Result.Success -> {
-                                _uiState.value = _uiState.value.copy(apiEndpoint = endpoint)
+                                // Endpoint already updated optimistically
                             }
                             is Result.Error -> {
                                 handleError(settingsResult.exception)
