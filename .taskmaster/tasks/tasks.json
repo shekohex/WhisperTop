@@ -1085,11 +1085,26 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Add Support for Custom OpenAI-Compatible Endpoints",
+        "description": "Implement support for custom OpenAI-compatible API endpoints with conditional validation, dynamic model selection, and configurable base URLs while maintaining backward compatibility with official OpenAI API.",
+        "details": "Extend SettingsViewModel and AppSettings to include endpoint configuration fields (baseUrl, endpointType enum: OPENAI/CUSTOM). Modify OpenAI API client to support configurable base URLs by updating HttpClientProvider and OpenAIApiService. Implement EndpointDetector utility class that identifies endpoint type based on base URL patterns (api.openai.com for official, others for custom). Create conditional validation logic in SettingsViewModel that requires API keys only for official OpenAI endpoints while making them optional for custom endpoints. Design dynamic model selection UI: for OpenAI endpoints show predefined model dropdown (whisper-1, gpt-4o-audio-preview), for custom endpoints provide text input field for model names. Add CustomEndpointConfigurationSection to SettingsScreen with base URL input field, endpoint type indicator, and model configuration options. Update existing validation logic to be endpoint-aware: validate API key format (sk-*) only for OpenAI endpoints, allow empty API keys for custom endpoints, validate base URL format for custom endpoints. Implement proper error handling for custom endpoint connection failures and invalid configurations. Ensure backend OpenAIApiService properly handles different authentication schemes and validates custom endpoint responses. Add endpoint configuration persistence and migration logic for existing users.",
+        "testStrategy": "Unit tests for endpoint detection logic with various URL patterns, validation tests for both OpenAI and custom endpoint configurations, integration tests for API client with different base URLs, UI tests for dynamic model selection behavior, test API key validation conditional logic, verify custom endpoint authentication works correctly, test configuration persistence and migration from existing OpenAI-only setup, test error handling for invalid custom endpoints and network failures",
+        "status": "done",
+        "dependencies": [
+          6,
+          12,
+          27
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-17T15:39:08.818Z",
+      "updated": "2025-08-17T16:13:21.223Z",
       "description": "Tasks for master context"
     }
   }

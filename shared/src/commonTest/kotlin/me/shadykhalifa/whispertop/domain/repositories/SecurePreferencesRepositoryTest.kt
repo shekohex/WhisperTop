@@ -129,10 +129,15 @@ private class MockSecurePreferencesRepository : SecurePreferencesRepository {
         return Result.Success(storedEndpoint ?: DEFAULT_API_ENDPOINT)
     }
 
-    override fun validateApiKey(apiKey: String): Boolean {
+    override fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean): Boolean {
         // Don't allow leading/trailing whitespace
         if (apiKey != apiKey.trim()) {
             return false
+        }
+        
+        if (!isOpenAIEndpoint) {
+            // Custom endpoints allow empty or minimal validation
+            return apiKey.isBlank() || apiKey.length >= 3
         }
         
         return apiKey.startsWith(API_KEY_PREFIX) && 

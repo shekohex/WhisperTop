@@ -33,8 +33,10 @@ class OpenAIApiServiceLanguageDetectionTest {
                 json(Json {
                     ignoreUnknownKeys = true
                     isLenient = true
+                    encodeDefaults = false
                 })
             }
+            installErrorHandling()
         }
     }
 

@@ -77,7 +77,11 @@ class MockSecurePreferencesRepository : SecurePreferencesRepository {
         return Result.Success(apiEndpoint)
     }
     
-    override fun validateApiKey(apiKey: String): Boolean {
+    override fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean): Boolean {
+        if (!isOpenAIEndpoint) {
+            // Custom endpoints allow empty API keys or basic validation
+            return apiKey.isBlank() || apiKey.length >= 3
+        }
         return apiKey.isNotBlank() && apiKey.length > 10
     }
 }

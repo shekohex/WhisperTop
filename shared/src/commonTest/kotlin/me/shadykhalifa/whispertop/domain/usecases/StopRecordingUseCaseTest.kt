@@ -495,6 +495,10 @@ class StopRecordingUseCaseTest {
         
         override suspend fun clearAllData(): Result<Unit> = Result.Success(Unit)
         
+        override suspend fun updateBaseUrl(baseUrl: String): Result<Unit> = Result.Success(Unit)
+        
+        override suspend fun updateCustomEndpoint(isCustom: Boolean): Result<Unit> = Result.Success(Unit)
+        
         override suspend fun cleanupTemporaryFiles(): Result<Unit> = Result.Success(Unit)
     }
 }

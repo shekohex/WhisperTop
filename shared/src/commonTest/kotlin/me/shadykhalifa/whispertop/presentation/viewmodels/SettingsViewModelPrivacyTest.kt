@@ -207,6 +207,10 @@ private class MockSettingsRepository : SettingsRepository {
         return Result.Success(Unit)
     }
 
+    override suspend fun updateBaseUrl(baseUrl: String): Result<Unit> = Result.Success(Unit)
+    
+    override suspend fun updateCustomEndpoint(isCustom: Boolean): Result<Unit> = Result.Success(Unit)
+    
     override suspend fun cleanupTemporaryFiles(): Result<Unit> {
         cleanupTemporaryFilesCalled = true
         return Result.Success(Unit)
@@ -220,5 +224,10 @@ private class MockSecurePreferencesRepository : SecurePreferencesRepository {
     override suspend fun hasApiKey(): Result<Boolean> = Result.Success(false)
     override suspend fun saveApiEndpoint(endpoint: String): Result<Unit> = Result.Success(Unit)
     override suspend fun getApiEndpoint(): Result<String> = Result.Success("https://api.openai.com/v1/")
-    override fun validateApiKey(apiKey: String): Boolean = apiKey.startsWith("sk-") && apiKey.length >= 51
+    override fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean): Boolean {
+        if (!isOpenAIEndpoint) {
+            return apiKey.isBlank() || apiKey.length >= 3
+        }
+        return apiKey.startsWith("sk-") && apiKey.length >= 51
+    }
 }

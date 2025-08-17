@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
+import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.PermissionHandler
@@ -29,6 +30,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     private val audioServiceManager: AudioServiceManager by inject()
     private val permissionHandler: PermissionHandler by inject()
     private val transcriptionUseCase: TranscribeWithLanguageDetectionUseCase by inject()
+    private val settingsRepository: SettingsRepository by inject()
     private val context: Context by inject()
     
     private val _uiState = MutableStateFlow(AudioRecordingUiState())
@@ -284,10 +286,13 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
             Log.d(TAG, "Starting transcription for audio file: ${audioFile.path}")
             
             try {
+                // Get settings to use configured model
+                val settings = settingsRepository.getSettings()
+                
                 val transcriptionRequest = TranscriptionRequest(
                     audioFile = audioFile,
-                    model = "whisper-1", // Default model
-                    language = null // Auto-detect language
+                    model = settings.selectedModel,
+                    language = settings.language
                 )
                 
                 Log.d(TAG, "Transcription request created: model=${transcriptionRequest.model}, file=${transcriptionRequest.audioFile.path}")
