@@ -479,8 +479,79 @@
         "dependencies": [
           12
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Material 3 Theme Foundation",
+            "description": "Set up core Material 3 theme files with dynamic color support and theme providers",
+            "dependencies": [],
+            "details": "Create theme directory structure under composeApp/src/commonMain/kotlin/me/shadykhalifa/whispertop/presentation/ui/theme/. Implement Color.kt with Material 3 color schemes (light/dark), Typography.kt with M3 typography scale, Theme.kt with theme composable and dynamic color support. Add ThemeProvider.kt for theme state management and system theme detection. Update App.kt to wrap content with custom theme instead of MaterialTheme. Implement isSystemInDarkTheme() detection and configure dynamic color support for Android 12+.",
+            "status": "done",
+            "testStrategy": "Test theme application across different system theme states, verify color schemes load correctly, test typography rendering"
+          },
+          {
+            "id": 2,
+            "title": "Implement System Theme Detection",
+            "description": "Add Android system theme detection with automatic switching capability",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Create ThemeDetector.kt utility for monitoring system theme changes using Configuration.uiMode. Implement SystemThemeObserver that watches for theme changes and notifies the app. Add theme change broadcast receiver in AndroidManifest.xml. Update ThemeProvider to automatically switch when system theme changes and user has Theme.System selected. Ensure theme detection works across app lifecycle states (foreground/background). Handle edge cases like split-screen mode and external display connections.",
+            "status": "done",
+            "testStrategy": "Test automatic theme switching when system theme changes, verify theme detection across app states, test edge cases like split-screen"
+          },
+          {
+            "id": 3,
+            "title": "Build Enhanced Theme Selection Interface",
+            "description": "Replace basic theme selection with enhanced UI including previews and accent color picker",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Enhance ThemeCustomizationSection in SettingsScreen.kt with theme preview cards showing actual colors. Replace radio buttons with visual theme cards displaying light/dark/system previews. Add accent color selection with Material You color palette grid. Implement ThemePreviewCard composable showing sample UI elements in each theme. Add color picker dialog with predefined Material 3 accent colors. Update SettingsViewModel to handle accent color selection. Include theme description text explaining each option.",
+            "status": "done",
+            "testStrategy": "Test theme preview accuracy, verify accent color selection persistence, test UI responsiveness across different screen sizes"
+          },
+          {
+            "id": 4,
+            "title": "Add Material You Color Integration",
+            "description": "Implement dynamic color support with device wallpaper color extraction",
+            "dependencies": [
+              "16.1",
+              "16.2"
+            ],
+            "details": "Add Material You dynamic color support using androidx.compose.material3.dynamicColor. Implement DynamicColorExtractor.kt for extracting colors from device wallpaper on Android 12+. Add fallback color schemes for devices without dynamic color support. Update theme selection to include 'Dynamic' option that uses device colors. Integrate with existing accent color picker to allow manual override of dynamic colors. Handle color extraction failures gracefully with fallback to default Material 3 colors. Ensure color contrast ratios meet accessibility standards.",
+            "status": "done",
+            "testStrategy": "Test dynamic color extraction on Android 12+ devices, verify fallback behavior on older versions, test color contrast compliance"
+          },
+          {
+            "id": 5,
+            "title": "Apply Theming to Overlay Services",
+            "description": "Extend theming support to floating overlay button and notification components",
+            "dependencies": [
+              "16.1",
+              "16.2"
+            ],
+            "details": "Update OverlayService.kt to apply current theme to floating mic button overlay. Modify MicButtonOverlay composable to use theme colors from ThemeProvider. Implement overlay theme synchronization when main app theme changes. Update notification styling in AudioRecordingService to match current theme. Create OverlayThemeProvider that can access theme state from service context. Handle overlay re-rendering when theme changes during recording. Ensure overlay maintains theme consistency across system UI mode changes.",
+            "status": "done",
+            "testStrategy": "Test overlay theme consistency with main app, verify theme changes reflect in overlay immediately, test across different Android versions"
+          },
+          {
+            "id": 6,
+            "title": "Implement Theme Persistence and Runtime Switching",
+            "description": "Complete theme system with seamless runtime switching and persistent state management",
+            "dependencies": [
+              "16.1",
+              "16.2",
+              "16.3",
+              "16.4",
+              "16.5"
+            ],
+            "details": "Extend AppSettings model to include accent color and dynamic color preferences. Update SettingsRepositoryImpl with theme and color persistence methods. Implement seamless theme switching without UI flicker using LaunchedEffect. Add theme transition animations for smooth visual changes. Create ThemeManager singleton for coordinating theme state across app components. Implement theme state restoration after app restart. Add theme-aware status bar and navigation bar styling. Ensure theme state synchronization between main app and overlay service.",
+            "status": "done",
+            "testStrategy": "Test theme persistence across app restarts, verify seamless switching without flicker, test theme state synchronization between components"
+          }
+        ]
       },
       {
         "id": 17,
@@ -757,7 +828,7 @@
             "description": "Add automatic app update checking and installation using Google Play services",
             "dependencies": [],
             "details": "Integrate Google Play In-App Updates API with AppUpdateManager. Create UpdateManager service to check for available updates on app startup and periodically. Implement both immediate and flexible update flows based on update priority. Add update progress UI components and user prompts. Handle update installation failures and retry mechanisms. Integrate update checking with existing app lifecycle management in WhisperTopApplication.",
-            "status": "pending",
+            "status": "cancelled",
             "testStrategy": "Test update detection and installation flows, verify update UI components, test failure and retry scenarios"
           },
           {
@@ -768,8 +839,8 @@
               "25.1",
               "25.5"
             ],
-            "details": "Enable R8 full mode optimization and configure aggressive shrinking. Remove unused resources with shrinkResources=true and implement resource optimization. Configure vector drawable optimization and WebP image conversion. Add ProGuard rules for aggressive obfuscation while preserving functionality. Implement app startup optimization with lazy initialization of non-critical components. Add startup time measurement and optimization for Koin dependency injection. Configure bundle optimization for reduced download size.",
-            "status": "pending",
+            "details": "Enable R8 full mode optimization and configure aggressive shrinking. Remove unused resources with shrinkResources=true and implement resource optimization. Configure vector drawable optimization and WebP image conversion. Add ProGuard rules for aggressive obfuscation while preserving functionality. Implement app startup optimization with lazy initialization of non-critical components. Add startup time measurement and optimization for Koin dependency injection. Configure bundle optimization for reduced download size.\n<info added on 2025-08-17T12:06:21.485Z>\nCancelled for current release. Advanced APK size and startup performance optimizations are nice-to-have improvements but not critical for MVP functionality. The basic ProGuard/R8 optimization (subtask 25.1) already achieved significant APK size reduction (69%). Additional optimizations like WebP conversion, aggressive shrinking, and startup time measurement can be implemented in future versions for enhanced performance.\n</info added on 2025-08-17T12:06:21.485Z>",
+            "status": "cancelled",
             "testStrategy": "Measure APK size before/after optimization, test startup time on various devices, verify all functionality after aggressive optimization"
           }
         ]
@@ -866,7 +937,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-17T12:01:51.198Z",
+      "updated": "2025-08-17T12:34:29.337Z",
       "description": "Tasks for master context"
     }
   }
