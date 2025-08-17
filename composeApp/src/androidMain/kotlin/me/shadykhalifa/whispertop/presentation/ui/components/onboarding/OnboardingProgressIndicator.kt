@@ -23,49 +23,39 @@ fun OnboardingProgressIndicator(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Step $currentStep of $totalSteps",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
             for (step in 1..totalSteps) {
                 StepIndicator(
                     stepNumber = step,
                     isCompleted = step in completedSteps,
                     isCurrent = step == currentStep,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(40.dp)
                 )
                 
                 if (step < totalSteps) {
                     StepConnector(
                         isCompleted = step in completedSteps && (step + 1) in completedSteps,
-                        modifier = Modifier.width(24.dp)
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        LinearProgressIndicator(
-            progress = { completedSteps.size.toFloat() / totalSteps },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(CircleShape),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
     }
 }
 
@@ -76,35 +66,45 @@ private fun StepIndicator(
     isCurrent: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(
-                when {
-                    isCompleted -> MaterialTheme.colorScheme.primary
-                    isCurrent -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                }
-            ),
-        contentAlignment = Alignment.Center
+    val containerColor = when {
+        isCompleted -> MaterialTheme.colorScheme.primary
+        isCurrent -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    }
+    
+    val contentColor = when {
+        isCompleted -> MaterialTheme.colorScheme.onPrimary
+        isCurrent -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    Card(
+        modifier = modifier,
+        shape = CircleShape,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isCurrent) 4.dp else 0.dp
+        )
     ) {
-        if (isCompleted) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Step $stepNumber completed",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(16.dp)
-            )
-        } else {
-            Text(
-                text = stepNumber.toString(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = when {
-                    isCurrent -> MaterialTheme.colorScheme.onPrimaryContainer
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isCompleted) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Step $stepNumber completed",
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Text(
+                    text = stepNumber.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+            }
         }
     }
 }
@@ -116,10 +116,11 @@ private fun StepConnector(
 ) {
     Box(
         modifier = modifier
-            .height(2.dp)
+            .height(3.dp)
+            .clip(CircleShape)
             .background(
                 if (isCompleted) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
             )
     )
 }

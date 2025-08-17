@@ -53,7 +53,7 @@ fun OnboardingScreen(
             currentStep = onboardingProgress.currentStep.stepNumber,
             totalSteps = OnboardingStep.totalSteps,
             completedSteps = onboardingProgress.completedSteps.map { it.stepNumber }.toSet(),
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
         )
         
         // Content

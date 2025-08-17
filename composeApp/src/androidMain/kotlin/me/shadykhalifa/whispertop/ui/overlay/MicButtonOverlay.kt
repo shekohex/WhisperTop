@@ -4,6 +4,14 @@ import android.content.Context
 import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.View
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,7 +56,7 @@ class MicButtonOverlay @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : OverlayView(context, attrs, defStyleAttr) {
+) : OverlayView(context, attrs, defStyleAttr), LifecycleOwner, SavedStateRegistryOwner {
 
     companion object {
         private const val BUTTON_SIZE_DP = AnimationConstants.BUTTON_SIZE_DP
@@ -67,6 +75,13 @@ class MicButtonOverlay @JvmOverloads constructor(
     // Track delayed actions for proper cleanup
     private val delayedActions = mutableListOf<Runnable>()
     
+    // Lifecycle management for Compose
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    
+    override val lifecycle: Lifecycle = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry = savedStateRegistryController.savedStateRegistry
+    
     interface MicButtonListener {
         fun onStateChanged(newState: MicButtonState)
         fun onMicButtonClicked()
@@ -77,6 +92,16 @@ class MicButtonOverlay @JvmOverloads constructor(
     init {
         setDraggable(true)
         setupTouchHandling()
+        setupLifecycle()
+    }
+    
+    private fun setupLifecycle() {
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
+        
+        // Set this view as the lifecycle owner for its view tree
+        setViewTreeLifecycleOwner(this)
+        setViewTreeSavedStateRegistryOwner(this)
     }
     
     fun addMicButtonListener(listener: MicButtonListener) {
@@ -159,6 +184,9 @@ class MicButtonOverlay @JvmOverloads constructor(
     
     override fun createCollapsedView(): View {
         return ComposeView(context).apply {
+            // Ensure lifecycle is started before setting content
+            lifecycleRegistry.currentState = Lifecycle.State.STARTED
+            
             setContent {
                 MicButtonContent(
                     state = _currentState,
@@ -351,8 +379,14 @@ class MicButtonOverlay @JvmOverloads constructor(
         micButtonListeners.forEach { it.onAudioLevelChanged(level) }
     }
     
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+    }
+    
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         cleanup()
     }
     
