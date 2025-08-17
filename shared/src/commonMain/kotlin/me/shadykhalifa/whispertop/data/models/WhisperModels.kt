@@ -12,6 +12,12 @@ enum class WhisperModel(val modelId: String) {
         fun fromString(modelId: String): WhisperModel? {
             return entries.find { it.modelId == modelId }
         }
+        
+        fun isBuiltIn(modelId: String): Boolean {
+            return entries.any { it.modelId == modelId }
+        }
+        
+        fun getBuiltInModels(): List<WhisperModel> = entries.toList()
     }
 }
 

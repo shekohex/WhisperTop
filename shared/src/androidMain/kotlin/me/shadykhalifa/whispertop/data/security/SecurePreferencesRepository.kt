@@ -38,17 +38,45 @@ class SecurePreferencesRepositoryImpl(
 
     override suspend fun saveApiKey(apiKey: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            if (!validateApiKey(apiKey)) {
-                return@withContext Result.Error(IllegalArgumentException("Invalid API key format"))
+            // Get current endpoint to determine validation rules
+            val endpoint = encryptedPrefs.getString(KEY_API_ENDPOINT, DEFAULT_API_ENDPOINT) ?: DEFAULT_API_ENDPOINT
+            val isOpenAI = isOpenAIEndpoint(endpoint)
+            
+            println("SecurePreferencesRepository: Saving API key - " +
+                    "endpoint='$endpoint', " +
+                    "isOpenAI=$isOpenAI, " +
+                    "keyLength=${apiKey.length}")
+            
+            if (!validateApiKey(apiKey, isOpenAI)) {
+                val errorMsg = if (isOpenAI) {
+                    "Invalid OpenAI API key format. Must start with 'sk-' and be at least 51 characters."
+                } else {
+                    "Invalid API key format."
+                }
+                println("SecurePreferencesRepository: API key validation failed - $errorMsg")
+                return@withContext Result.Error(IllegalArgumentException(errorMsg))
             }
             
             encryptedPrefs.edit()
                 .putString(KEY_API_KEY, apiKey.trim())
                 .apply()
+            
+            println("SecurePreferencesRepository: API key saved successfully")
             Result.Success(Unit)
         } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save API key - ${e.message}")
             Result.Error(Exception("Failed to save API key", e))
         }
+    }
+    
+    private fun isOpenAIEndpoint(endpoint: String): Boolean {
+        val isOpenAI = endpoint.contains("api.openai.com") || 
+                      endpoint.contains("openai.azure.com") ||
+                      endpoint.contains("oai.azure.com")
+        
+        println("SecurePreferencesRepository: Endpoint detection - " +
+                "endpoint='$endpoint', isOpenAI=$isOpenAI")
+        return isOpenAI
     }
 
     override suspend fun getApiKey(): Result<String?> = withContext(Dispatchers.IO) {
@@ -106,14 +134,43 @@ class SecurePreferencesRepositoryImpl(
         }
     }
 
-    override fun validateApiKey(apiKey: String): Boolean {
+    override fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean): Boolean {
+        println("SecurePreferencesRepository: Starting API key validation - " +
+                "endpoint=${if (isOpenAIEndpoint) "OpenAI" else "Custom"}, " +
+                "keyLength=${apiKey.length}")
+        
         // Don't allow leading/trailing whitespace
         if (apiKey != apiKey.trim()) {
+            println("SecurePreferencesRepository: Validation failed - key has leading/trailing whitespace")
             return false
         }
         
-        return apiKey.startsWith(API_KEY_PREFIX) && 
-               apiKey.length >= API_KEY_MIN_LENGTH &&
-               apiKey.matches(Regex("^sk-[A-Za-z0-9\\-_]+$"))
+        // For custom endpoints, API key is optional or can have different format
+        if (!isOpenAIEndpoint) {
+            // Allow empty API key for custom endpoints
+            if (apiKey.isBlank()) {
+                println("SecurePreferencesRepository: Custom endpoint validation - empty key allowed")
+                return true
+            }
+            // Basic validation for non-empty keys on custom endpoints
+            val isValid = apiKey.isNotBlank() && apiKey.length >= 3
+            println("SecurePreferencesRepository: Custom endpoint validation - " +
+                    "keyLength=${apiKey.length}, isValid=$isValid")
+            return isValid
+        }
+        
+        // Strict OpenAI validation
+        val hasPrefix = apiKey.startsWith(API_KEY_PREFIX)
+        val hasMinLength = apiKey.length >= API_KEY_MIN_LENGTH
+        val matchesPattern = apiKey.matches(Regex("^sk-[A-Za-z0-9\\-_]+$"))
+        val isValid = hasPrefix && hasMinLength && matchesPattern
+        
+        println("SecurePreferencesRepository: OpenAI validation - " +
+                "hasPrefix=$hasPrefix, " +
+                "hasMinLength=$hasMinLength (${apiKey.length}>=$API_KEY_MIN_LENGTH), " +
+                "matchesPattern=$matchesPattern, " +
+                "isValid=$isValid")
+        
+        return isValid
     }
 }

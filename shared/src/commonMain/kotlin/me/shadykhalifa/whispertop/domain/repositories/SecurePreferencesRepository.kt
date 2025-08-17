@@ -9,5 +9,5 @@ interface SecurePreferencesRepository {
     suspend fun hasApiKey(): Result<Boolean>
     suspend fun saveApiEndpoint(endpoint: String): Result<Unit>
     suspend fun getApiEndpoint(): Result<String>
-    fun validateApiKey(apiKey: String): Boolean
+    fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean = true): Boolean
 }
