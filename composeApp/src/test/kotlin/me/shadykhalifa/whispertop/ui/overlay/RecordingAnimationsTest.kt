@@ -1,14 +1,19 @@
 package me.shadykhalifa.whispertop.ui.overlay
 
+import android.app.Application
+import android.content.ComponentName
 import android.content.Context
 import android.os.Vibrator
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import android.os.Build
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.ui.feedback.HapticFeedbackManager
 import me.shadykhalifa.whispertop.ui.overlay.components.AudioLevelVisualization
@@ -17,21 +22,47 @@ import me.shadykhalifa.whispertop.ui.overlay.components.ProcessingSpinner
 import me.shadykhalifa.whispertop.ui.overlay.components.SuccessCheckmark
 import me.shadykhalifa.whispertop.ui.overlay.components.ErrorPulse
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assume
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(
+    sdk = [26], // Use SDK 26 to match robolectric.properties and minSdk
+    application = me.shadykhalifa.whispertop.TestApplication::class,
+    instrumentedPackages = ["androidx.loader.content"]
+)
 class RecordingAnimationsTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
+    val addActivityToRobolectricRule = object : TestWatcher() {
+        override fun starting(description: Description?) {
+            super.starting(description)
+            val appContext: Application = ApplicationProvider.getApplicationContext()
+            Shadows.shadowOf(appContext.packageManager).addActivityIfNotPresent(
+                ComponentName(
+                    appContext.packageName,
+                    ComponentActivity::class.java.name,
+                )
+            )
+        }
+    }
+
+    @get:Rule(order = 2)
     val composeTestRule = createComposeRule()
 
     @Mock
