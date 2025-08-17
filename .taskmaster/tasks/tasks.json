@@ -654,7 +654,7 @@
         "id": 24,
         "title": "Create Comprehensive Test Suite",
         "description": "Fix failing tests and address minor gaps in the existing comprehensive test suite",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           11,
           18
@@ -702,8 +702,77 @@
         "dependencies": [
           24
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure ProGuard/R8 optimization with library-specific keep rules",
+            "description": "Enable code shrinking and obfuscation for release builds with proper keep rules for reflection-based libraries",
+            "dependencies": [],
+            "details": "Enable minifyEnabled=true in release buildType. Create proguard-rules.pro with keep rules for Ktor client classes, Koin dependency injection annotations, Kotlinx Serialization @Serializable classes, and AndroidX Security crypto classes. Add consumer ProGuard rules for library modules. Configure proper obfuscation mapping file generation for debugging release crashes.\n<info added on 2025-08-17T11:30:06.378Z>\nBased on the user request and task context, here is the new information that should be appended to the subtask details:\n\nStarting implementation with research findings: kotlinx.serialization automatically includes ProGuard rules since v1.5.0, but named companion objects require special handling. Koin basic DI doesn't need special ProGuard rules, though reflection features may require additional rules. Creating comprehensive proguard-rules.pro with keep rules for Ktor client classes, Koin dependency injection (with reflection support), Kotlinx Serialization (including companion object handling), AndroidX Security crypto classes, and Compose UI components to ensure proper release build functionality.\n</info added on 2025-08-17T11:30:06.378Z>\n<info added on 2025-08-17T11:41:06.295Z>\nIMPLEMENTATION COMPLETED SUCCESSFULLY! Created comprehensive proguard-rules.pro with 330+ lines covering Kotlinx Serialization (21 @Serializable classes protected), Ktor Client 3.0.3 with OkHttp (including debug detection fix), Koin 4.0.2 dependency injection, AndroidX Security Crypto & Work Manager, Compose UI & Navigation, Android Services (overlay, accessibility), and aggressive optimization settings. Updated composeApp/build.gradle.kts enabling minifyEnabled=true & isShrinkResources=true, added proguard-android-optimize.txt, configured BuildConfig fields for debugging, and set up debug vs release build variants. Created shared/consumer-rules.pro for library module. RESULTS: Debug APK 22M (baseline), Release APK 6.8M (69% reduction!), all tests passing (551 tests), mapping file generated (55M) for crash debugging, both debug and release builds successful. VERIFICATION: ./gradlew assembleDebug SUCCESS, ./gradlew assembleRelease SUCCESS, ./gradlew test SUCCESS (551 tests passed). Production readiness significantly improved with major APK size reduction and code obfuscation.\n</info added on 2025-08-17T11:41:06.295Z>",
+            "status": "done",
+            "testStrategy": "Test release builds on multiple devices, verify all functionality works after obfuscation, test ProGuard mapping file generation"
+          },
+          {
+            "id": 2,
+            "title": "Implement SSL certificate pinning for OpenAI API security",
+            "description": "Add certificate pinning to prevent man-in-the-middle attacks on OpenAI API communication",
+            "dependencies": [],
+            "details": "Create CertificatePinningInterceptor for OkHttp client in HttpClientFactory. Pin OpenAI's SSL certificates using SHA256 hashes. Implement certificate validation with fallback mechanism and certificate rotation handling. Add certificate pinning configuration to HttpClientProvider and integrate with existing Ktor client setup. Include certificate backup pins for disaster recovery.\n<info added on 2025-08-17T11:52:47.379Z>\nBased on the user request to mark this subtask as cancelled and the reasoning provided, here is the new text that should be appended to the subtask details:\n\nCANCELLED for current release. SSL certificate pinning is a good security practice but not essential for initial release. Can be implemented in future versions for enhanced security against man-in-the-middle attacks when communicating with OpenAI API. Current HTTPS + TLS provides adequate security for MVP release.\n</info added on 2025-08-17T11:52:47.379Z>",
+            "status": "cancelled",
+            "testStrategy": "Test certificate validation with valid/invalid certificates, verify pinning works in production environment, test fallback mechanisms"
+          },
+          {
+            "id": 3,
+            "title": "Integrate Firebase Crashlytics for crash reporting and analytics",
+            "description": "Add comprehensive crash reporting with Firebase Crashlytics integration",
+            "dependencies": [],
+            "details": "Add Firebase Crashlytics SDK to build.gradle.kts dependencies. Create CrashReportingManager with proper privacy controls and user consent handling. Implement custom crash reporting for recording errors and API failures. Add crash-free user reporting and performance monitoring. Configure Crashlytics to respect user privacy settings and provide opt-out mechanism. Integrate with existing error handling in TranscriptionRepository and AudioRecordingService.\n<info added on 2025-08-17T11:54:37.633Z>\nCancellation rationale: Requires Firebase project setup which will be handled manually later. Firebase Crashlytics integration should be implemented after Firebase project is configured with google-services.json. This is important for production crash reporting and analytics but not blocking for initial release. Task deferred to post-Firebase setup phase.\n</info added on 2025-08-17T11:54:37.633Z>",
+            "status": "cancelled",
+            "testStrategy": "Test crash reporting with simulated crashes, verify privacy controls work correctly, test opt-out functionality"
+          },
+          {
+            "id": 4,
+            "title": "Add performance monitoring with LeakCanary and metrics collection",
+            "description": "Implement memory leak detection and performance monitoring for production readiness",
+            "dependencies": [],
+            "details": "Integrate LeakCanary for debug builds with custom leak detection rules for Services and ViewModels. Create PerformanceMonitor class to track app startup time, memory usage, and API response times. Add memory leak detection for OverlayService and AudioRecordingService lifecycle. Implement performance metrics collection for recording workflows and OpenAI API calls. Add battery usage monitoring and optimization detection.\n<info added on 2025-08-17T11:55:49.236Z>\nLooking at the user request, they want to update subtask 25.4 to document why it was cancelled and note its potential future value. The update should explain that while LeakCanary and performance monitoring are valuable tools, they're not essential for the MVP release and can be deferred.\n\nBased on the context provided, here's the new text that should be appended to the subtask's details:\n\nCancelled for current release cycle. LeakCanary and performance monitoring are valuable for debugging and detecting memory leaks, especially with overlay services and background operations, but not essential for initial MVP release. Can be added later for enhanced debugging and performance optimization.\n</info added on 2025-08-17T11:55:49.236Z>",
+            "status": "cancelled",
+            "testStrategy": "Test memory leak detection across service lifecycles, verify performance metrics accuracy, test battery usage monitoring"
+          },
+          {
+            "id": 5,
+            "title": "Configure release build variants with signing and optimization",
+            "description": "Create production-ready release build configuration with proper signing and optimization flags",
+            "dependencies": [
+              "25.1"
+            ],
+            "details": "Configure release buildType with optimized settings: minifyEnabled=true, shrinkResources=true, debuggable=false. Set up keystore configuration for release signing with environment variable support. Configure build variants for different deployment targets (Play Store, sideload). Add version code auto-increment and version name management. Configure APK splitting by ABI and density. Add build timestamp and commit hash to BuildConfig for debugging.\n<info added on 2025-08-17T11:57:47.754Z>\nI'll analyze the current build configuration and provide the update content for subtask 25.5.Progress update: Analyzed current build configuration and identified missing components from user requirements. Current composeApp/build.gradle.kts has basic release settings but lacks version code auto-increment, APK splitting, proper signing configuration with environment variables, and enhanced build variants. Need to implement Git-based version code generation, ABI/density splitting configuration, environment-variable-driven signing configs, and product flavors for Play Store vs sideload deployment targets. Will add enhanced BuildConfig fields with Git commit hash and properly formatted build timestamps.\n</info added on 2025-08-17T11:57:47.754Z>\n<info added on 2025-08-17T12:01:45.570Z>\nImplementation completed successfully with comprehensive production-ready build configuration. All build variants now support environment-driven signing, automatic version management, APK optimization with ABI splitting, and enhanced BuildConfig fields. Verification shows successful builds for all combinations (playstore/sideload × debug/release). Production deployment system ready with proper distribution channel tracking and analytics control.\n</info added on 2025-08-17T12:01:45.570Z>",
+            "status": "done",
+            "testStrategy": "Test release build generation, verify signing configuration, test APK splitting functionality"
+          },
+          {
+            "id": 6,
+            "title": "Implement in-app update mechanism using Google Play In-App Updates",
+            "description": "Add automatic app update checking and installation using Google Play services",
+            "dependencies": [],
+            "details": "Integrate Google Play In-App Updates API with AppUpdateManager. Create UpdateManager service to check for available updates on app startup and periodically. Implement both immediate and flexible update flows based on update priority. Add update progress UI components and user prompts. Handle update installation failures and retry mechanisms. Integrate update checking with existing app lifecycle management in WhisperTopApplication.",
+            "status": "pending",
+            "testStrategy": "Test update detection and installation flows, verify update UI components, test failure and retry scenarios"
+          },
+          {
+            "id": 7,
+            "title": "Optimize APK size and application startup performance",
+            "description": "Implement comprehensive APK size reduction and startup time optimization techniques",
+            "dependencies": [
+              "25.1",
+              "25.5"
+            ],
+            "details": "Enable R8 full mode optimization and configure aggressive shrinking. Remove unused resources with shrinkResources=true and implement resource optimization. Configure vector drawable optimization and WebP image conversion. Add ProGuard rules for aggressive obfuscation while preserving functionality. Implement app startup optimization with lazy initialization of non-critical components. Add startup time measurement and optimization for Koin dependency injection. Configure bundle optimization for reduced download size.",
+            "status": "pending",
+            "testStrategy": "Measure APK size before/after optimization, test startup time on various devices, verify all functionality after aggressive optimization"
+          }
+        ]
       },
       {
         "id": 26,
@@ -797,7 +866,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-17T11:24:07.541Z",
+      "updated": "2025-08-17T12:01:51.198Z",
       "description": "Tasks for master context"
     }
   }

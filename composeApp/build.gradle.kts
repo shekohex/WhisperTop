@@ -1,6 +1,10 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.text.SimpleDateFormat
+import java.util.Date
+
+
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -8,6 +12,36 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+}
+
+// Version management functions
+fun generateVersionCode(): Int {
+    // Generate version code from timestamp for auto-increment
+    // Format: YYMMDDXX where XX is build number of the day
+    val date = SimpleDateFormat("yyMMdd").format(Date())
+    val buildNumber = System.getProperty("BUILD_NUMBER") ?: "01"
+    return "${date}${buildNumber.padStart(2, '0')}".toInt()
+}
+
+fun generateVersionName(): String {
+    val major = 1
+    val minor = 0
+    val patch = 0
+    val buildType = if (gradle.startParameter.taskNames.any { it.contains("Release") }) "release" else "debug"
+    return "$major.$minor.$patch-$buildType"
+}
+
+fun getBuildTimestamp(): String {
+    return SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+}
+
+fun getGitCommitHash(): String {
+    return try {
+        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD").start()
+        process.inputStream.bufferedReader().readText().trim()
+    } catch (e: Exception) {
+        "unknown"
+    }
 }
 
 kotlin {
@@ -69,26 +103,117 @@ android {
         applicationId = "me.shadykhalifa.whispertop"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = generateVersionCode()
+        versionName = generateVersionName()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Configure vector drawables for API < 21
+        vectorDrawables.useSupportLibrary = true
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    
+    signingConfigs {
+        create("release") {
+            // Production signing config using environment variables
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "defaultPassword"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "defaultAlias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "defaultPassword"
+            
+            // Enable V1 and V2 signature schemes
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+        
+        getByName("debug") {
+            // Debug signing remains unchanged
+        }
+    }
+    
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
     buildTypes {
         getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            isJniDebuggable = false
+
+            isPseudoLocalesEnabled = false
+            
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Use release signing config (falls back to debug if env vars not set)
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            
+            // Enhanced build configuration fields
+            buildConfigField("String", "BUILD_TIME", "\"${getBuildTimestamp()}\"")
+            buildConfigField("String", "VERSION_TYPE", "\"release\"")
+            buildConfigField("String", "GIT_COMMIT", "\"${getGitCommitHash()}\"")
+            buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
+            buildConfigField("boolean", "IS_DEBUG_BUILD", "false")
+        }
+        
+        getByName("debug") {
             isMinifyEnabled = false
+            isDebuggable = true
+            isJniDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            
+            // Enhanced build configuration fields for debug
+            buildConfigField("String", "BUILD_TIME", "\"${getBuildTimestamp()}\"")
+            buildConfigField("String", "VERSION_TYPE", "\"debug\"")
+            buildConfigField("String", "GIT_COMMIT", "\"${getGitCommitHash()}\"")
+            buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
+            buildConfigField("boolean", "IS_DEBUG_BUILD", "true")
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    flavorDimensions += "distribution"
+    
+    productFlavors {
+        create("playstore") {
+            dimension = "distribution"
+            // Play Store specific configuration
+            buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"playstore\"")
+            buildConfigField("boolean", "ENABLE_ANALYTICS", "true")
+        }
+        
+        create("sideload") {
+            dimension = "distribution"
+            applicationIdSuffix = ".sideload"
+            // Sideload specific configuration
+            buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"sideload\"")
+            buildConfigField("boolean", "ENABLE_ANALYTICS", "false")
+        }
+    }
+    
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     
     testOptions {
