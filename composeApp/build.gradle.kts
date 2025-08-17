@@ -45,6 +45,18 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.koin.test)
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.junit)
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.robolectric)
+            implementation(libs.mockito.core)
+            implementation(libs.mockito.kotlin)
+            implementation(libs.koin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.compose.ui.test.junit4)
         }
     }
 }
@@ -80,29 +92,26 @@ android {
     }
     
     testOptions {
-        unitTests.isReturnDefaultValues = true
+        unitTests {
+            isReturnDefaultValues = true
+            isIncludeAndroidResources = true
+        }
     }
 }
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    debugImplementation(libs.compose.ui.test.manifest)
     
     // Android Test dependencies
     androidTestImplementation(libs.androidx.testExt.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation("androidx.test:rules:1.6.1")
-    androidTestImplementation("org.mockito:mockito-android:5.7.0")
-    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    androidTestImplementation(libs.mockito.android)
+    androidTestImplementation(libs.mockito.kotlin)
     androidTestImplementation(libs.koin.test)
     androidTestImplementation(libs.kotlinx.coroutines.test)
-    
-    // Unit Test dependencies
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlin.testJunit)
-    testImplementation("org.mockito:mockito-core:5.7.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
-    testImplementation(libs.koin.test)
-    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.compose.ui.test.junit4)
 
 }
 
