@@ -463,12 +463,24 @@ class SettingsViewModel(
     fun updateApiEndpoint(endpoint: String) {
         viewModelScope.launch {
             try {
-                when (val result = securePreferencesRepository.saveApiEndpoint(endpoint)) {
+                // Save to secure preferences for API client usage
+                when (val secureResult = securePreferencesRepository.saveApiEndpoint(endpoint)) {
                     is Result.Success -> {
-                        _uiState.value = _uiState.value.copy(apiEndpoint = endpoint)
+                        // Also save to settings repository
+                        when (val settingsResult = settingsRepository.updateBaseUrl(endpoint)) {
+                            is Result.Success -> {
+                                _uiState.value = _uiState.value.copy(apiEndpoint = endpoint)
+                            }
+                            is Result.Error -> {
+                                handleError(settingsResult.exception)
+                            }
+                            is Result.Loading -> {
+                                // Loading state handled by individual operations
+                            }
+                        }
                     }
                     is Result.Error -> {
-                        handleError(result.exception)
+                        handleError(secureResult.exception)
                     }
                     is Result.Loading -> {
                         // Loading state handled by individual operations

@@ -22,8 +22,8 @@ class GetApiKeyUseCase(
 class ValidateApiKeyUseCase(
     private val securePreferencesRepository: SecurePreferencesRepository
 ) {
-    operator fun invoke(apiKey: String): Boolean {
-        return securePreferencesRepository.validateApiKey(apiKey)
+    operator fun invoke(apiKey: String, isOpenAIEndpoint: Boolean = true): Boolean {
+        return securePreferencesRepository.validateApiKey(apiKey, isOpenAIEndpoint)
     }
 }
 

@@ -69,6 +69,24 @@ class SettingsRepositoryImpl(
         preferencesDataSource.clearLastRecording()
     }
 
+    override suspend fun updateBaseUrl(baseUrl: String): Result<Unit> = execute {
+        val currentSettings = preferencesDataSource.getSettings()
+        val cleanUrl = baseUrl.trim().let { 
+            if (it.endsWith("/")) it else "$it/"
+        }
+        val updatedSettings = currentSettings.copy(
+            baseUrl = cleanUrl,
+            isCustomEndpoint = !cleanUrl.contains("api.openai.com")
+        )
+        preferencesDataSource.saveSettings(updatedSettings)
+    }
+
+    override suspend fun updateCustomEndpoint(isCustom: Boolean): Result<Unit> = execute {
+        val currentSettings = preferencesDataSource.getSettings()
+        val updatedSettings = currentSettings.copy(isCustomEndpoint = isCustom)
+        preferencesDataSource.saveSettings(updatedSettings)
+    }
+
     override suspend fun cleanupTemporaryFiles(): Result<Unit> = execute {
         preferencesDataSource.clearLastRecording()
     }
