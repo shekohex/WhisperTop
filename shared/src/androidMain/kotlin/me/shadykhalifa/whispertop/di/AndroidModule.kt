@@ -1,6 +1,7 @@
 package me.shadykhalifa.whispertop.di
 
 import android.content.Context
+import me.shadykhalifa.whispertop.data.audio.AudioRecorderImpl
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSource
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSourceImpl
 import me.shadykhalifa.whispertop.data.repositories.AudioRecorder
@@ -14,6 +15,7 @@ import org.koin.dsl.module
 val androidModule = module {
     single<PreferencesDataSource> { PreferencesDataSourceImpl(get()) }
     single<AudioRecorder> { AudioRecorder(get()) }
+    single<AudioRecorderImpl> { AudioRecorderImpl() }
     single<FileReader> { FileReader() }
     single<SecurePreferencesRepository> { SecurePreferencesRepositoryImpl(get()) }
 }
