@@ -14,6 +14,7 @@ import me.shadykhalifa.whispertop.domain.models.TranscriptionError
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
+import me.shadykhalifa.whispertop.domain.services.ToastService
 import me.shadykhalifa.whispertop.domain.services.RetryService
 import me.shadykhalifa.whispertop.domain.services.ErrorLoggingService
 import me.shadykhalifa.whispertop.domain.services.ConnectionStatusService
@@ -38,6 +39,7 @@ class TranscriptionWorkflowUseCase(
     private val transcriptionRepository: TranscriptionRepository,
     private val settingsRepository: SettingsRepository,
     private val textInsertionService: TextInsertionService,
+    private val toastService: ToastService,
     private val retryService: RetryService,
     private val errorLoggingService: ErrorLoggingService,
     private val connectionStatusService: ConnectionStatusService,
@@ -166,6 +168,16 @@ class TranscriptionWorkflowUseCase(
     }
     
     private suspend fun handleTranscriptionSuccess(transcription: String) {
+        // Check for empty transcription and show toast
+        if (transcription.isBlank()) {
+            toastService.showToast("No speech detected in recording", isLong = true)
+            _workflowState.value = WorkflowState.Success(
+                transcription = transcription,
+                textInserted = false
+            )
+            return
+        }
+        
         _workflowState.value = WorkflowState.InsertingText
         
         try {

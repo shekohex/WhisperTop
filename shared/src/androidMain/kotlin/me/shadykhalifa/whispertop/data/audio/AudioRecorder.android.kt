@@ -350,6 +350,8 @@ private class AudioRecordingThread(
             val allData = mutableListOf<Short>()
             var totalBytes = 0L
             
+            Log.d("AudioRecordingThread", "Starting recording: sampleRate=${audioRecord.sampleRate}, bufferSize=$bufferSize, outputPath=$outputPath")
+            
             while (!quit.get()) {
                 if (paused.get()) {
                     Thread.sleep(10)

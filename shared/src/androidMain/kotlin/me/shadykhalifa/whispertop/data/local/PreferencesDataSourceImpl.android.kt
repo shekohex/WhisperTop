@@ -44,10 +44,18 @@ class PreferencesDataSourceImpl(
     }
 
     override suspend fun saveSettings(settings: AppSettingsEntity) {
+        println("PreferencesDataSourceImpl: saveSettings called")
+        println("PreferencesDataSourceImpl: settings.selectedModel='${settings.selectedModel}'")
+        println("PreferencesDataSourceImpl: settings.apiKey length=${settings.apiKey.length}")
+        println("PreferencesDataSourceImpl: settings.baseUrl='${settings.baseUrl}'")
         val settingsJson = json.encodeToString(settings)
+        println("PreferencesDataSourceImpl: JSON serialized, length=${settingsJson.length}")
         dataStore.edit { preferences ->
+            println("PreferencesDataSourceImpl: DataStore edit block started")
             preferences[KEY_SETTINGS] = settingsJson
+            println("PreferencesDataSourceImpl: DataStore preferences updated")
         }
+        println("PreferencesDataSourceImpl: DataStore edit completed")
     }
 
     override fun getSettingsFlow(): Flow<AppSettingsEntity> {
