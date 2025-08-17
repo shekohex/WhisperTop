@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +29,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
+    companion object {
+        private const val TAG = "AudioRecorderImpl"
+    }
+    
     private val context: Context by inject()
     private val configuration: AudioConfigurationProvider = AudioConfiguration()
     private val audioFocusManager: AudioFocusManager = AudioFocusManagerImpl()
@@ -71,7 +76,10 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     
     override suspend fun startRecording(outputPath: String): AudioRecordingResult = withContext(recordingDispatcher) {
         mutex.withLock {
+            Log.d(TAG, "startRecording: outputPath=$outputPath")
+            
             if (isRecording.get()) {
+                Log.w(TAG, "startRecording: recording already in progress")
                 return@withContext AudioRecordingResult.Error(
                     AudioRecordingError.ConfigurationError(IllegalStateException("Recording already in progress"))
                 )
@@ -79,18 +87,26 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
             
             try {
                 // Request audio focus
+                Log.d(TAG, "startRecording: requesting audio focus")
                 if (!audioFocusManager.requestAudioFocus(audioFocusChangeListener)) {
+                    Log.w(TAG, "startRecording: failed to acquire audio focus")
                     return@withContext AudioRecordingResult.Error(
                         AudioRecordingError.DeviceUnavailable(Exception("Failed to acquire audio focus"))
                     )
                 }
+                Log.d(TAG, "startRecording: audio focus acquired")
                 
                 // Create AudioRecord instance
                 val bufferSize = getOptimalBufferSize()
+                Log.d(TAG, "startRecording: creating AudioRecord with bufferSize=$bufferSize")
                 audioRecord = createAudioRecord(bufferSize)
-                    ?: return@withContext AudioRecordingResult.Error(
-                        AudioRecordingError.ConfigurationError(Exception("Failed to create AudioRecord"))
-                    )
+                    ?: run {
+                        Log.e(TAG, "startRecording: failed to create AudioRecord")
+                        return@withContext AudioRecordingResult.Error(
+                            AudioRecordingError.ConfigurationError(Exception("Failed to create AudioRecord"))
+                        )
+                    }
+                Log.d(TAG, "startRecording: AudioRecord created successfully")
                 
                 // Prepare recording thread
                 recordingThread = AudioRecordingThread(
@@ -123,17 +139,21 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
                 isRecording.set(true)
                 
                 // Start recording
+                Log.d(TAG, "startRecording: starting AudioRecord")
                 audioRecord!!.startRecording()
                 recordingThread!!.start()
                 qualityManager.startMonitoring()
                 
                 notifyStateListeners { onRecordingStarted() }
+                Log.d(TAG, "startRecording: recording started successfully")
                 AudioRecordingResult.Success
                 
             } catch (e: SecurityException) {
+                Log.e(TAG, "startRecording: permission denied", e)
                 cleanupRecording()
                 AudioRecordingResult.Error(AudioRecordingError.PermissionDenied(e))
             } catch (e: Exception) {
+                Log.e(TAG, "startRecording: unknown error", e)
                 cleanupRecording()
                 AudioRecordingResult.Error(AudioRecordingError.Unknown(e))
             }
@@ -230,6 +250,8 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     @SuppressLint("MissingPermission")
     private fun createAudioRecord(bufferSize: Int): AudioRecord? {
         return try {
+            Log.d(TAG, "createAudioRecord: sampleRate=${configuration.sampleRate}, bufferSize=$bufferSize")
+            
             val audioRecord = AudioRecord(
                 MediaRecorder.AudioSource.MIC,
                 configuration.sampleRate,
@@ -238,13 +260,18 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
                 bufferSize
             )
             
+            Log.d(TAG, "createAudioRecord: AudioRecord state=${audioRecord.state}, recordingState=${audioRecord.recordingState}")
+            
             if (audioRecord.state == AudioRecord.STATE_INITIALIZED) {
+                Log.d(TAG, "createAudioRecord: AudioRecord initialized successfully")
                 audioRecord
             } else {
+                Log.w(TAG, "createAudioRecord: AudioRecord not initialized (state=${audioRecord.state})")
                 audioRecord.release()
                 null
             }
         } catch (e: Exception) {
+            Log.e(TAG, "createAudioRecord: exception occurred", e)
             null
         }
     }
@@ -255,9 +282,15 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT
         )
+        
+        Log.d(TAG, "getOptimalBufferSize: minBufferSize=$minBufferSize, multiplier=${configuration.bufferSizeMultiplier}")
+        
         return if (minBufferSize != AudioRecord.ERROR_BAD_VALUE) {
-            minBufferSize * configuration.bufferSizeMultiplier
+            val optimalSize = minBufferSize * configuration.bufferSizeMultiplier
+            Log.d(TAG, "getOptimalBufferSize: using optimal size=$optimalSize")
+            optimalSize
         } else {
+            Log.w(TAG, "getOptimalBufferSize: minBufferSize is ERROR_BAD_VALUE, using fallback")
             8192 // Fallback buffer size
         }
     }

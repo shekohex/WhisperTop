@@ -11,6 +11,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ import java.util.UUID
 class AudioRecordingService : Service() {
     
     companion object {
+        private const val TAG = "AudioRecordingService"
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "audio_recording_channel"
         private const val CHANNEL_NAME = "Audio Recording"
@@ -181,10 +183,19 @@ class AudioRecordingService : Service() {
                     audioRecorder.startRecording(outputPath)
                 }
                 
+                Log.d(TAG, "startRecording: AudioRecorder result = $result")
+                
                 if (result !is me.shadykhalifa.whispertop.data.audio.AudioRecordingResult.Success) {
+                    val errorMsg = when (result) {
+                        is me.shadykhalifa.whispertop.data.audio.AudioRecordingResult.Error -> {
+                            "Recording failed: ${result.error}"
+                        }
+                        else -> "Recording failed: Unknown error"
+                    }
+                    Log.e(TAG, "startRecording: $errorMsg")
                     setState(RecordingState.IDLE)
-                    metricsCollector.endRecordingMetrics(currentSessionId!!, false, "Failed to start recording")
-                    notifyError("Failed to start recording")
+                    metricsCollector.endRecordingMetrics(currentSessionId!!, false, errorMsg)
+                    notifyError(errorMsg)
                     return@launch
                 }
                 
@@ -326,6 +337,8 @@ class AudioRecordingService : Service() {
     }
     
     private fun setState(state: RecordingState) {
+        val previousState = currentState.get()
+        Log.d(TAG, "setState: $previousState -> $state")
         currentState.set(state)
         stateListeners.forEach { it.onStateChanged(state) }
     }
@@ -335,6 +348,7 @@ class AudioRecordingService : Service() {
     }
     
     private fun notifyError(error: String) {
+        Log.e(TAG, "notifyError: $error")
         stateListeners.forEach { it.onRecordingError(error) }
     }
     
