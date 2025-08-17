@@ -35,14 +35,10 @@ fun getBuildTimestamp(): String {
     return SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
 }
 
-fun getGitCommitHash(): String {
-    return try {
-        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD").start()
-        process.inputStream.bufferedReader().readText().trim()
-    } catch (e: Exception) {
-        "unknown"
-    }
-}
+// Git commit hash provider for configuration cache compatibility
+val gitCommitHashProvider = providers.exec {
+    commandLine("git", "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.map { it.trim() }.orElse("unknown")
 
 kotlin {
     androidTarget {
@@ -168,7 +164,7 @@ android {
             // Enhanced build configuration fields
             buildConfigField("String", "BUILD_TIME", "\"${getBuildTimestamp()}\"")
             buildConfigField("String", "VERSION_TYPE", "\"release\"")
-            buildConfigField("String", "GIT_COMMIT", "\"${getGitCommitHash()}\"")
+            buildConfigField("String", "GIT_COMMIT", "\"${gitCommitHashProvider.get()}\"")
             buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
             buildConfigField("boolean", "IS_DEBUG_BUILD", "false")
         }
@@ -183,7 +179,7 @@ android {
             // Enhanced build configuration fields for debug
             buildConfigField("String", "BUILD_TIME", "\"${getBuildTimestamp()}\"")
             buildConfigField("String", "VERSION_TYPE", "\"debug\"")
-            buildConfigField("String", "GIT_COMMIT", "\"${getGitCommitHash()}\"")
+            buildConfigField("String", "GIT_COMMIT", "\"${gitCommitHashProvider.get()}\"")
             buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
             buildConfigField("boolean", "IS_DEBUG_BUILD", "true")
         }
