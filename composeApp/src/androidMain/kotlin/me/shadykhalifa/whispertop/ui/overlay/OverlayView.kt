@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -94,6 +95,7 @@ abstract class OverlayView @JvmOverloads constructor(
     }
     
     fun setDraggable(draggable: Boolean) {
+        Log.d(TAG, "setDraggable: $draggable")
         isDraggable = draggable
     }
     
@@ -122,16 +124,18 @@ abstract class OverlayView @JvmOverloads constructor(
     fun isExpanded(): Boolean = isExpanded
     
     fun setLayoutParams(params: WindowManager.LayoutParams) {
+        Log.d(TAG, "setLayoutParams: x=${params.x}, y=${params.y}, w=${params.width}, h=${params.height}")
         layoutParams = params
     }
     
     fun updatePosition(x: Int, y: Int) {
+        Log.d(TAG, "updatePosition: x=$x, y=$y")
         layoutParams?.let { params ->
             params.x = x
             params.y = y
             windowManager?.updateViewLayout(this, params)
             notifyPositionChanged(x, y)
-        }
+        } ?: Log.w(TAG, "updatePosition: layoutParams is null")
     }
     
     fun getCurrentPosition(): Pair<Int, Int> {
@@ -145,12 +149,14 @@ abstract class OverlayView @JvmOverloads constructor(
     private fun handleTouch(view: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                Log.v(TAG, "handleTouch: ACTION_DOWN, isDraggable=$isDraggable")
                 if (isDraggable) {
                     initialX = layoutParams?.x ?: 0
                     initialY = layoutParams?.y ?: 0
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     isDragging = false
+                    Log.v(TAG, "handleTouch: initial position ($initialX, $initialY), initial touch (${initialTouchX}, ${initialTouchY})")
                 }
                 return true
             }
@@ -162,25 +168,32 @@ abstract class OverlayView @JvmOverloads constructor(
                     
                     if (deltaX > touchSlop || deltaY > touchSlop) {
                         isDragging = true
+                        Log.v(TAG, "handleTouch: started dragging (delta: $deltaX, $deltaY, touchSlop: $touchSlop)")
                     }
                 }
                 
                 if (isDraggable && isDragging) {
                     val newX = initialX + (event.rawX - initialTouchX).toInt()
                     val newY = initialY + (event.rawY - initialTouchY).toInt()
+                    Log.v(TAG, "handleTouch: dragging to ($newX, $newY)")
                     updatePosition(newX, newY)
                 }
                 return true
             }
             
             MotionEvent.ACTION_UP -> {
+                Log.v(TAG, "handleTouch: ACTION_UP, isDraggable=$isDraggable, isDragging=$isDragging")
                 if (isDraggable) {
                     if (!isDragging) {
+                        Log.v(TAG, "handleTouch: click detected")
                         performClick()
                         notifyOverlayClicked()
+                    } else {
+                        Log.v(TAG, "handleTouch: drag ended")
                     }
                     isDragging = false
                 } else {
+                    Log.v(TAG, "handleTouch: click (not draggable)")
                     performClick()
                     notifyOverlayClicked()
                 }

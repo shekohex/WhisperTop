@@ -271,6 +271,9 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
      */
     private suspend fun handleMicButtonClick() {
         val currentState = audioRecordingViewModel.uiState.value.recordingState
+        val uiState = audioRecordingViewModel.uiState.value
+        
+        Log.d(TAG, "handleMicButtonClick: currentState=$currentState, isServiceReady=${uiState.isServiceReady}, connection=${uiState.serviceConnectionState}, permission=${uiState.permissionState}")
         
         when (currentState) {
             AudioRecordingService.RecordingState.IDLE -> {

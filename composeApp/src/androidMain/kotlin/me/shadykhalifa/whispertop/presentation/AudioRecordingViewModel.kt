@@ -1,5 +1,6 @@
 package me.shadykhalifa.whispertop.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class AudioRecordingViewModel : ViewModel(), KoinComponent {
+    
+    companion object {
+        private const val TAG = "AudioRecordingViewModel"
+    }
     
     private val audioServiceManager: AudioServiceManager by inject()
     private val permissionHandler: PermissionHandler by inject()
@@ -37,12 +42,16 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
                 audioServiceManager.recordingState,
                 permissionHandler.permissionState
             ) { connectionState, recordingState, permissionState ->
+                val isServiceReady = connectionState == AudioServiceManager.ServiceConnectionState.CONNECTED &&
+                        permissionState == PermissionHandler.PermissionState.GRANTED
+                
+                Log.d(TAG, "Service state update: connection=$connectionState, recording=$recordingState, permission=$permissionState, isReady=$isServiceReady")
+                
                 _uiState.value = _uiState.value.copy(
                     serviceConnectionState = connectionState,
                     recordingState = recordingState,
                     permissionState = permissionState,
-                    isServiceReady = connectionState == AudioServiceManager.ServiceConnectionState.CONNECTED &&
-                            permissionState == PermissionHandler.PermissionState.GRANTED
+                    isServiceReady = isServiceReady
                 )
             }.collect { }
         }
@@ -93,22 +102,27 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     }
     
     suspend fun initializeService() {
+        Log.d(TAG, "initializeService: starting service initialization")
         _uiState.value = _uiState.value.copy(isLoading = true)
         
         when (val result = audioServiceManager.bindService()) {
             is AudioServiceManager.ServiceBindResult.SUCCESS -> {
+                Log.d(TAG, "initializeService: service bound successfully")
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
             is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
+                Log.d(TAG, "initializeService: service already bound")
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
             is AudioServiceManager.ServiceBindResult.FAILED -> {
+                Log.w(TAG, "initializeService: failed to bind service")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Failed to bind to audio service"
                 )
             }
             is AudioServiceManager.ServiceBindResult.ERROR -> {
+                Log.e(TAG, "initializeService: service binding error", result.exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Service binding error: ${result.exception.message}"
@@ -141,23 +155,31 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     }
     
     fun startRecording() {
-        if (!_uiState.value.isServiceReady) {
+        val currentState = _uiState.value
+        Log.d(TAG, "startRecording: isServiceReady=${currentState.isServiceReady}, connection=${currentState.serviceConnectionState}, permission=${currentState.permissionState}")
+        
+        if (!currentState.isServiceReady) {
+            val errorMsg = "Service not ready for recording (connection=${currentState.serviceConnectionState}, permission=${currentState.permissionState})"
+            Log.w(TAG, errorMsg)
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Service not ready for recording"
+                errorMessage = errorMsg
             )
             return
         }
         
+        Log.d(TAG, "Attempting to start recording...")
         when (val result = audioServiceManager.startRecording()) {
             is AudioServiceManager.RecordingActionResult.SUCCESS -> {
-                // Recording started successfully
+                Log.d(TAG, "Recording started successfully")
             }
             is AudioServiceManager.RecordingActionResult.SERVICE_NOT_BOUND -> {
+                Log.w(TAG, "Failed to start recording: service not bound")
                 _uiState.value = _uiState.value.copy(
                     errorMessage = "Audio service not connected"
                 )
             }
             is AudioServiceManager.RecordingActionResult.ERROR -> {
+                Log.e(TAG, "Failed to start recording", result.exception)
                 _uiState.value = _uiState.value.copy(
                     errorMessage = "Failed to start recording: ${result.exception.message}"
                 )
