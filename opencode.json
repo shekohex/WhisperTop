@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["CLAUDE.md"],
+  "mcp": {
+    "mobile": {
+      "type": "local",
+      "command": ["bun", "x", "@mobilenext/mobile-mcp@latest"],
+      "enabled": true
+    }
+  }
+}
