@@ -24,7 +24,8 @@ data class CreateTranscriptionResponseVerboseDto(
     val duration: Float,
     val text: String,
     val words: List<TranscriptionWordDto>? = null,
-    val segments: List<TranscriptionSegmentDto>? = null
+    val segments: List<TranscriptionSegmentDto>? = null,
+    val task: String? = null // For compatibility with custom endpoints
 )
 
 @Serializable
@@ -48,7 +49,8 @@ data class TranscriptionSegmentDto(
     @SerialName("compression_ratio")
     val compressionRatio: Float,
     @SerialName("no_speech_prob")
-    val noSpeechProb: Float
+    val noSpeechProb: Float,
+    val words: List<TranscriptionWordDto>? = null // For compatibility with custom endpoints
 )
 
 data class MultipartTranscriptionRequest(

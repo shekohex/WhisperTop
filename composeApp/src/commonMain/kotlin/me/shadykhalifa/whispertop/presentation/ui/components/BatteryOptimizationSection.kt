@@ -169,8 +169,8 @@ private fun BatteryOptimizationStatusCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -208,31 +208,39 @@ private fun BatteryOptimizationStatusCard(
             // Action buttons
             if (!status.isIgnoringBatteryOptimizations) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (status.canRequestIgnore) {
-                        Button(
-                            onClick = onRequestExemption,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Request Exemption")
-                        }
-                    }
-                    
-                    OutlinedButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Settings")
-                    }
-                }
+                     modifier = Modifier.fillMaxWidth(),
+                     horizontalArrangement = Arrangement.spacedBy(8.dp)
+                 ) {
+                     if (status.canRequestIgnore) {
+                         Button(
+                             onClick = onRequestExemption,
+                             modifier = Modifier.weight(1f),
+                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                         ) {
+                             Text(
+                                 text = "Request Exemption",
+                                 style = MaterialTheme.typography.bodyMedium
+                             )
+                         }
+                     }
+                     
+                     OutlinedButton(
+                         onClick = onOpenSettings,
+                         modifier = Modifier.weight(1f),
+                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                     ) {
+                         Icon(
+                             imageVector = Icons.Default.Settings,
+                             contentDescription = null,
+                             modifier = Modifier.size(16.dp)
+                         )
+                         Spacer(modifier = Modifier.width(4.dp))
+                         Text(
+                             text = "Settings",
+                             style = MaterialTheme.typography.bodyMedium
+                         )
+                     }
+                 }
             }
             
             // Manufacturer-specific guidance
@@ -240,12 +248,12 @@ private fun BatteryOptimizationStatusCard(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = "Device-Specific Instructions:",
@@ -263,9 +271,13 @@ private fun BatteryOptimizationStatusCard(
             // Learn more link
             TextButton(
                 onClick = onShowExplanation,
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                Text("Learn More")
+                Text(
+                    text = "Learn More",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }

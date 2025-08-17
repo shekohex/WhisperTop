@@ -8,12 +8,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import me.shadykhalifa.whispertop.di.androidAppModule
+import me.shadykhalifa.whispertop.di.initKoin
+import me.shadykhalifa.whispertop.di.providePlatformModule
 import me.shadykhalifa.whispertop.managers.OverlayInitializationManager
 import me.shadykhalifa.whispertop.presentation.activities.PermissionOnboardingActivity
 import org.koin.android.ext.android.inject
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
 
 class MainActivity : ComponentActivity() {
     
@@ -85,5 +91,11 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
+    val context = LocalContext.current
+    initKoin(listOf(providePlatformModule(context), androidAppModule)) {
+        androidLogger()
+        androidContext(context)
+    }
     App()
+
 }

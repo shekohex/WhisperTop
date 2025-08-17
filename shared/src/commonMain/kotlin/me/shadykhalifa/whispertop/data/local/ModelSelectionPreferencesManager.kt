@@ -13,9 +13,13 @@ class ModelSelectionPreferencesManager(
     }
     
     suspend fun setSelectedModel(modelId: String) {
+        println("ModelSelectionPreferencesManager: setSelectedModel called with modelId='$modelId'")
         val currentSettings = preferencesDataSource.getSettings()
+        println("ModelSelectionPreferencesManager: Current settings loaded, current selectedModel='${currentSettings.selectedModel}'")
         val updatedSettings = currentSettings.copy(selectedModel = modelId)
+        println("ModelSelectionPreferencesManager: Created updated settings with selectedModel='${updatedSettings.selectedModel}'")
         preferencesDataSource.saveSettings(updatedSettings)
+        println("ModelSelectionPreferencesManager: saveSettings completed")
     }
     
     fun getSelectedModelFlow(): Flow<String> {

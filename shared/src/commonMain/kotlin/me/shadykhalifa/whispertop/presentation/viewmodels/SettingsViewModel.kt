@@ -449,7 +449,7 @@ class SettingsViewModel(
                 val response = apiService.transcribe(
                     audioData = testAudioData,
                     fileName = "test.wav",
-                    model = "whisper-1"
+                    model = _uiState.value.settings.selectedModel
                 )
                 
                 _uiState.value = _uiState.value.copy(

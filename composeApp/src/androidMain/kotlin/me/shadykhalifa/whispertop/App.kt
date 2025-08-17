@@ -25,9 +25,7 @@ fun App(requestPermissions: Boolean = false) {
         dynamicColor = true
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeContentPadding(),
+            modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             val navController = rememberNavController()

@@ -16,6 +16,10 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -338,6 +342,7 @@ fun ModelRecommendationChip(
     )
 }
 
+@OptIn(FlowPreview::class)
 @Composable
 fun CustomModelInput(
     customModelName: String,
@@ -345,8 +350,48 @@ fun CustomModelInput(
     onAddCustomModel: () -> Unit,
     onCancel: () -> Unit,
     isValid: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    directMode: Boolean = false // New parameter for direct model selection
 ) {
+    var textFieldValue by remember { mutableStateOf(customModelName) }
+    val debouncedFlow = remember { MutableStateFlow(customModelName) }
+    
+    // Update local state when customModelName changes externally
+    LaunchedEffect(customModelName) {
+        if (textFieldValue != customModelName) {
+            textFieldValue = customModelName
+            debouncedFlow.value = customModelName
+        }
+    }
+    
+    // Track initialization to prevent clearing saved models on first load
+    var isInitialized by remember { mutableStateOf(false) }
+    
+    // Mark as initialized after customModelName is set
+    LaunchedEffect(customModelName) {
+        if (customModelName.isNotBlank()) {
+            isInitialized = true
+        }
+    }
+    
+    // Debounce the input changes
+    LaunchedEffect(Unit) {
+        debouncedFlow
+            .debounce(300) // 300ms debounce for better responsiveness
+            .distinctUntilChanged()
+            .collect { debouncedValue ->
+                println("CustomModelInput: Debounced value collected: '$debouncedValue', isInitialized: $isInitialized")
+                // Only save changes after initialization to prevent clearing saved models during initial render
+                // OR if the user is intentionally providing a non-blank value
+                if (isInitialized || debouncedValue.isNotBlank()) {
+                    onCustomModelNameChange(debouncedValue)
+                    println("CustomModelInput: onCustomModelNameChange called")
+                } else {
+                    println("CustomModelInput: onCustomModelNameChange SKIPPED - isInitialized: $isInitialized, isNotBlank: ${debouncedValue.isNotBlank()}")
+                }
+            }
+    }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -355,17 +400,24 @@ fun CustomModelInput(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = "Add Custom Model",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            if (!directMode) {
+                Text(
+                    text = "Add Custom Model",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             
             OutlinedTextField(
-                value = customModelName,
-                onValueChange = onCustomModelNameChange,
+                value = textFieldValue,
+                onValueChange = { newValue ->
+                    println("CustomModelInput: TextField onValueChange: '$newValue'")
+                    textFieldValue = newValue
+                    debouncedFlow.value = newValue
+                    println("CustomModelInput: debouncedFlow.value set to: '$newValue'")
+                },
                 label = { Text("Model ID") },
-                placeholder = { Text("e.g., whisper-large-v3") },
+                placeholder = { Text("e.g., whisper-large-v3, claude-3-5-sonnet, gpt-4-turbo") },
                 modifier = Modifier.fillMaxWidth(),
                 isError = !isValid,
                 supportingText = {
@@ -375,38 +427,40 @@ fun CustomModelInput(
                             color = MaterialTheme.colorScheme.error
                         )
                     } else {
-                        Text("Enter the exact model ID as specified in OpenAI documentation")
+                        Text("Enter any model name supported by your API endpoint")
                     }
                 }
             )
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-            ) {
-                OutlinedButton(
-                    onClick = onCancel
+            if (!directMode) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cancel")
-                }
-                
-                Button(
-                    onClick = onAddCustomModel,
-                    enabled = customModelName.isNotBlank() && isValid
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Model")
+                    OutlinedButton(
+                        onClick = onCancel
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Cancel")
+                    }
+                    
+                    Button(
+                        onClick = onAddCustomModel,
+                        enabled = textFieldValue.isNotBlank() && isValid
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Model")
+                    }
                 }
             }
         }

@@ -1,7 +1,9 @@
 package me.shadykhalifa.whispertop.di
 
 import me.shadykhalifa.whispertop.data.services.TextInsertionServiceImpl
+import me.shadykhalifa.whispertop.data.services.ToastServiceImpl
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
+import me.shadykhalifa.whispertop.domain.services.ToastService
 import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
@@ -45,6 +47,7 @@ val androidAppModule = module {
     
     // Platform-specific services
     singleOf(::TextInsertionServiceImpl) { bind<TextInsertionService>() }
+    single<ToastService> { ToastServiceImpl(get()) }
     
     // ViewModels
     viewModel { AudioRecordingViewModel() }

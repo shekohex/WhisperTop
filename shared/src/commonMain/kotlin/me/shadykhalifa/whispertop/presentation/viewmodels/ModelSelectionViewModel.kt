@@ -68,9 +68,11 @@ class ModelSelectionViewModel(
     fun selectModel(model: OpenAIModel) {
         viewModelScope.launch {
             try {
+                println("ModelSelectionViewModel: selectModel called with modelId='${model.modelId}', displayName='${model.displayName}'")
                 _uiState.update { it.copy(isLoading = true) }
                 
                 preferencesManager.setSelectedModel(model.modelId)
+                println("ModelSelectionViewModel: preferencesManager.setSelectedModel completed successfully")
                 
                 _uiState.update { currentState ->
                     currentState.copy(
@@ -79,7 +81,10 @@ class ModelSelectionViewModel(
                         error = null
                     )
                 }
+                println("ModelSelectionViewModel: UI state updated with new selected model")
             } catch (e: Exception) {
+                println("ModelSelectionViewModel: Error in selectModel - ${e.message}")
+                e.printStackTrace()
                 _uiState.update { 
                     it.copy(
                         isLoading = false,

@@ -15,8 +15,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +35,8 @@ import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
 import me.shadykhalifa.whispertop.domain.models.OpenAIModel
 import me.shadykhalifa.whispertop.domain.models.ModelUseCase
+import me.shadykhalifa.whispertop.domain.models.ModelCapability
+import me.shadykhalifa.whispertop.domain.models.PricingInfo
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ConnectionTestResult
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
@@ -92,6 +99,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Column(
                 modifier = Modifier
@@ -127,6 +135,7 @@ fun SettingsScreen(
                 
                 // Enhanced Model Selection Section
                 EnhancedModelSelectionSection(
+                    settings = uiState.settings,
                     modelSelectionState = modelSelectionState,
                     onModelSelected = modelSelectionViewModel::selectModel,
                     onUseCaseRecommendationSelected = modelSelectionViewModel::selectModelByUseCase,
@@ -214,6 +223,7 @@ fun SettingsScreen(
 
 @Composable
 private fun EnhancedModelSelectionSection(
+    settings: AppSettings,
     modelSelectionState: me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionUiState,
     onModelSelected: (OpenAIModel) -> Unit,
     onUseCaseRecommendationSelected: (ModelUseCase) -> Unit,
@@ -236,14 +246,43 @@ private fun EnhancedModelSelectionSection(
                 fontWeight = FontWeight.Bold
             )
             
-            // Model Selection Dropdown
-            ModelSelectionDropdown(
-                selectedModel = modelSelectionState.selectedModel,
-                availableModels = modelSelectionState.availableModels,
-                onModelSelected = onModelSelected,
-                onAddCustomModel = onAddCustomModel,
-                enabled = !modelSelectionState.isLoading
-            )
+            // Conditional Model Selection based on endpoint type
+            if (settings.isOpenAIEndpoint()) {
+                // Show dropdown for OpenAI endpoints
+                ModelSelectionDropdown(
+                    selectedModel = modelSelectionState.selectedModel,
+                    availableModels = modelSelectionState.availableModels,
+                    onModelSelected = onModelSelected,
+                    onAddCustomModel = onAddCustomModel,
+                    enabled = !modelSelectionState.isLoading
+                )
+            } else {
+                // Show custom model input for custom endpoints (no dialog, direct editing)
+                CustomModelInput(
+                    customModelName = settings.selectedModel,
+                    onCustomModelNameChange = { newModel ->
+                        // Only save if the model is not blank to avoid clearing saved models
+                        if (newModel.isNotBlank()) {
+                            // Convert string to OpenAIModel and call onModelSelected
+                            val customModel = OpenAIModel(
+                                modelId = newModel,
+                                displayName = newModel,
+                                description = "Custom model",
+                                capabilities = ModelCapability.BALANCED,
+                                pricing = PricingInfo(pricePerMinute = 0.0),
+                                useCase = ModelUseCase.GENERAL_PURPOSE,
+                                isCustom = true
+                            )
+                            onModelSelected(customModel)
+                        }
+                    },
+                    onAddCustomModel = { /* Not used in direct mode */ },
+                    onCancel = { /* Not used in direct mode */ },
+                    isValid = settings.selectedModel.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    directMode = true // Enable direct mode to hide buttons
+                )
+            }
             
             // Show selected model capabilities
             modelSelectionState.selectedModel?.let { selectedModel ->
@@ -385,40 +424,48 @@ private fun ApiConfigurationSection(
                 }
             )
             
-            // Action Buttons Row
-            Row(
+            // Action Buttons
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (apiKeyValue.isNotEmpty()) {
                     Button(
                         onClick = onValidateAndSave,
-                        enabled = !isLoading
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Save API Key")
                     }
                 }
                 
                 if (apiKey.isNotBlank()) {
-                    Button(
-                        onClick = onTestConnection,
-                        enabled = !testingConnection && !isLoading
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (testingConnection) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Test Connection")
+                        Button(
+                            onClick = onTestConnection,
+                            enabled = !testingConnection && !isLoading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (testingConnection) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Test Connection")
+                            }
                         }
-                    }
-                    
-                    OutlinedButton(
-                        onClick = onClearApiKey,
-                        enabled = !isLoading
-                    ) {
-                        Text("Clear API Key")
+                        
+                        OutlinedButton(
+                            onClick = onClearApiKey,
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Clear API Key")
+                        }
                     }
                 }
             }
