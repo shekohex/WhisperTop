@@ -16,7 +16,23 @@ data class AppSettings(
     val enableUsageAnalytics: Boolean = false,
     val enableApiCallLogging: Boolean = false,
     val autoCleanupTempFiles: Boolean = true,
-    val tempFileRetentionDays: Int = 7
+    val tempFileRetentionDays: Int = 7,
+    // Logging settings
+    val logLevel: String = "DEBUG",
+    val enableConsoleLogging: Boolean = true,
+    val enableFileLogging: Boolean = false,
+    val enablePerformanceMetrics: Boolean = true,
+    val enableDetailedApiLogging: Boolean = false,
+    val maxLogEntries: Int = 1000,
+    // Performance monitoring settings
+    val enableMemoryMonitoring: Boolean = true,
+    val memoryMonitoringIntervalMs: Long = 5000,
+    val enablePerformanceWarnings: Boolean = true,
+    val performanceThresholds: PerformanceThresholds = PerformanceThresholds(),
+    val enableMetricsCollection: Boolean = true,
+    val metricsRetentionDays: Int = 30,
+    val enableMetricsExport: Boolean = true,
+    val autoCleanupMetrics: Boolean = true
 )
 
 enum class Theme {

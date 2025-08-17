@@ -3,6 +3,7 @@ package me.shadykhalifa.whispertop.domain.services
 import me.shadykhalifa.whispertop.domain.models.ErrorCategory
 import me.shadykhalifa.whispertop.domain.models.ErrorClassifier
 import me.shadykhalifa.whispertop.domain.models.ErrorSeverity
+import me.shadykhalifa.whispertop.domain.models.getCurrentTimeMillis
 
 data class ErrorLogEntry(
     val timestamp: Long,
@@ -53,7 +54,7 @@ class ErrorLoggingServiceImpl(
         }
         
         val logEntry = ErrorLogEntry(
-            timestamp = System.currentTimeMillis(),
+            timestamp = getCurrentTimeMillis(),
             severity = errorInfo.severity,
             category = category,
             errorType = error::class.simpleName ?: "Unknown",
@@ -70,7 +71,30 @@ class ErrorLoggingServiceImpl(
             }
         }
         
-        // Print to console for development
+        // Use the new logging system
+        val logLevel = when (logEntry.severity) {
+            ErrorSeverity.WARNING -> me.shadykhalifa.whispertop.domain.models.LogLevel.WARN
+            ErrorSeverity.ERROR -> me.shadykhalifa.whispertop.domain.models.LogLevel.ERROR
+            ErrorSeverity.CRITICAL -> me.shadykhalifa.whispertop.domain.models.LogLevel.CRITICAL
+        }
+        
+        val context = me.shadykhalifa.whispertop.domain.models.LogContext(
+            component = "ErrorLogging",
+            additionalContext = logEntry.context + mapOf(
+                "error_category" to logEntry.category.name,
+                "error_type" to logEntry.errorType,
+                "session_id" to logEntry.sessionId
+            )
+        )
+        
+        // Use centralized logging if Logger is initialized
+        try {
+            me.shadykhalifa.whispertop.domain.services.Logger.error("ErrorLogging", logEntry.message, context, error)
+        } catch (e: Exception) {
+            // Logger not initialized, fall back to console
+        }
+        
+        // Fallback to console for development (in case Logger isn't initialized)
         println("[${logEntry.severity}] ${logEntry.category}: ${logEntry.message}")
         if (logEntry.severity == ErrorSeverity.CRITICAL) {
             println("Stack trace: ${logEntry.stackTrace}")
@@ -82,7 +106,7 @@ class ErrorLoggingServiceImpl(
         context: Map<String, String>
     ) {
         val logEntry = ErrorLogEntry(
-            timestamp = System.currentTimeMillis(),
+            timestamp = getCurrentTimeMillis(),
             severity = ErrorSeverity.WARNING,
             category = ErrorCategory.UNKNOWN,
             errorType = "Warning",
@@ -99,6 +123,18 @@ class ErrorLoggingServiceImpl(
             }
         }
         
+        // Use centralized logging
+        val logContext = me.shadykhalifa.whispertop.domain.models.LogContext(
+            component = "ErrorLogging",
+            additionalContext = context + mapOf("session_id" to logEntry.sessionId)
+        )
+        try {
+            me.shadykhalifa.whispertop.domain.services.Logger.warn("ErrorLogging", message, logContext)
+        } catch (e: Exception) {
+            // Logger not initialized, fall back to console
+        }
+        
+        // Fallback to console
         println("[WARNING] $message")
     }
     
@@ -116,7 +152,7 @@ class ErrorLoggingServiceImpl(
     
     companion object {
         private fun generateSessionId(): String {
-            return "session_${System.currentTimeMillis()}_${(1000..9999).random()}"
+            return "session_${getCurrentTimeMillis()}_${(1000..9999).random()}"
         }
     }
 }

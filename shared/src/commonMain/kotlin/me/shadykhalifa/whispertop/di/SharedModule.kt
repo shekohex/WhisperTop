@@ -24,6 +24,13 @@ import me.shadykhalifa.whispertop.domain.services.ErrorLoggingService
 import me.shadykhalifa.whispertop.domain.services.ErrorLoggingServiceImpl
 import me.shadykhalifa.whispertop.domain.services.ConnectionStatusService
 import me.shadykhalifa.whispertop.domain.services.ConnectionStatusServiceImpl
+import me.shadykhalifa.whispertop.domain.services.LoggingManager
+import me.shadykhalifa.whispertop.data.services.LoggingManagerImpl
+import me.shadykhalifa.whispertop.data.services.LoggingFactory
+import me.shadykhalifa.whispertop.domain.services.MetricsCollector
+import me.shadykhalifa.whispertop.data.services.MetricsCollectorImpl
+import me.shadykhalifa.whispertop.domain.services.DebugLoggingService
+import me.shadykhalifa.whispertop.data.services.DebugLoggingServiceImpl
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationServiceImpl
 import me.shadykhalifa.whispertop.domain.managers.RecordingManager
@@ -43,8 +50,10 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 val sharedModule = module {
-    // HTTP Client
-    single<HttpClient> { createHttpClient() }
+    // HTTP Client with debug capabilities
+    single<HttpClient> { 
+        createHttpClient()
+    }
     
     // Service Adapters - Bridge between domain interfaces and platform implementations
     single<AudioRecorderService> { AudioRecorderServiceImpl(get()) }
@@ -53,6 +62,15 @@ val sharedModule = module {
     
     // Model Selection Preferences Manager
     singleOf(::ModelSelectionPreferencesManager)
+    
+    // Logging Services
+    single<LoggingManager> { LoggingFactory.createDefaultLoggingManager() }
+    
+    // Performance Monitoring Services
+    single<MetricsCollector> { MetricsCollectorImpl(get()) }
+    
+    // Debug Logging Services
+    single<DebugLoggingService> { DebugLoggingServiceImpl(get()) }
     
     // Error Handling Services
     singleOf(::RetryServiceImpl) { bind<RetryService>() }
