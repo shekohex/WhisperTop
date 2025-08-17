@@ -6,6 +6,8 @@ import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
 import me.shadykhalifa.whispertop.managers.OnboardingPermissionManager
+import me.shadykhalifa.whispertop.managers.OverlayInitializationManager
+import me.shadykhalifa.whispertop.managers.OverlayManager
 import me.shadykhalifa.whispertop.managers.PermissionHandler
 import me.shadykhalifa.whispertop.managers.PowerManagementUtil
 import me.shadykhalifa.whispertop.managers.PowerAwareApiManager
@@ -27,6 +29,8 @@ val androidAppModule = module {
     singleOf(::AudioServiceManager)
     singleOf(::PermissionHandler)
     singleOf(::OnboardingPermissionManager)
+    singleOf(::OverlayManager)
+    singleOf(::OverlayInitializationManager)
     
     // System Settings Abstraction
     single<SystemSettingsProvider> { AndroidSystemSettingsProvider(get()) }

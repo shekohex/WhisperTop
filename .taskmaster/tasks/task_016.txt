@@ -1,6 +1,6 @@
 # Task ID: 16
 # Title: Create Theme Customization System
-# Status: pending
+# Status: done
 # Dependencies: 12
 # Priority: low
 # Description: Implement Material 3 theming with dark/light modes and accent color selection
@@ -9,3 +9,41 @@ Implement Material 3 dynamic theming with device theme detection. Create theme s
 
 # Test Strategy:
 Test theme switching across all UI components, verify persistence, test dynamic color support
+
+# Subtasks:
+## 1. Create Material 3 Theme Foundation [done]
+### Dependencies: None
+### Description: Set up core Material 3 theme files with dynamic color support and theme providers
+### Details:
+Create theme directory structure under composeApp/src/commonMain/kotlin/me/shadykhalifa/whispertop/presentation/ui/theme/. Implement Color.kt with Material 3 color schemes (light/dark), Typography.kt with M3 typography scale, Theme.kt with theme composable and dynamic color support. Add ThemeProvider.kt for theme state management and system theme detection. Update App.kt to wrap content with custom theme instead of MaterialTheme. Implement isSystemInDarkTheme() detection and configure dynamic color support for Android 12+.
+
+## 2. Implement System Theme Detection [done]
+### Dependencies: 16.1
+### Description: Add Android system theme detection with automatic switching capability
+### Details:
+Create ThemeDetector.kt utility for monitoring system theme changes using Configuration.uiMode. Implement SystemThemeObserver that watches for theme changes and notifies the app. Add theme change broadcast receiver in AndroidManifest.xml. Update ThemeProvider to automatically switch when system theme changes and user has Theme.System selected. Ensure theme detection works across app lifecycle states (foreground/background). Handle edge cases like split-screen mode and external display connections.
+
+## 3. Build Enhanced Theme Selection Interface [done]
+### Dependencies: 16.1
+### Description: Replace basic theme selection with enhanced UI including previews and accent color picker
+### Details:
+Enhance ThemeCustomizationSection in SettingsScreen.kt with theme preview cards showing actual colors. Replace radio buttons with visual theme cards displaying light/dark/system previews. Add accent color selection with Material You color palette grid. Implement ThemePreviewCard composable showing sample UI elements in each theme. Add color picker dialog with predefined Material 3 accent colors. Update SettingsViewModel to handle accent color selection. Include theme description text explaining each option.
+
+## 4. Add Material You Color Integration [done]
+### Dependencies: 16.1, 16.2
+### Description: Implement dynamic color support with device wallpaper color extraction
+### Details:
+Add Material You dynamic color support using androidx.compose.material3.dynamicColor. Implement DynamicColorExtractor.kt for extracting colors from device wallpaper on Android 12+. Add fallback color schemes for devices without dynamic color support. Update theme selection to include 'Dynamic' option that uses device colors. Integrate with existing accent color picker to allow manual override of dynamic colors. Handle color extraction failures gracefully with fallback to default Material 3 colors. Ensure color contrast ratios meet accessibility standards.
+
+## 5. Apply Theming to Overlay Services [done]
+### Dependencies: 16.1, 16.2
+### Description: Extend theming support to floating overlay button and notification components
+### Details:
+Update OverlayService.kt to apply current theme to floating mic button overlay. Modify MicButtonOverlay composable to use theme colors from ThemeProvider. Implement overlay theme synchronization when main app theme changes. Update notification styling in AudioRecordingService to match current theme. Create OverlayThemeProvider that can access theme state from service context. Handle overlay re-rendering when theme changes during recording. Ensure overlay maintains theme consistency across system UI mode changes.
+
+## 6. Implement Theme Persistence and Runtime Switching [done]
+### Dependencies: 16.1, 16.2, 16.3, 16.4, 16.5
+### Description: Complete theme system with seamless runtime switching and persistent state management
+### Details:
+Extend AppSettings model to include accent color and dynamic color preferences. Update SettingsRepositoryImpl with theme and color persistence methods. Implement seamless theme switching without UI flicker using LaunchedEffect. Add theme transition animations for smooth visual changes. Create ThemeManager singleton for coordinating theme state across app components. Implement theme state restoration after app restart. Add theme-aware status bar and navigation bar styling. Ensure theme state synchronization between main app and overlay service.
+

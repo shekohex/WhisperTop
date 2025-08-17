@@ -1,6 +1,6 @@
 # Task ID: 20
 # Title: Implement Recording Animations and Feedback
-# Status: pending
+# Status: done
 # Dependencies: 9, 10
 # Priority: medium
 # Description: Create visual and haptic feedback for recording states

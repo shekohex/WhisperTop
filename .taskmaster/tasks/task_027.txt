@@ -1,0 +1,53 @@
+# Task ID: 27
+# Title: Fix API Key Input Field Validation Bug
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Resolve premature validation triggering in OpenAI API key input field that shows error messages before user interaction and fix validation logic in SettingsViewModel.updateApiKey() method.
+# Details:
+**Root Cause Identified:** The validation logic in `SettingsViewModel.updateApiKey()` at lines 46-51 runs immediately when called, including for empty strings. The default `AppSettings.apiKey` is empty (""), which triggers validation error 'API Key cannot be empty' on initial load. Validation also triggers on every keystroke via `onValueChange = onApiKeyChange` in `SettingsScreen.kt:174`, preventing users from typing 's', 'sk', 'sk-' without seeing errors.
+
+**Current Problematic Logic:**
+```kotlin
+val validationError = when {
+    apiKey.isBlank() -> "API Key cannot be empty"
+    !apiKey.startsWith("sk-") -> "Invalid API key format. OpenAI API keys start with 'sk-'"
+    apiKey.length < 40 -> "API key is too short. OpenAI API keys are typically 51 characters long"
+    else -> null
+}
+```
+
+**Required Changes:**
+1. Add user interaction tracking to SettingsViewModel state
+2. Modify validation to only run after user has interacted with the field
+3. Implement proper validation timing (onBlur or after typing completion)
+4. Consider different validation states (untouched vs empty vs invalid vs valid)
+
+# Test Strategy:
+Test that the input field allows typing immediately without showing validation errors on initial render. Verify validation only triggers after user has started interacting with the field (first keystroke or focus). Test that progressive typing ('s' -> 'sk' -> 'sk-' -> full key) doesn't show premature errors. Verify final validation works correctly for valid and invalid API keys. Test field focus/blur behavior and ensure validation state persists correctly.
+
+# Subtasks:
+## 1. Add User Interaction Tracking to SettingsViewModel [done]
+### Dependencies: None
+### Description: Add state to track whether user has interacted with API key field
+### Details:
+Add `hasUserInteracted` boolean state to SettingsViewModel. Initialize to false and set to true on first user input. This will be used to determine when validation should be active.
+
+## 2. Modify Validation Logic in updateApiKey Method [done]
+### Dependencies: None
+### Description: Update validation in SettingsViewModel.updateApiKey() to respect user interaction state
+### Details:
+Modify the validation logic at lines 46-51 to only run validation when `hasUserInteracted` is true. For untouched fields, return null for validationError to prevent showing errors on initial load.
+
+## 3. Update SettingsScreen to Handle Interaction State [done]
+### Dependencies: None
+### Description: Modify SettingsScreen.kt to properly set interaction state on user input
+### Details:
+Update the `onValueChange = onApiKeyChange` callback at line 174 to mark user interaction on first keystroke. Ensure the interaction state is properly communicated to the ViewModel.
+
+## 4. Implement Comprehensive Testing for Fixed Validation [done]
+### Dependencies: None
+### Description: Add tests to verify validation behavior with user interaction tracking
+### Details:
+Create unit tests for SettingsViewModel to verify: 1) No validation errors on initial load, 2) Validation triggers after user interaction, 3) Progressive typing doesn't show premature errors, 4) Final validation works correctly for valid/invalid keys. Add UI tests for the complete user interaction flow.
+

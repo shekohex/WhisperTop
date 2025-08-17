@@ -1,6 +1,6 @@
 # Task ID: 15
 # Title: Implement Language Detection and Selection
-# Status: pending
+# Status: done
 # Dependencies: 6, 12
 # Priority: medium
 # Description: Add multi-language support with auto-detection and manual override

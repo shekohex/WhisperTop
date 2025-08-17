@@ -1,6 +1,6 @@
 # Task ID: 6
 # Title: Build OpenAI API Client
-# Status: pending
+# Status: done
 # Dependencies: 1, 4
 # Priority: high
 # Description: Create HTTP client for OpenAI audio transcriptions API with proper error handling
@@ -47,7 +47,7 @@ Based on the user request and task context, the implementation of subtask 6.4 ha
 Implementation completed with comprehensive OpenAIApiService class featuring transcribe() method with WhisperModel enum validation, overloaded string-based transcribe() method, support for all OpenAI Whisper models (whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe), automatic multipart/form-data formatting using existing MultipartExtensions, model and temperature validation with proper error handling, content type detection based on file extension, optional parameters for language/prompt/response_format/temperature, OpenAIApiException for HTTP errors, support for both standard and verbose JSON response formats, and factory function createOpenAIApiService() for easy instantiation. Comprehensive test suite with 17 tests covering successful transcription scenarios, validation edge cases, error handling, and factory function testing. All tests pass and Android debug build successful.
 </info added on 2025-08-15T23:00:42.300Z>
 
-## 5. Add Error Handling and Logging System [pending]
+## 5. Add Error Handling and Logging System [done]
 ### Dependencies: 6.3, 6.4
 ### Description: Implement comprehensive error handling for HTTP status codes (401, 429, 500) and request/response logging
 ### Details:

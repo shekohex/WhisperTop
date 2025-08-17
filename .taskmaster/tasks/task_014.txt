@@ -1,6 +1,6 @@
 # Task ID: 14
 # Title: Build Model Selection Interface
-# Status: pending
+# Status: done
 # Dependencies: 12, 6
 # Priority: medium
 # Description: Create dropdown/selection UI for OpenAI transcription models
@@ -11,31 +11,31 @@ Create model selection dropdown with predefined options: whisper-1, whisper-3-tu
 Test model selection persistence, verify API integration with different models, UI responsiveness testing
 
 # Subtasks:
-## 1. Create OpenAI Model Data Classes [pending]
+## 1. Create OpenAI Model Data Classes [done]
 ### Dependencies: None
 ### Description: Define data structures for OpenAI transcription models including names, capabilities, pricing, and descriptions
 ### Details:
 Create data classes for OpenAIModel with fields for modelId, displayName, description, capabilities (speed/accuracy), pricing information, and use case recommendations. Include predefined models: whisper-1, whisper-3-turbo, gpt-4o-audio-preview. Add sealed class for ModelCapability and data class for PricingInfo.
 
-## 2. Implement Preferences Data Store [pending]
+## 2. Implement Preferences Data Store [done]
 ### Dependencies: 14.1
 ### Description: Set up Android DataStore for persisting selected model and related preferences
 ### Details:
 Add DataStore dependency to build.gradle.kts. Create PreferencesManager with DataStore<Preferences> for storing selected model ID, custom model names, and user preferences. Implement suspend functions for saving and retrieving model selection. Create default model selection logic based on use case.
 
-## 3. Build Model Selection UI Components [pending]
+## 3. Build Model Selection UI Components [done]
 ### Dependencies: 14.1
 ### Description: Create Material 3 dropdown and custom input UI components for model selection
 ### Details:
 Create ModelSelectionDropdown composable with ExposedDropdownMenuBox using Material 3 components. Add ModelCapabilityCard to display model descriptions and pricing. Implement CustomModelInput composable for advanced users. Add ModelRecommendationChip for use case-based suggestions. Include proper accessibility support and loading states.
 
-## 4. Create Model Selection ViewModel [pending]
+## 4. Create Model Selection ViewModel [done]
 ### Dependencies: 14.2
 ### Description: Implement state management and business logic for model selection using Compose ViewModel
 ### Details:
 Create ModelSelectionViewModel extending ViewModel with StateFlow for UI state management. Implement model selection logic, custom model validation, and preference persistence. Add use case recommendation algorithm (speed vs accuracy). Handle loading states and error scenarios. Create sealed class for ModelSelectionUiState.
 
-## 5. Integrate Model Selection with Settings Screen [pending]
+## 5. Integrate Model Selection with Settings Screen [done]
 ### Dependencies: 14.3, 14.4
 ### Description: Connect model selection components to the main settings screen infrastructure
 ### Details:

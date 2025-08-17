@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Set up Accessibility Service for Text Insertion
-# Status: pending
+# Status: done
 # Dependencies: 2, 3
 # Priority: high
 # Description: Create accessibility service to paste transcribed text into focused input fields

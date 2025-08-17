@@ -1,6 +1,6 @@
 # Task ID: 9
 # Title: Create Floating Microphone Button UI
-# Status: pending
+# Status: done
 # Dependencies: 7
 # Priority: medium
 # Description: Design and implement draggable floating mic button with state indicators

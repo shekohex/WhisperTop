@@ -1,6 +1,6 @@
 # Task ID: 17
 # Title: Add Privacy Controls and Data Management
-# Status: pending
+# Status: done
 # Dependencies: 12, 4
 # Priority: medium
 # Description: Implement privacy settings with data clearing and usage transparency

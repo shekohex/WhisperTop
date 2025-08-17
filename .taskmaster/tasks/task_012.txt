@@ -1,6 +1,6 @@
 # Task ID: 12
 # Title: Create Settings Screen Infrastructure
-# Status: pending
+# Status: done
 # Dependencies: 3
 # Priority: medium
 # Description: Build settings screen foundation with Material 3 design and navigation

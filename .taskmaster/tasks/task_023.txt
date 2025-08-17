@@ -1,6 +1,6 @@
 # Task ID: 23
 # Title: Add Comprehensive Logging and Debugging
-# Status: pending
+# Status: in-progress
 # Dependencies: 11
 # Priority: low
 # Description: Implement debugging tools and logging system for troubleshooting
@@ -9,3 +9,35 @@ Create structured logging system with different log levels. Implement debug mode
 
 # Test Strategy:
 Verify logging works correctly across all components, test log export functionality, verify performance monitoring accuracy
+
+# Subtasks:
+## 1. Create Enhanced Structured Logging System with Configurable Log Levels [done]
+### Dependencies: None
+### Description: Extend existing ErrorLoggingService with comprehensive logging infrastructure including configurable log levels, rich metadata, and platform-specific implementations
+### Details:
+Build upon existing ErrorLoggingService.kt by adding LogLevel enum (VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL), creating LoggingManager interface with Android/iOS implementations, designing LogEntry data classes with rich metadata (timestamps, session ID, component name, thread info), integrating with AppSettings for user-configurable log levels, implementing log rotation and memory management, and creating centralized logging facade that all app components can use. Extend AppSettings.kt to include logging preferences and update SettingsViewModel.kt for log level configuration UI.
+
+## 2. Implement Performance Monitoring and Metrics Collection [done]
+### Dependencies: 23.1
+### Description: Enhance existing PerformanceMonitor with detailed recording and transcription performance tracking, memory monitoring, and automatic threshold-based logging
+### Details:
+Extend PerformanceMonitor.kt with RecordingMetrics and TranscriptionMetrics data classes that track start/end times, duration, file sizes, API response times, and success/failure rates. Add timing instrumentation to AudioRecordingService and OpenAI API calls using coroutine timing. Implement memory usage tracking during recording sessions with automatic warnings for high usage. Create performance threshold configuration (e.g., transcription >10s, recording >5min) with automatic logging of performance issues. Add metrics aggregation for user analytics and debugging insights.
+
+## 3. Add Debug Mode with Detailed API Request/Response Logging [done]
+### Dependencies: 23.1
+### Description: Enhance existing LoggingInterceptor with comprehensive debug logging capabilities for API requests/responses while maintaining security through sanitization
+### Details:
+Enhance LoggingInterceptor.kt with detailed debug logging that captures request/response timing, payload sizes, retry attempts, network errors, and response codes. Create DebugLoggingService that operates only in debug builds (using BuildConfig.IS_DEBUG_BUILD) to log sensitive debugging data. Implement advanced log sanitization that removes API keys and personal data but preserves debugging information like request structure and response format. Add HTTP client metrics tracking including connection pool usage and request queue length. Integrate with enhanced logging system for structured debug output.
+
+## 4. Create Log Export and Management System [pending]
+### Dependencies: 23.1, 23.2
+### Description: Design comprehensive log export functionality with file generation, sharing capabilities, retention policies, and user-friendly log management interface
+### Details:
+Create LogExportManager that generates exportable log files in JSON and CSV formats with configurable date ranges and log level filtering. Implement Android sharing intent integration for sending logs to support teams. Design log retention policies with automatic cleanup of old logs based on age and storage space. Add log file compression and size management to prevent storage issues. Create user-friendly log viewer UI in SettingsScreen.kt with search, filtering, and export options. Implement secure log file access with appropriate file permissions and temporary file handling.
+
+## 5. Implement Debug Overlay for Development Builds [pending]
+### Dependencies: 23.1, 23.2, 23.3
+### Description: Create real-time debug overlay system that displays performance metrics, network activity, and logging controls as a floating panel for development builds
+### Details:
+Create DebugOverlayService that displays floating debug panel (similar to existing MicButtonOverlay.kt architecture) showing real-time FPS, memory usage, network request count, current recording state, and active log level. Add network request monitoring display with request/response times and error counts. Implement real-time log viewer with filtering and log level switcher directly in overlay. Add crash detection and automatic log capture functionality. Make overlay togglable via developer settings and position-adjustable with persistence. Ensure overlay only appears in debug builds and doesn't interfere with main app functionality.
+

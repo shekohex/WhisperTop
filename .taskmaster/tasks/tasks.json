@@ -990,11 +990,91 @@
         ],
         "priority": "high",
         "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Initialize and Display Floating Mic Button Overlay",
+        "description": "Connect overlay infrastructure to actually display the floating mic button when the app starts by adding OverlayManager to DI and implementing initialization logic after permissions are granted.",
+        "details": "Add OverlayManager to Koin dependency injection configuration in both shared and Android modules. Create overlay initialization logic in MainActivity or appropriate entry point that checks for SYSTEM_ALERT_WINDOW permission and starts the overlay display. Implement OverlayManager.showMicButton() method that creates and displays MicButtonOverlay through OverlayService. Connect overlay display to app lifecycle - show overlay when app gains overlay permission and hide when app is destroyed. Add proper error handling for overlay creation failures. Implement overlay state persistence to remember user's preferred overlay position. Connect overlay button to recording state management so it responds to touch events.",
+        "testStrategy": "Verify floating mic button appears on screen after granting overlay permission. Test button is draggable and maintains position across app restarts. Verify overlay hides when app is uninstalled or overlay permission is revoked. Test overlay button responds to touch events and triggers recording workflow. Verify overlay appears on top of other applications. Test overlay behavior during device rotation and screen size changes.",
+        "status": "done",
+        "dependencies": [
+          7,
+          9,
+          10
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add OverlayManager to Dependency Injection Module",
+            "description": "Register OverlayManager as a singleton in AndroidAppModule.kt so it can be injected throughout the app",
+            "details": "Update AndroidAppModule.kt to include OverlayManager registration using singleOf(::OverlayManager). Ensure proper dependency order with PermissionHandler and Context dependencies.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 29
+          },
+          {
+            "id": 2,
+            "title": "Create OverlayInitializationManager Component",
+            "description": "Create a dedicated component responsible for checking overlay permissions and starting the overlay service when appropriate",
+            "details": "Create OverlayInitializationManager class that checks overlay permissions, starts OverlayService, creates MicButtonOverlay instance, and adds it to the overlay service. Include proper error handling and logging.",
+            "status": "done",
+            "dependencies": [
+              "29.1"
+            ],
+            "parentTaskId": 29
+          },
+          {
+            "id": 3,
+            "title": "Integrate Overlay Initialization in App Lifecycle",
+            "description": "Connect overlay initialization to app startup, specifically after permissions are granted in MainActivity or App composable",
+            "details": "Modify MainActivity or App.kt to call OverlayInitializationManager after onboarding completes. Ensure overlay starts when returning from permission onboarding and when app resumes with proper permissions.",
+            "status": "done",
+            "dependencies": [
+              "29.2"
+            ],
+            "parentTaskId": 29
+          },
+          {
+            "id": 4,
+            "title": "Connect MicButton to Recording Workflow",
+            "description": "Wire the floating mic button to actually trigger recording when clicked and show proper visual states",
+            "details": "Connect MicButtonOverlay click events to AudioRecordingViewModel. Implement state synchronization between recording state and overlay button visual state. Ensure button shows idle/recording/processing states correctly.",
+            "status": "done",
+            "dependencies": [
+              "29.3"
+            ],
+            "parentTaskId": 29
+          },
+          {
+            "id": 5,
+            "title": "Implement Overlay Lifecycle Management",
+            "description": "Add proper overlay lifecycle handling for app background/foreground, permission changes, and configuration changes",
+            "details": "Handle overlay hiding/showing when app goes to background/foreground. Manage overlay removal when permissions are revoked. Handle device rotation and screen size changes gracefully. Implement overlay position persistence.",
+            "status": "done",
+            "dependencies": [
+              "29.4"
+            ],
+            "parentTaskId": 29
+          },
+          {
+            "id": 6,
+            "title": "Test Complete Overlay Functionality",
+            "description": "Verify the floating mic button appears, is interactive, and works correctly across different scenarios",
+            "details": "Test overlay appears after permissions granted. Verify button is draggable and snaps to edges. Test click functionality triggers recording. Verify state changes (idle/recording/processing) display correctly. Test across device rotations and different screen sizes.",
+            "status": "done",
+            "dependencies": [
+              "29.5"
+            ],
+            "parentTaskId": 29
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-17T13:35:50.001Z",
+      "updated": "2025-08-17T14:42:14.041Z",
       "description": "Tasks for master context"
     }
   }
