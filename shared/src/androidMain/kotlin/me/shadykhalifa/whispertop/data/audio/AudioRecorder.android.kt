@@ -4,224 +4,214 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
-import android.media.AudioFormat
 import android.media.AudioManager
-import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.io.files.Path
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.resume
 
+/**
+ * Simple MediaRecorder-based audio recorder for AAC/M4A files
+ */
 actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     companion object {
         private const val TAG = "AudioRecorderImpl"
+        private const val SAMPLE_RATE = 16000 // Optimal for Whisper
+        private const val BIT_RATE = 64000 // 64kbps for good quality
     }
     
     private val context: Context by inject()
-    private val configuration: AudioConfigurationProvider = AudioConfiguration()
-    private val audioFocusManager: AudioFocusManager = AudioFocusManagerImpl()
-    private val qualityManager: AudioQualityManager = AudioQualityManager()
-    private val audioProcessor: AudioProcessor = AudioProcessor(gainFactor = 2.5f)
-    
+    private var mediaRecorder: MediaRecorder? = null
+    private var isRecording = false
+    private var startTime = 0L
+    private var outputPath: String? = null
+    private val stateListeners = mutableListOf<RecordingStateListener>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val recordingExecutor = Executors.newSingleThreadExecutor { Thread(it, "AudioRecorder") }
-    private val recordingDispatcher = recordingExecutor.asCoroutineDispatcher()
     
-    private val mutex = Mutex()
-    private val isRecording = AtomicBoolean(false)
-    private val isPaused = AtomicBoolean(false)
-    private val stateListeners = CopyOnWriteArrayList<RecordingStateListener>()
-    
-    private var audioRecord: AudioRecord? = null
-    private var recordingThread: AudioRecordingThread? = null
-    private var currentOutputPath: String? = null
-    
-    private val audioFocusChangeListener = object : AudioFocusChangeListener {
-        override fun onAudioFocusChange(focusChange: AudioFocusChange) {
-            when (focusChange) {
-                AudioFocusChange.LOSS -> {
-                    scope.launch { 
-                        stopRecording()
-                        notifyStateListeners { onRecordingError(AudioRecordingError.DeviceUnavailable()) }
-                    }
-                }
-                AudioFocusChange.LOSS_TRANSIENT -> {
-                    pauseRecording()
-                }
-                AudioFocusChange.LOSS_TRANSIENT_CAN_DUCK -> {
-                    // Continue recording at lower volume (handled by system)
-                }
-                AudioFocusChange.GAIN -> {
-                    resumeRecording()
-                }
-            }
-        }
-    }
-    
-    override suspend fun startRecording(outputPath: String): AudioRecordingResult = withContext(recordingDispatcher) {
-        mutex.withLock {
-            Log.d(TAG, "startRecording: outputPath=$outputPath")
-            
-            if (isRecording.get()) {
-                Log.w(TAG, "startRecording: recording already in progress")
-                return@withContext AudioRecordingResult.Error(
-                    AudioRecordingError.ConfigurationError(IllegalStateException("Recording already in progress"))
-                )
-            }
-            
+    @SuppressLint("MissingPermission")
+    override suspend fun startRecording(outputPath: String): AudioRecordingResult = 
+        suspendCancellableCoroutine { continuation ->
             try {
-                // Request audio focus
-                Log.d(TAG, "startRecording: requesting audio focus")
-                if (!audioFocusManager.requestAudioFocus(audioFocusChangeListener)) {
-                    Log.w(TAG, "startRecording: failed to acquire audio focus")
-                    return@withContext AudioRecordingResult.Error(
-                        AudioRecordingError.DeviceUnavailable(Exception("Failed to acquire audio focus"))
-                    )
-                }
-                Log.d(TAG, "startRecording: audio focus acquired")
-                
-                // Create AudioRecord instance
-                val bufferSize = getOptimalBufferSize()
-                Log.d(TAG, "startRecording: creating AudioRecord with bufferSize=$bufferSize")
-                audioRecord = createAudioRecord(bufferSize)
-                    ?: run {
-                        Log.e(TAG, "startRecording: failed to create AudioRecord")
-                        return@withContext AudioRecordingResult.Error(
-                            AudioRecordingError.ConfigurationError(Exception("Failed to create AudioRecord"))
+                if (isRecording) {
+                    continuation.resume(
+                        AudioRecordingResult.Error(
+                            AudioRecordingError.ConfigurationError(
+                                IllegalStateException("Recording already in progress")
+                            )
                         )
-                    }
-                Log.d(TAG, "startRecording: AudioRecord created successfully")
+                    )
+                    return@suspendCancellableCoroutine
+                }
                 
-                // Prepare recording thread
-                recordingThread = AudioRecordingThread(
-                    audioRecord = audioRecord!!,
-                    outputPath = outputPath,
-                    bufferSize = bufferSize,
-                    qualityManager = qualityManager,
-                    audioProcessor = audioProcessor,
-                    onError = { error ->
-                        scope.launch {
-                            cleanupRecording()
-                            notifyStateListeners { onRecordingError(error) }
-                        }
-                    },
-                    onFileSizeLimit = {
-                        scope.launch {
-                            stopRecording()
-                            notifyStateListeners { 
-                                onRecordingError(
-                                    AudioRecordingError.IOError(
-                                        Exception("Recording stopped: Maximum file size reached (25MB)")
-                                    )
-                                )
+                Log.d(TAG, "Starting recording to: $outputPath")
+                
+                // Ensure parent directory exists
+                File(outputPath).parentFile?.mkdirs()
+                
+                mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    MediaRecorder(context)
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaRecorder()
+                }.apply {
+                    // Audio source optimized for voice recognition
+                    setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                    
+                    // Output format: MPEG_4 container for M4A files
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    
+                    // AAC encoder for good compression
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    
+                    // Audio settings optimized for Whisper
+                    setAudioSamplingRate(SAMPLE_RATE)
+                    setAudioEncodingBitRate(BIT_RATE)
+                    setAudioChannels(1) // Mono
+                    
+                    // Output file
+                    setOutputFile(outputPath)
+                    
+                    setOnErrorListener { _, what, extra ->
+                        Log.e(TAG, "MediaRecorder error: what=$what, extra=$extra")
+                        val error = AudioRecordingError.ConfigurationError(
+                            RuntimeException("MediaRecorder error: what=$what, extra=$extra")
+                        )
+                        notifyStateListeners { onRecordingError(error) }
+                    }
+                    
+                    setOnInfoListener { _, what, extra ->
+                        Log.i(TAG, "MediaRecorder info: what=$what, extra=$extra")
+                        when (what) {
+                            MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED,
+                            MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED -> {
+                                Log.w(TAG, "Recording limit reached")
+                                // Auto-stop recording
+                                scope.launch {
+                                    try {
+                                        if (isRecording) {
+                                            stopRecording()
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error stopping recording on limit", e)
+                                    }
+                                }
                             }
                         }
                     }
-                )
+                    
+                    // Prepare and start
+                    prepare()
+                    start()
+                }
                 
-                currentOutputPath = outputPath
-                isRecording.set(true)
-                
-                // Start recording
-                Log.d(TAG, "startRecording: starting AudioRecord")
-                audioRecord!!.startRecording()
-                recordingThread!!.start()
-                qualityManager.startMonitoring()
+                    this@AudioRecorderImpl.outputPath = outputPath
+                startTime = System.currentTimeMillis()
+                isRecording = true
                 
                 notifyStateListeners { onRecordingStarted() }
-                Log.d(TAG, "startRecording: recording started successfully")
-                AudioRecordingResult.Success
+                Log.d(TAG, "Recording started successfully")
+                
+                continuation.resume(AudioRecordingResult.Success)
                 
             } catch (e: SecurityException) {
-                Log.e(TAG, "startRecording: permission denied", e)
-                cleanupRecording()
-                AudioRecordingResult.Error(AudioRecordingError.PermissionDenied(e))
+                Log.e(TAG, "Permission denied", e)
+                cleanupRecorder()
+                continuation.resume(
+                    AudioRecordingResult.Error(AudioRecordingError.PermissionDenied(e))
+                )
             } catch (e: Exception) {
-                Log.e(TAG, "startRecording: unknown error", e)
-                cleanupRecording()
-                AudioRecordingResult.Error(AudioRecordingError.Unknown(e))
+                Log.e(TAG, "Failed to start recording", e)
+                cleanupRecorder()
+                continuation.resume(
+                    AudioRecordingResult.Error(AudioRecordingError.ConfigurationError(e))
+                )
             }
         }
-    }
     
-    override suspend fun stopRecording(): AudioFile? = withContext(recordingDispatcher) {
-        mutex.withLock {
-            if (!isRecording.get()) {
-                return@withLock null
-            }
+    override suspend fun stopRecording(): AudioFile? {
+        if (!isRecording) return null
+        
+        return try {
+            Log.d(TAG, "Stopping recording")
             
-            try {
-                isRecording.set(false)
-                isPaused.set(false)
-                
-                audioRecord?.stop()
-                recordingThread?.stopRecording()
-                recordingThread?.join()
-                
-                val outputPath = currentOutputPath
-                val audioFile = if (outputPath != null && File(outputPath).exists()) {
-                    val duration = recordingThread?.getDuration() ?: 0L
-                    val file = File(outputPath)
+            isRecording = false
+            mediaRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+            mediaRecorder = null
+            
+            val duration = System.currentTimeMillis() - startTime
+            val filePath = outputPath
+            
+            val audioFile = if (filePath != null) {
+                val file = File(filePath)
+                if (file.exists() && file.length() > 0) {
                     AudioFile(
                         path = file.absolutePath,
                         durationMs = duration,
                         sizeBytes = file.length()
                     )
-                } else null
-                
-                cleanupRecording()
-                notifyStateListeners { onRecordingStopped() }
-                
-                audioFile
-            } catch (e: Exception) {
-                cleanupRecording()
-                notifyStateListeners { onRecordingError(AudioRecordingError.IOError(e)) }
+                } else {
+                    Log.w(TAG, "Recording file is empty or doesn't exist")
+                    null
+                }
+            } else {
+                Log.w(TAG, "No output path set")
                 null
             }
-        }
-    }
-    
-    override suspend fun cancelRecording() = withContext(recordingDispatcher) {
-        mutex.withLock {
-            if (!isRecording.get()) return@withLock
             
-            try {
-                isRecording.set(false)
-                isPaused.set(false)
-                
-                audioRecord?.stop()
-                recordingThread?.stopRecording()
-                recordingThread?.join()
-                
-                // Delete output file
-                currentOutputPath?.let { File(it).delete() }
-                
-            } catch (e: Exception) {
-                // Ignore errors during cancellation
-            } finally {
-                cleanupRecording()
-                notifyStateListeners { onRecordingStopped() }
-            }
+            notifyStateListeners { onRecordingStopped() }
+            Log.d(TAG, "Recording stopped. Duration: ${duration}ms, File size: ${audioFile?.sizeBytes ?: 0} bytes")
+            
+            audioFile
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping recording", e)
+            cleanupRecorder()
+            notifyStateListeners { onRecordingError(AudioRecordingError.IOError(e)) }
+            null
         }
     }
     
-    override fun isRecording(): Boolean = isRecording.get() && !isPaused.get()
+    override suspend fun cancelRecording() {
+        if (!isRecording) return
+        
+        try {
+            Log.d(TAG, "Cancelling recording")
+            
+            isRecording = false
+            mediaRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+            mediaRecorder = null
+            
+            // Delete the file
+            outputPath?.let { File(it).delete() }
+            
+            notifyStateListeners { onRecordingStopped() }
+            Log.d(TAG, "Recording cancelled")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cancelling recording", e)
+            cleanupRecorder()
+        }
+    }
+    
+    override fun isRecording(): Boolean = isRecording
     
     override fun addRecordingStateListener(listener: RecordingStateListener) {
         stateListeners.add(listener)
@@ -231,76 +221,18 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
         stateListeners.remove(listener)
     }
     
-    private fun pauseRecording() {
-        if (isRecording.get() && !isPaused.get()) {
-            isPaused.set(true)
-            recordingThread?.pauseRecording()
-            notifyStateListeners { onRecordingPaused() }
-        }
-    }
-    
-    private fun resumeRecording() {
-        if (isRecording.get() && isPaused.get()) {
-            isPaused.set(false)
-            recordingThread?.resumeRecording()
-            notifyStateListeners { onRecordingResumed() }
-        }
-    }
-    
-    @SuppressLint("MissingPermission")
-    private fun createAudioRecord(bufferSize: Int): AudioRecord? {
-        return try {
-            Log.d(TAG, "createAudioRecord: sampleRate=${configuration.sampleRate}, bufferSize=$bufferSize")
-            
-            val audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                configuration.sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize
-            )
-            
-            Log.d(TAG, "createAudioRecord: AudioRecord state=${audioRecord.state}, recordingState=${audioRecord.recordingState}")
-            
-            if (audioRecord.state == AudioRecord.STATE_INITIALIZED) {
-                Log.d(TAG, "createAudioRecord: AudioRecord initialized successfully")
-                audioRecord
-            } else {
-                Log.w(TAG, "createAudioRecord: AudioRecord not initialized (state=${audioRecord.state})")
-                audioRecord.release()
-                null
+    private fun cleanupRecorder() {
+        isRecording = false
+        mediaRecorder?.apply {
+            try {
+                reset()
+                release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing MediaRecorder", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "createAudioRecord: exception occurred", e)
-            null
         }
-    }
-    
-    private fun getOptimalBufferSize(): Int {
-        val minBufferSize = AudioRecord.getMinBufferSize(
-            configuration.sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT
-        )
-        
-        Log.d(TAG, "getOptimalBufferSize: minBufferSize=$minBufferSize, multiplier=${configuration.bufferSizeMultiplier}")
-        
-        return if (minBufferSize != AudioRecord.ERROR_BAD_VALUE) {
-            val optimalSize = minBufferSize * configuration.bufferSizeMultiplier
-            Log.d(TAG, "getOptimalBufferSize: using optimal size=$optimalSize")
-            optimalSize
-        } else {
-            Log.w(TAG, "getOptimalBufferSize: minBufferSize is ERROR_BAD_VALUE, using fallback")
-            8192 // Fallback buffer size
-        }
-    }
-    
-    private fun cleanupRecording() {
-        audioRecord?.release()
-        audioRecord = null
-        recordingThread = null
-        currentOutputPath = null
-        audioFocusManager.abandonAudioFocus()
+        mediaRecorder = null
+        outputPath = null
     }
     
     private fun notifyStateListeners(action: RecordingStateListener.() -> Unit) {
@@ -308,185 +240,9 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
             try {
                 listener.action()
             } catch (e: Exception) {
-                // Ignore listener errors
+                Log.e(TAG, "Error in state listener", e)
             }
         }
-    }
-    
-    fun getQualityReport(): QualityReport = qualityManager.getQualityReport()
-    
-    fun getCurrentMetrics(): AudioMetrics = qualityManager.currentMetrics.value
-    
-    fun getRecordingStatistics(): RecordingStatistics? = qualityManager.recordingStatistics.value
-    
-    fun isAudioLevelAcceptable(): Boolean {
-        val metrics = qualityManager.currentMetrics.value
-        val stats = qualityManager.recordingStatistics.value
-        
-        // Check if audio levels are sufficient for transcription
-        val hasAcceptableRMS = metrics.rmsLevel > 0.02f // At least 2% of max amplitude
-        val hasAcceptableDB = metrics.dbLevel > -50f    // Above -50dB
-        val notTooQuiet = stats?.averageLevel ?: 0f > 0.01f
-        
-        val acceptable = hasAcceptableRMS && hasAcceptableDB && notTooQuiet
-        
-        Log.d(TAG, "isAudioLevelAcceptable: rms=${metrics.rmsLevel}, db=${metrics.dbLevel}, avg=${stats?.averageLevel}, acceptable=$acceptable")
-        
-        return acceptable
-    }
-    
-    fun logAudioDiagnostics() {
-        val metrics = getCurrentMetrics()
-        val stats = getRecordingStatistics()
-        val report = getQualityReport()
-        
-        Log.d(TAG, "=== AUDIO DIAGNOSTICS ===")
-        Log.d(TAG, "Current RMS: ${metrics.rmsLevel} (${(metrics.rmsLevel * 100).toInt()}%)")
-        Log.d(TAG, "Current Peak: ${metrics.peakLevel} (${(metrics.peakLevel * 100).toInt()}%)")
-        Log.d(TAG, "Current dB: ${metrics.dbLevel}")
-        Log.d(TAG, "Quality Score: ${metrics.qualityScore}/100")
-        Log.d(TAG, "Is Silent: ${metrics.isSilent}")
-        Log.d(TAG, "Is Clipping: ${metrics.isClipping}")
-        
-        stats?.let {
-            Log.d(TAG, "Recording Duration: ${it.duration}ms")
-            Log.d(TAG, "Average Level: ${it.averageLevel}")
-            Log.d(TAG, "File Size: ${it.fileSize} bytes")
-            Log.d(TAG, "Silence: ${it.silencePercentage}%")
-        }
-        
-        if (report.issues.isNotEmpty()) {
-            Log.w(TAG, "Quality Issues: ${report.issues}")
-            Log.w(TAG, "Recommendations: ${report.recommendations}")
-        }
-        Log.d(TAG, "========================")
-    }
-    
-    fun cleanup() {
-        scope.cancel()
-        recordingExecutor.shutdown()
-        cleanupRecording()
-    }
-}
-
-private class AudioRecordingThread(
-    private val audioRecord: AudioRecord,
-    private val outputPath: String,
-    private val bufferSize: Int,
-    private val qualityManager: AudioQualityManager,
-    private val audioProcessor: AudioProcessor,
-    private val onError: (AudioRecordingError) -> Unit,
-    private val onFileSizeLimit: () -> Unit
-) : Thread("AudioRecordingThread") {
-    
-    private val quit = AtomicBoolean(false)
-    private val paused = AtomicBoolean(false)
-    private val startTime = AtomicReference<Long>()
-    private val endTime = AtomicReference<Long>()
-    private val pauseStartTime = AtomicReference<Long>()
-    private val totalPauseDuration = AtomicReference(0L)
-    
-    override fun run() {
-        try {
-            // Set high priority thread for audio recording to prevent buffer underruns
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
-            Log.d("AudioRecordingThread", "Audio recording thread priority set to THREAD_PRIORITY_AUDIO")
-            
-            startTime.set(System.currentTimeMillis())
-            val buffer = ShortArray(bufferSize / 2)
-            val allData = mutableListOf<Short>()
-            var totalBytes = 0L
-            var bufferCount = 0
-            
-            Log.d("AudioRecordingThread", "Starting recording: sampleRate=${audioRecord.sampleRate}, bufferSize=$bufferSize, outputPath=$outputPath")
-            
-            while (!quit.get()) {
-                if (paused.get()) {
-                    Thread.sleep(10)
-                    continue
-                }
-                
-                val read = audioRecord.read(buffer, 0, buffer.size)
-                if (read > 0) {
-                    // Process buffer for quality metrics
-                    val bufferSlice = if (read < buffer.size) {
-                        buffer.sliceArray(0 until read)
-                    } else {
-                        buffer
-                    }
-                    
-                    qualityManager.processAudioBuffer(bufferSlice)
-                    
-                    // Log audio levels every 50 buffers (~5 seconds at 100ms buffers)
-                    bufferCount++
-                    if (bufferCount % 50 == 0) {
-                        val metrics = qualityManager.currentMetrics.value
-                        Log.d("AudioRecordingThread", "Audio levels: RMS=${metrics.rmsLevel}, Peak=${metrics.peakLevel}, dB=${metrics.dbLevel}, Silent=${metrics.isSilent}")
-                    }
-                    
-                    // Check if we should stop due to file size
-                    totalBytes += read * 2 // 2 bytes per sample
-                    if (totalBytes >= RecordingConstraints.MAX_FILE_SIZE_BYTES * 0.95) {
-                        onFileSizeLimit()
-                        break
-                    }
-                    
-                    // Check if quality manager suggests stopping
-                    if (qualityManager.shouldStopRecording()) {
-                        break
-                    }
-                    
-                    for (i in 0 until read) {
-                        allData.add(buffer[i])
-                    }
-                } else if (read < 0) {
-                    onError(AudioRecordingError.IOError(RuntimeException("AudioRecord.read returned $read")))
-                    break
-                }
-            }
-            
-            endTime.set(System.currentTimeMillis())
-            
-            // Process audio before saving
-            val processedData = audioProcessor.processAudio(allData.toShortArray())
-            
-            // Write WAV file
-            WAVFileWriter().encodeWaveFile(outputPath, processedData)
-            
-        } catch (e: Exception) {
-            endTime.set(System.currentTimeMillis())
-            onError(AudioRecordingError.IOError(e))
-        }
-    }
-    
-    fun stopRecording() {
-        quit.set(true)
-    }
-    
-    fun pauseRecording() {
-        if (!paused.get()) {
-            paused.set(true)
-            pauseStartTime.set(System.currentTimeMillis())
-        }
-    }
-    
-    fun resumeRecording() {
-        if (paused.get()) {
-            val pauseStart = pauseStartTime.get()
-            if (pauseStart != null) {
-                val pauseDuration = System.currentTimeMillis() - pauseStart
-                totalPauseDuration.set(totalPauseDuration.get() + pauseDuration)
-            }
-            paused.set(false)
-            pauseStartTime.set(null)
-        }
-    }
-    
-    fun getDuration(): Long {
-        val start = startTime.get() ?: return 0L
-        val end = endTime.get() ?: System.currentTimeMillis()
-        val totalPause = totalPauseDuration.get()
-        return maxOf(0L, end - start - totalPause)
     }
 }
 

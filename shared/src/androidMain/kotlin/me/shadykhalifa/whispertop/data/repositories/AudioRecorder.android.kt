@@ -4,14 +4,14 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.shadykhalifa.whispertop.data.audio.AudioFileManager
-import me.shadykhalifa.whispertop.data.audio.Recorder
+import me.shadykhalifa.whispertop.data.audio.AudioRecorderImpl as AudioRecorderEngine
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import java.io.File
 
 actual class AudioRecorder(
     private val context: Context
 ) {
-    private val recorder = Recorder()
+    private val recorder = AudioRecorderEngine()
     private val audioFileManager = AudioFileManager()
     private var outputFile: File? = null
     private var isRecording = false
@@ -32,9 +32,10 @@ actual class AudioRecorder(
         
         try {
             isRecording = true
-            recorder.startRecording(outputFile!!.absolutePath) { error ->
+            val result = recorder.startRecording(outputFile!!.absolutePath)
+            if (result is me.shadykhalifa.whispertop.data.audio.AudioRecordingResult.Error) {
                 isRecording = false
-                // Error will be thrown in stopRecording if recording failed
+                throw Exception("Failed to start recording: ${result.error.message}", result.error)
             }
         } catch (e: Exception) {
             cleanup()
@@ -63,10 +64,8 @@ actual class AudioRecorder(
     actual suspend fun cancelRecording(): Unit = withContext(Dispatchers.IO) {
         try {
             isRecording = false
-            // Stop recording (this will try to complete the recording)
-            recorder.stopRecording()
-            // Delete the output file
-            outputFile?.delete()
+            // Cancel recording directly
+            recorder.cancelRecording()
         } catch (e: Exception) {
             // Ignore errors during cancellation
         } finally {
