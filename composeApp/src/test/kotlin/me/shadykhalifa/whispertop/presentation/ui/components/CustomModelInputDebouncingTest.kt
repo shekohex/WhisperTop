@@ -1,17 +1,44 @@
 package me.shadykhalifa.whispertop.presentation.ui.components
 
+import android.app.Application
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.context.stopKoin
+import org.koin.core.context.startKoin
+import org.junit.After
+import org.junit.Before
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class CustomModelInputDebouncingTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+    
+    @Before
+    fun setUp() {
+        // Clean up any existing Koin instance before each test
+        try {
+            stopKoin()
+        } catch (e: Exception) {
+            // Ignore if Koin wasn't started
+        }
+    }
+    
+    @After
+    fun tearDown() {
+        // Clean up Koin after each test
+        try {
+            stopKoin()
+        } catch (e: Exception) {
+            // Ignore if Koin wasn't started
+        }
+    }
 
     @Test
     fun `should display initial state correctly`() {
