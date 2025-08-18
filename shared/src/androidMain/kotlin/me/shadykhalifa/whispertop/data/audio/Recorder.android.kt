@@ -90,6 +90,8 @@ private class AudioRecordThread(
                 audioRecord.stop()
                 endTime = System.currentTimeMillis()
                 
+                // Use WAV format for compatibility with the common interface
+                // MediaRecorder-based implementation is preferred via AudioRecorderImpl
                 WAVFileWriter().encodeWaveFile(outputFile.absolutePath, allData.toShortArray())
             } finally {
                 audioRecord.release()
