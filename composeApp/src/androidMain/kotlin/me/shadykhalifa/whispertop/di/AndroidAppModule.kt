@@ -2,8 +2,14 @@ package me.shadykhalifa.whispertop.di
 
 import me.shadykhalifa.whispertop.data.services.TextInsertionServiceImpl
 import me.shadykhalifa.whispertop.data.services.ToastServiceImpl
+import me.shadykhalifa.whispertop.data.usecases.PermissionManagementUseCaseImpl
+import me.shadykhalifa.whispertop.data.usecases.ServiceBindingUseCaseImpl
+import me.shadykhalifa.whispertop.data.usecases.ServiceInitializationUseCaseImpl
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
 import me.shadykhalifa.whispertop.domain.services.ToastService
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
@@ -44,6 +50,11 @@ val androidAppModule = module {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         powerManager.createApiManager(scope)
     }
+    
+    // Use cases
+    single<ServiceInitializationUseCase> { ServiceInitializationUseCaseImpl(get()) }
+    single<PermissionManagementUseCase> { PermissionManagementUseCaseImpl(get()) }
+    single<ServiceBindingUseCase> { ServiceBindingUseCaseImpl(get(), get()) }
     
     // Platform-specific services
     singleOf(::TextInsertionServiceImpl) { bind<TextInsertionService>() }

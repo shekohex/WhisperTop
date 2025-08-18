@@ -13,10 +13,15 @@ import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.models.PermissionStatus
+import me.shadykhalifa.whispertop.domain.models.ServiceConnectionStatus
+import me.shadykhalifa.whispertop.domain.models.ServiceReadinessState
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
-import me.shadykhalifa.whispertop.managers.PermissionHandler
 import me.shadykhalifa.whispertop.service.AudioRecordingService
 import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
@@ -29,7 +34,9 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     }
     
     private val audioServiceManager: AudioServiceManager by inject()
-    private val permissionHandler: PermissionHandler by inject()
+    private val serviceInitializationUseCase: ServiceInitializationUseCase by inject()
+    private val permissionManagementUseCase: PermissionManagementUseCase by inject()
+    private val serviceBindingUseCase: ServiceBindingUseCase by inject()
     private val transcriptionUseCase: TranscribeWithLanguageDetectionUseCase by inject()
     private val settingsRepository: SettingsRepository by inject()
     private val textInsertionService: TextInsertionService by inject()
@@ -48,23 +55,15 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     
     private fun observeServiceState() {
         viewModelScope.launch {
-            combine(
-                audioServiceManager.connectionState,
-                audioServiceManager.recordingState,
-                permissionHandler.permissionState
-            ) { connectionState, recordingState, permissionState ->
-                val isServiceReady = connectionState == AudioServiceManager.ServiceConnectionState.CONNECTED &&
-                        permissionState == PermissionHandler.PermissionState.GRANTED
-                
-                Log.d(TAG, "Service state update: connection=$connectionState, recording=$recordingState, permission=$permissionState, isReady=$isServiceReady")
+            // Only observe recording state changes from the service manager
+            // Service readiness is now managed through use cases
+            audioServiceManager.recordingState.collect { recordingState ->
+                Log.d(TAG, "Recording state update: $recordingState")
                 
                 _uiState.value = _uiState.value.copy(
-                    serviceConnectionState = connectionState,
-                    recordingState = recordingState,
-                    permissionState = permissionState,
-                    isServiceReady = isServiceReady
+                    recordingState = recordingState
                 )
-            }.collect { }
+            }
         }
     }
     
@@ -131,53 +130,111 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         Log.d(TAG, "initializeService: starting service initialization")
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = audioServiceManager.bindService()) {
-            is AudioServiceManager.ServiceBindResult.SUCCESS -> {
-                Log.d(TAG, "initializeService: service bound successfully")
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-            is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
-                Log.d(TAG, "initializeService: service already bound")
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-            is AudioServiceManager.ServiceBindResult.FAILED -> {
-                Log.w(TAG, "initializeService: failed to bind service")
+        serviceInitializationUseCase().fold(
+            onSuccess = { connectionStatus ->
+                Log.d(TAG, "initializeService: service initialization completed: $connectionStatus")
+                
+                val currentState = _uiState.value
+                val updatedReadinessState = ServiceReadinessState(
+                    serviceConnectionStatus = connectionStatus,
+                    permissionStatus = currentState.serviceReadinessState.permissionStatus
+                )
+                
+                _uiState.value = currentState.copy(
+                    isLoading = false,
+                    serviceReadinessState = updatedReadinessState,
+                    isServiceReady = updatedReadinessState.isReady,
+                    errorMessage = if (connectionStatus is ServiceConnectionStatus.Failed || 
+                                        connectionStatus is ServiceConnectionStatus.Error) {
+                        when (connectionStatus) {
+                            is ServiceConnectionStatus.Failed -> "Failed to bind to audio service"
+                            is ServiceConnectionStatus.Error -> connectionStatus.message
+                            else -> null
+                        }
+                    } else null
+                )
+            },
+            onFailure = { exception ->
+                Log.e(TAG, "initializeService: use case failed", exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Failed to bind to audio service"
+                    errorMessage = "Service initialization failed: ${exception.message}"
                 )
             }
-            is AudioServiceManager.ServiceBindResult.ERROR -> {
-                Log.e(TAG, "initializeService: service binding error", result.exception)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Service binding error: ${result.exception.message}"
-                )
-            }
-        }
+        )
     }
     
     suspend fun requestPermissions() {
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = permissionHandler.requestAllPermissions()) {
-            is PermissionHandler.PermissionResult.GRANTED -> {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-            is PermissionHandler.PermissionResult.DENIED -> {
+        permissionManagementUseCase().fold(
+            onSuccess = { permissionStatus ->
+                Log.d(TAG, "requestPermissions: permission request completed: $permissionStatus")
+                
+                val currentState = _uiState.value
+                val updatedReadinessState = ServiceReadinessState(
+                    serviceConnectionStatus = currentState.serviceReadinessState.serviceConnectionStatus,
+                    permissionStatus = permissionStatus
+                )
+                
+                _uiState.value = currentState.copy(
+                    isLoading = false,
+                    serviceReadinessState = updatedReadinessState,
+                    isServiceReady = updatedReadinessState.isReady,
+                    showPermissionRationale = permissionStatus is PermissionStatus.RequiresRationale,
+                    rationalePermissions = when (permissionStatus) {
+                        is PermissionStatus.RequiresRationale -> permissionStatus.permissions
+                        else -> emptyList()
+                    },
+                    errorMessage = when (permissionStatus) {
+                        is PermissionStatus.Denied -> 
+                            "Required permissions denied: ${permissionStatus.deniedPermissions.joinToString()}"
+                        else -> null
+                    }
+                )
+            },
+            onFailure = { exception ->
+                Log.e(TAG, "requestPermissions: use case failed", exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Required permissions denied: ${result.deniedPermissions.joinToString()}"
+                    errorMessage = "Permission request failed: ${exception.message}"
                 )
             }
-            is PermissionHandler.PermissionResult.SHOW_RATIONALE -> {
+        )
+    }
+    
+    /**
+     * Coordinates both service initialization and permission requests for unified readiness.
+     * This is the recommended method to use for complete setup.
+     */
+    suspend fun initializeServiceBinding() {
+        Log.d(TAG, "initializeServiceBinding: starting unified service binding")
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        
+        serviceBindingUseCase().fold(
+            onSuccess = { readinessState ->
+                Log.d(TAG, "initializeServiceBinding: completed with readiness: ${readinessState.isReady}")
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showPermissionRationale = true,
-                    rationalePermissions = result.permissions
+                    serviceReadinessState = readinessState,
+                    isServiceReady = readinessState.isReady,
+                    showPermissionRationale = readinessState.permissionStatus is PermissionStatus.RequiresRationale,
+                    rationalePermissions = when (readinessState.permissionStatus) {
+                        is PermissionStatus.RequiresRationale -> readinessState.permissionStatus.permissions
+                        else -> emptyList()
+                    },
+                    errorMessage = readinessState.errorMessage
+                )
+            },
+            onFailure = { exception ->
+                Log.e(TAG, "initializeServiceBinding: use case failed", exception)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Service binding failed: ${exception.message}"
                 )
             }
-        }
+        )
     }
     
     fun startRecording() {
@@ -384,9 +441,12 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
 }
 
 data class AudioRecordingUiState(
-    val serviceConnectionState: AudioServiceManager.ServiceConnectionState = AudioServiceManager.ServiceConnectionState.DISCONNECTED,
+    val serviceReadinessState: ServiceReadinessState = ServiceReadinessState.notReady(
+        serviceConnectionStatus = ServiceConnectionStatus.Failed,
+        permissionStatus = PermissionStatus.Denied(emptyList()),
+        errorMessage = "Services not initialized"
+    ),
     val recordingState: AudioRecordingService.RecordingState = AudioRecordingService.RecordingState.IDLE,
-    val permissionState: PermissionHandler.PermissionState = PermissionHandler.PermissionState.UNKNOWN,
     val isServiceReady: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -395,4 +455,8 @@ data class AudioRecordingUiState(
     val transcriptionLanguage: String? = null,
     val showPermissionRationale: Boolean = false,
     val rationalePermissions: List<String> = emptyList()
-)
+) {
+    // Computed properties for backward compatibility during transition
+    val serviceConnectionState: ServiceConnectionStatus get() = serviceReadinessState.serviceConnectionStatus
+    val permissionState: PermissionStatus get() = serviceReadinessState.permissionStatus
+}
