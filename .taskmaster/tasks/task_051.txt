@@ -1,0 +1,29 @@
+# Task ID: 51
+# Title: Create HistoryViewModel with Pagination and Search Functionality
+# Status: pending
+# Dependencies: 3, 10, 18
+# Priority: high
+# Description: Implement comprehensive HistoryViewModel using Paging 3 library with search, filtering, sorting, and export capabilities for transcription history management.
+# Details:
+Create HistoryViewModel extending BaseViewModel with the following components:
+
+1. **Paging Integration**: Use Paging 3 library to expose transcriptions as Flow<PagingData<TranscriptionHistory>>. Create HistoryPagingSource extending PagingSource<Int, TranscriptionHistory> for database queries. Configure PagingConfig with appropriate page size (20-50 items) and prefetch distance.
+
+2. **Search Functionality**: Implement MutableStateFlow<String> for search query with 300ms debounce using collectLatest and delay. Create searchTranscriptions() function that updates the PagingData flow with filtered results. Support search across transcription text, timestamps, and metadata.
+
+3. **Real-time Filtering**: Combine search query StateFlow with PagingData using combine operator. Implement filter predicates for date ranges, duration thresholds, and word count ranges. Update UI reactively when filters change.
+
+4. **Deletion Support**: Create deleteTranscription(id: String) and deleteMultiple(ids: List<String>) functions. Use sealed class for deletion results (Success, Error). Implement cascade deletion for related audio files. Update PagingData after successful deletion.
+
+5. **Export Functionality**: Implement exportAsJson() and exportAsCsv() functions returning Flow<ExportResult>. Use coroutines for background processing. Support date range filtering for exports. Include metadata like creation date, duration, word count, and custom prompts.
+
+6. **Sorting Options**: Create SortOption sealed class with Date, Duration, WordCount variants (ascending/descending). Use MutableStateFlow<SortOption> with database query ordering. Update PagingData when sort changes.
+
+7. **Cache Management**: Implement LRU cache for frequently accessed transcriptions. Use Room's built-in caching with @Query annotations. Configure PagingData to handle memory efficiently with placeholders enabled.
+
+8. **Offline-First Architecture**: Use Room database as single source of truth. Implement proper error handling for database operations. Support graceful degradation when storage is full.
+
+Dependencies: TranscriptionRepository for data access, SettingsRepository for user preferences, and proper error handling infrastructure.
+
+# Test Strategy:
+Create comprehensive unit tests for HistoryViewModel covering: 1) Paging functionality with mock PagingSource and verify correct page loading, 2) Search debouncing behavior using TestCoroutineDispatcher and verify 300ms delay, 3) Filter combinations and verify correct database queries generated, 4) Deletion operations with mock repository and verify PagingData updates correctly, 5) Export functions with mock data and verify JSON/CSV format correctness, 6) Sorting state changes and verify database query updates, 7) Memory usage testing with large datasets (1000+ items), 8) Error handling for all operations including network failures and database errors. Integration tests: UI testing with Compose test framework to verify search results update correctly, pagination scroll behavior, and export file generation. Performance testing with large datasets to ensure smooth scrolling and memory efficiency.

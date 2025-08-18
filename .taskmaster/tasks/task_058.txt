@@ -1,0 +1,86 @@
+# Task ID: 58
+# Title: Integrate Statistics Tracking with Existing Recording Services
+# Status: pending
+# Dependencies: 11, 46, 47, 5, 7, 8
+# Priority: high
+# Description: Modify AudioRecordingService, WhisperTopAccessibilityService, and transcription workflow to capture session metrics, save transcription history, and implement background statistics aggregation.
+# Details:
+COMPREHENSIVE SERVICE INTEGRATION FOR STATISTICS TRACKING:
+
+1. **AudioRecordingService Statistics Integration:**
+   - Add session timing capture: sessionStartTime, sessionEndTime, audioRecordingDuration
+   - Implement SessionMetrics data class to track recording metadata (audio quality, file size, duration)
+   - Add statistics hooks to service lifecycle methods (onStartRecording, onStopRecording)
+   - Ensure atomic database writes using Room transactions
+   - Handle service lifecycle properly to prevent data loss during unexpected termination
+
+2. **WhisperTopAccessibilityService Word Counting:**
+   - Implement word count calculation after successful text insertion using regex-based word boundary detection
+   - Add character count and typing efficiency metrics
+   - Track successful vs failed text insertions for reliability metrics
+   - Calculate typing speed metrics (WPM based on insertion duration)
+   - Store per-app usage statistics for detailed analytics
+
+3. **Enhanced Transcription Workflow Database Integration:**
+   - Modify TranscriptionWorkflowUseCase to persist TranscriptionHistoryEntity after successful API response
+   - Add speaking rate calculation: words per minute = (wordCount / audioDurationSeconds) * 60
+   - Implement error tracking for failed transcriptions with categorized error types
+   - Add API response time tracking and token usage metrics
+   - Handle network failures gracefully with proper retry logic and offline queue
+
+4. **Background Statistics Aggregation System:**
+   - Implement DailyStatsAggregatorWorker using AndroidX WorkManager for periodic aggregation
+   - Create StatisticsCalculatorUseCase for complex metrics: average session duration, productivity trends, peak usage times
+   - Add database triggers for real-time statistics updates using Room @Query with SUM/AVG functions
+   - Implement data retention policies (configurable 30/90/365 days) with automatic cleanup jobs
+   - Handle timezone changes and daylight savings for accurate daily aggregation
+
+5. **Analytics Events Integration:**
+   - Add Firebase Analytics/Crashlytics events for feature usage patterns: 'recording_started', 'transcription_completed', 'text_inserted'
+   - Track user engagement metrics: session frequency, feature adoption rates, error rates by device type
+   - Implement privacy-compliant analytics with user consent management
+   - Add performance monitoring for service response times and memory usage
+   - Create custom analytics dashboard for debugging and optimization
+
+6. **Performance and Reliability Optimizations:**
+   - Use Room database transactions for atomic multi-table operations
+   - Implement proper service binding lifecycle to prevent memory leaks
+   - Add background thread processing for statistics calculations to avoid UI blocking
+   - Implement database connection pooling and query optimization with proper indexes
+   - Add circuit breaker pattern for external API calls and database operations
+   - Handle low storage scenarios with graceful degradation and cleanup strategies
+
+# Test Strategy:
+COMPREHENSIVE TESTING STRATEGY:
+
+1. **Service Integration Testing:**
+   - Unit tests for SessionMetrics data capture in AudioRecordingService using MockK and TestCoroutineDispatcher
+   - Integration tests for service lifecycle statistics tracking across app backgrounding/foregrounding scenarios
+   - Verify atomic database operations during service termination and crash recovery
+   - Test service binding stability under memory pressure and device rotation
+
+2. **Database Operation Testing:**
+   - Room database transaction testing with rollback scenarios for failed operations
+   - Concurrency testing for simultaneous read/write operations from multiple services
+   - Migration testing for schema changes and data integrity verification
+   - Performance testing with large datasets (1000+ transcription records)
+   - Test database cleanup and retention policy enforcement
+
+3. **Statistics Accuracy Verification:**
+   - Verify word count accuracy against known text samples using multiple counting algorithms
+   - Test speaking rate calculations with controlled audio samples of known duration and word counts
+   - Validate daily aggregation accuracy by comparing real-time vs batch-calculated metrics
+   - Cross-validate analytics events with actual user actions using test automation
+
+4. **Background Processing Testing:**
+   - Test WorkManager job execution under different battery optimization settings and doze mode
+   - Verify statistics aggregation continues correctly across device reboots and app updates
+   - Test job scheduling persistence and retry logic for failed background operations
+   - Performance testing for background operations to ensure minimal battery and CPU impact
+
+5. **Error Scenario and Edge Case Testing:**
+   - Test behavior when database is full or corrupted using Room database testing utilities
+   - Verify graceful degradation when analytics services are unavailable
+   - Test statistics tracking during rapid start/stop recording cycles and service interruptions
+   - Validate proper cleanup and resource release during unexpected service termination
+   - Test timezone changes and device clock modifications for accurate time-based statistics

@@ -1,0 +1,11 @@
+# Task ID: 47
+# Title: Create Data Models and Domain Entities for Statistics Tracking
+# Status: pending
+# Dependencies: 3
+# Priority: high
+# Description: Implement comprehensive data models for user statistics tracking including session data, usage metrics, daily trends, and permissions with proper serialization support.
+# Details:
+Create TranscriptionSession data class with fields: id (UUID), timestamp (Instant), audioLengthMs (Long), wordCount (Int), characterCount (Int), transcribedText (String), implement Parcelable and add @Serializable annotation. Create UserStatistics data class with totalWords (Long), totalSessions (Int), totalSpeakingTimeMs (Long), averageWordsPerMinute (Double), averageWordsPerSession (Double), userTypingWpm (Int), implement Parcelable and JSON serialization. Create DailyUsage data class with date (LocalDate), sessionsCount (Int), wordsTranscribed (Long), totalTimeMs (Long) for trend visualization. Create AppPermission enum with RECORD_AUDIO, SYSTEM_ALERT_WINDOW, ACCESSIBILITY_SERVICE values, each with displayName and description properties. Create repository interfaces: StatisticsRepository, SessionRepository, PermissionRepository following clean architecture principles in domain layer. Place data classes in shared/domain/models package, repository interfaces in shared/domain/repositories package. Add kotlinx.serialization dependencies and configure proper JSON serialization with custom serializers for Instant and LocalDate types.
+
+# Test Strategy:
+Create unit tests for data class serialization/deserialization with JSON, verify Parcelable implementation works correctly across process boundaries. Test enum display names and descriptions are properly localized. Create mock repository implementations to verify interface contracts. Test edge cases like empty statistics, null handling, and large numeric values. Verify data classes follow immutability principles and implement proper equals/hashCode methods.

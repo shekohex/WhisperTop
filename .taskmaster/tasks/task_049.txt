@@ -1,0 +1,11 @@
+# Task ID: 49
+# Title: Build Enhanced Dashboard UI with Statistics Display
+# Status: pending
+# Dependencies: 48, 16, 7
+# Priority: high
+# Description: Create comprehensive dashboard UI using Jetpack Compose with productivity metrics, statistics grid, animated counters, and Material 3 design with pull-to-refresh functionality.
+# Details:
+Create DashboardScreen composable with LazyColumn layout supporting pull-to-refresh using SwipeRefresh. Implement ProductivityMetricsSection with four metric cards: Speaking Time (green), Typing Time (orange), Time Saved (blue), and Efficiency Multiplier. Create StatisticsGrid with 2x2 grid layout showing Words Captured, Sessions, Avg Words/Min, and Words/Session. Design MetricCard composable with icon, animated counter using AnimatedContent and countUp animation, value display, and descriptive label. Implement CounterAnimation using LaunchedEffect with animateIntAsState for smooth number transitions over 800ms duration. Apply Material 3 design system with dynamic colors from MaterialTheme.colorScheme, proper typography hierarchy (headlineMedium, bodyLarge, labelMedium), and elevation using Card components. Create responsive layout with adaptive grid sizing for landscape and tablet orientations using WindowSizeClass. Implement 60fps scrolling optimization with key() functions, remember() for expensive calculations, and derivedStateOf for computed values. Add error states with retry actions and loading shimmer effects during data fetch. Integrate with DashboardViewModel observing statistics StateFlow and handling refresh actions.
+
+# Test Strategy:
+Unit tests for DashboardScreen composition with mock DashboardViewModel and verify correct metric values display. Test counter animations using ComposeTestRule and verify animation completion within expected duration. UI tests for pull-to-refresh gesture simulation and state changes verification. Test responsive layout behavior across different screen sizes using different WindowSizeClass configurations. Performance tests ensuring 60fps scrolling using GPU profiling and jank detection. Integration tests with real DashboardViewModel data and state management. Accessibility tests for TalkBack navigation and content descriptions. Test Material 3 dynamic color theming and dark/light mode transitions.

@@ -1,0 +1,11 @@
+# Task ID: 45
+# Title: Create Integration Tests for Clean Architecture Compliance
+# Status: pending
+# Dependencies: 10, 18, 38
+# Priority: low
+# Description: Build comprehensive integration tests using MockK to verify ViewModels only call use cases, no business logic exists in presentation layer, proper dependency injection is used, and clean separation of concerns is maintained.
+# Details:
+Create four integration test files: 1) ArchitectureIntegrationTest.kt - Main clean architecture verification using reflection to scan ViewModels and verify they only inject/call use cases, never repositories or services directly. Test that all ViewModel methods delegate to use cases. 2) ViewModelLayerIntegrationTest.kt - Specific tests for each ViewModel (AudioRecordingViewModel, SettingsViewModel) using MockK to verify they never call AudioServiceManager, PermissionHandler, or repository methods directly. Mock all use cases and verify interaction patterns. 3) DependencyInjectionIntegrationTest.kt - Test Koin dependency graph ensures ViewModels receive use cases via constructor injection, not manual inject() calls. Verify proper dependency hierarchy. 4) BusinessLogicSeparationTest.kt - Test that ViewModels contain only presentation logic (state management, UI events) while business logic resides in use cases. Use MockK.verify to ensure ViewModels never perform business operations like API calls, data validation, or complex processing. Include negative tests that verify architectural violations are caught. Test both shared (commonTest) and Android-specific (androidTest) scenarios. Create helper functions to analyze class dependencies and detect violations programmatically.
+
+# Test Strategy:
+Use MockK to create integration test scenarios where all use cases are mocked and verify ViewModels interact only with use cases. Test dependency injection graph with Koin test utilities to ensure proper wiring. Use reflection to scan ViewModel classes and verify they don't import or reference data/infrastructure layer classes directly. Create test scenarios for common workflows (recording, transcription, settings) and verify business logic flows through use cases. Test error scenarios to ensure ViewModels delegate error handling to use cases. Include performance tests to verify dependency injection doesn't create circular dependencies or memory leaks.

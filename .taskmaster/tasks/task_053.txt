@@ -1,0 +1,11 @@
+# Task ID: 53
+# Title: Implement transcription detail view and actions
+# Status: pending
+# Dependencies: 48, 16, 42
+# Priority: medium
+# Description: Create a full-screen detail view for transcriptions with complete text display, metadata, action buttons, and text selection support.
+# Details:
+Implement TranscriptionDetailScreen as a Compose screen with full-screen layout using Material 3 theming. Create TranscriptionDetailViewModel extending BaseViewModel to manage transcription data and user actions. Design UI with LazyColumn containing SelectionContainer for text selection, metadata cards showing date/time/duration/word count/language/model, and action buttons (Copy, Share, Delete) with haptic feedback. Implement syntax highlighting for URLs, emails, and phone numbers using AnnotatedString with SpanStyle. Add system share sheet integration using Intent.ACTION_SEND with text/plain MIME type. Implement clipboard operations using ClipboardManager. Create navigation integration with existing nav graph, passing transcription ID as argument. Add confirmation dialogs for destructive actions like delete. Implement proper error handling and loading states. Use existing UI components and theming patterns from the project.
+
+# Test Strategy:
+Create unit tests for TranscriptionDetailViewModel covering data loading, action handling, and state management. Implement Compose UI tests for text selection using SelectionContainer, action button interactions, and navigation behavior. Test system integration for share sheet functionality and clipboard operations across different Android versions. Verify haptic feedback works on various devices using HapticFeedback API. Test syntax highlighting accuracy for different content types (URLs, emails, phone numbers). Create integration tests for delete confirmation flow and navigation back to history list. Test accessibility features and screen reader compatibility with semantic properties.

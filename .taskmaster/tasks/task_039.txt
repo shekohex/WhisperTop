@@ -1,0 +1,25 @@
+# Task ID: 39
+# Title: Eliminate Toast Logic from AudioRecordingViewModel
+# Status: pending
+# Dependencies: 37, 8, 6
+# Priority: high
+# Description: Remove ALL Toast.makeText() calls from AudioRecordingViewModel and create proper event channel for UI notifications to fix massive clean architecture violation
+# Details:
+CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel directly calls Toast.makeText() on lines 375-378 and injects Android Context (line 36), violating clean architecture principles where ViewModels must NEVER interact with Android UI components directly.
+
+Implementation Steps:
+1. Remove showToast() method (lines 375-378) and all 8 calls to it throughout the ViewModel
+2. Remove Context injection from constructor (line 36) and related imports (Context, Toast)
+3. Create AudioRecordingUiEvent sealed class with events: ShowToast(message: String, isError: Boolean), ShowTranscriptionResult(text: String, language: String?), ShowError(error: String)
+4. Add private _uiEvents = MutableSharedFlow<AudioRecordingUiEvent>() and public val uiEvents: SharedFlow<AudioRecordingUiEvent> = _uiEvents.asSharedFlow()
+5. Replace all showToast() calls with _uiEvents.tryEmit() calls:
+   - Line 94: _uiEvents.tryEmit(ShowToast("Recording complete, transcribing..."))
+   - Line 98: _uiEvents.tryEmit(ShowToast("Recording failed - no audio file created", true))
+   - Line 200: _uiEvents.tryEmit(ShowToast("Recording started"))
+   - Lines 328-331: _uiEvents.tryEmit(ShowTranscriptionResult(previewText, textInserted))
+   - Line 352: _uiEvents.tryEmit(ShowToast(errorMsg, true))
+   - Line 366: _uiEvents.tryEmit(ShowToast("Transcription error occurred", true))
+6. Update UI layer to collect uiEvents flow and handle toast display using existing ToastService dependency injection pattern from TranscriptionWorkflowUseCase
+
+# Test Strategy:
+1. Verify ViewModel compiles without Context or Toast imports. 2. Test UI event emission for all recording workflow scenarios: start recording, complete recording, transcription success/failure, error states. 3. Verify View layer correctly receives and displays toast messages via ToastService. 4. Test complete recording workflow end-to-end ensuring all user feedback works correctly through event channel. 5. Unit tests for event emission timing and content accuracy.

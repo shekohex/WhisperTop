@@ -1,0 +1,23 @@
+# Task ID: 37
+# Title: Fix AudioRecordingViewModel Dependency Injection Violations
+# Status: pending
+# Dependencies: 5, 8, 18
+# Priority: high
+# Description: Remove all infrastructure injections from AudioRecordingViewModel and replace with proper use case injections to adhere to clean architecture principles.
+# Details:
+CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel currently injects 6 direct infrastructure components violating clean architecture (lines 31-36): AudioServiceManager, PermissionHandler, SettingsRepository, TextInsertionService, Context. ViewModels must ONLY inject use cases from domain layer.
+
+Implementation Steps:
+1. Create ServiceManagementUseCase to abstract AudioServiceManager operations: bindService(), startRecording(), stopRecording(), pauseRecording(), resumeRecording(), getRecordingState(), getRecordingDuration(), cleanup(). Handle service state flows and error events.
+2. Create PermissionManagementUseCase to abstract PermissionHandler operations: requestAllPermissions(), getPermissionState(). Handle permission state flows.
+3. Create UserFeedbackUseCase to abstract Context/Toast functionality: showToast(message, isError). Remove Context dependency entirely.
+4. Keep existing TextInsertionService injection (domain interface - acceptable). Consider SettingsRepository injection (data layer access pattern needs evaluation).
+5. Refactor AudioRecordingViewModel to remove lines 31-32, 34, 36 and replace with new use case injections.
+6. Update all method calls: initializeService() → serviceManagementUseCase, requestPermissions() → permissionManagementUseCase, showToast() → userFeedbackUseCase.
+7. Update observeServiceState() and observeServiceEvents() to use use cases instead of direct manager access.
+8. Register new use cases in Android Koin module with proper dependency chain.
+9. Ensure all existing functionality is preserved while improving architecture compliance.
+10. Remove KoinComponent inheritance if no longer needed after removing direct injections.
+
+# Test Strategy:
+1. Verify ViewModel compiles with only use case injections and no infrastructure dependencies. 2. Test complete recording workflow: service binding, permission requests, start/stop/pause/resume recording, transcription flow. 3. Verify all UI state updates work correctly through use case abstractions. 4. Test error handling scenarios: service bind failures, permission denials, recording errors. 5. Verify toast messages display correctly through UserFeedbackUseCase. 6. Test service state observation and recording duration updates work through ServiceManagementUseCase. 7. Confirm no direct Android framework dependencies remain in ViewModel. 8. Run existing AudioRecordingViewModelTest suite to ensure no regressions. 9. Test on Android emulator with overlay service, permissions, and transcription end-to-end workflow.

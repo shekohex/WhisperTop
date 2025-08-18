@@ -1,0 +1,49 @@
+# Task ID: 35
+# Title: Add Custom Prompt and Temperature Settings for Transcription
+# Status: pending
+# Dependencies: 12, 31
+# Priority: high
+# Description: Add custom prompt field and temperature slider to advanced transcription settings, allowing users to customize OpenAI Whisper API behavior with custom prompts and temperature control.
+# Details:
+Extend AppSettings data class to include customPrompt (String?) and temperature (Float, default 0.0) fields. Update SettingsViewModel to handle new fields with proper validation (temperature 0.0-2.0 range, prompt length limits). Add UI components to SettingsScreen in advanced section: TextField for custom prompt with character counter and validation, Slider for temperature with real-time value display and description tooltip. Modify OpenAI API client (OpenAIApiService) to include custom prompt and temperature parameters in transcription requests. Update TranscriptionRequest data class to support optional prompt and temperature fields. Implement proper field persistence using DataStore preferences. Add input validation for prompt length (max 224 tokens as per OpenAI docs) and temperature range. Include helpful UI descriptions explaining how custom prompts can improve transcription accuracy for specific domains (technical terms, names, etc.) and temperature effects on output randomness.
+
+# Test Strategy:
+Unit tests for AppSettings field validation and persistence. Test SettingsViewModel with various prompt lengths and temperature values including edge cases (empty prompt, temperature bounds 0.0-2.0). UI tests for settings screen components including slider interaction and text field input validation. Integration tests for OpenAI API client with custom prompt and temperature parameters. Test transcription workflow with different prompt and temperature combinations. Verify settings persistence across app restarts and proper default values.
+
+# Subtasks:
+## 1. Add customPrompt and temperature fields to domain models [pending]
+### Dependencies: None
+### Description: Extend AppSettings data class and AppSettingsEntity with customPrompt (String?) and temperature (Float) fields, including proper default values and mapping functions
+### Details:
+Add customPrompt: String? = null and temperature: Float = 0.0f to AppSettings data class in domain/models/AppSettings.kt. Update AppSettingsEntity in data/models/AppSettingsEntity.kt with corresponding fields. Update toDomain() and toEntity() mapping functions to handle the new fields. Ensure temperature defaults to 0.0 and customPrompt defaults to null for backward compatibility.
+
+## 2. Add validation logic to SettingsViewModel [pending]
+### Dependencies: 35.1
+### Description: Implement validation for temperature range (0.0-2.0) and custom prompt length limits in SettingsViewModel with proper error handling
+### Details:
+Add validation functions to SettingsViewModel for temperature (must be between 0.0-2.0) and customPrompt (max 224 tokens, approximately 896 characters). Add updateTemperature() and updateCustomPrompt() methods with debounced saving. Update SettingsUiState to include temperatureError and promptError fields. Implement token counting logic or character limit as approximation (4 chars per token average).
+
+## 3. Create custom prompt TextField UI component [pending]
+### Dependencies: 35.2
+### Description: Build a TextField component with character counter, validation feedback, and helpful description for custom prompt input
+### Details:
+Create CustomPromptField composable in SettingsScreen.kt with TextField, character counter showing current/max length (896 chars ≈ 224 tokens), validation error display, and description explaining how custom prompts improve transcription accuracy for technical terms, names, etc. Include examples like 'The following audio contains technical programming terms and company names.' Add clear button when text exists.
+
+## 4. Create temperature Slider UI component [pending]
+### Dependencies: 35.2
+### Description: Build a Slider component with real-time value display, description tooltip, and temperature range controls (0.0-2.0)
+### Details:
+Create TemperatureSlider composable in SettingsScreen.kt with Slider component, real-time value display formatted to 1 decimal place, description explaining temperature effects (0.0 = deterministic, higher = more creative/varied), range indicators (0.0-2.0), and reset to default button. Include visual indicators for recommended ranges (0.0-0.3 for accuracy, 0.7-1.0 for creativity).
+
+## 5. Integrate new components into SettingsScreen advanced section [pending]
+### Dependencies: 35.3, 35.4
+### Description: Add CustomPromptField and TemperatureSlider to the advanced settings section with proper layout and state binding
+### Details:
+Add the new components to SettingsScreen.kt in the advanced settings expandable section. Wire up state management by connecting components to SettingsViewModel state and update functions. Add section header 'Transcription Customization' with description. Ensure proper spacing, Material 3 theming consistency, and responsive layout. Connect validation errors to UI feedback.
+
+## 6. Update TranscriptionRequest to pass custom settings to API [pending]
+### Dependencies: 35.1, 35.5
+### Description: Ensure TranscriptionRequest domain model includes customPrompt and temperature fields and passes them correctly to OpenAI API
+### Details:
+Update TranscriptionRequest in domain/models/TranscriptionRequest.kt to include customPrompt and temperature fields. Modify TranscriptionUseCase and related workflows to pass these values from AppSettings to API calls. Verify OpenAIApiService.transcribe() methods correctly receive and use these parameters. Add logging to track when custom settings are applied during transcription.
+

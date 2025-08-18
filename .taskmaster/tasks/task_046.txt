@@ -1,0 +1,11 @@
+# Task ID: 46
+# Title: Set up Room Database Infrastructure for Transcription History Storage
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement complete Room database setup with entities, DAOs, migrations, and proper indexing to support transcription history storage and user statistics tracking.
+# Details:
+Add Room 2.6.1+ dependencies to build.gradle.kts (room-runtime, room-compiler, room-ktx). Create TranscriptionHistory entity with fields: id, text, timestamp, duration, audioFilePath, confidence, customPrompt, temperature, and UserStatistics entity with usage metrics. Implement TranscriptionHistoryDao with CRUD operations, pagination support using PagingSource, search queries by text and date range. Create AppDatabase singleton with proper initialization, migration strategy from version 1, and database builder configuration. Add @Index annotations for timestamp and text search optimization. Configure Room schema export to schemas/ directory for version control. Implement DatabaseModule for Koin dependency injection with database and DAO provision. Create Repository interfaces and implementations following existing patterns.
+
+# Test Strategy:
+Unit tests for DAO operations including insert, update, delete, and complex queries. Test database migrations using Room's migration testing framework. Integration tests for repository implementations with in-memory database. Performance tests for search queries with large datasets. Verify proper indexing effectiveness with EXPLAIN QUERY PLAN. Test pagination functionality with PagingSource integration. Verify schema export generates correct JSON files.

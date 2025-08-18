@@ -1,0 +1,23 @@
+# Task ID: 52
+# Title: Build Transcription History Screen with Search and List UI
+# Status: pending
+# Dependencies: 3, 51
+# Priority: high
+# Description: Create comprehensive transcription history screen with LazyColumn, search functionality, swipe actions, and Material 3 design patterns for optimal user experience.
+# Details:
+Implement HistoryScreen composable with the following components:
+
+1. **Screen Layout**: Use Scaffold with TopAppBar containing search functionality. Implement Material 3 SearchBar with TextField for real-time filtering with 300ms debounce. Add FloatingActionButton for bulk operations positioned at bottom end.
+
+2. **LazyColumn Implementation**: Create LazyColumn with PagingItems from ViewModel's Flow<PagingData<TranscriptionHistory>>. Implement item composable showing: formatted date/time, truncated preview (first 100 chars with ellipsis), duration badge with MM:SS format, word count badge. Use Material 3 ListItem with leading icon, headline, supporting text layout.
+
+3. **Interactive Features**: Implement SwipeToDismiss composable for delete actions with confirmation dialog. Add long-press detection for multi-selection mode using LazyListState and selection tracking. Create selection toolbar with count indicator and bulk action buttons (delete, export, share).
+
+4. **State Management**: Handle empty state with illustration and encouraging text when no transcriptions exist. Implement PullRefreshIndicator with pullToRefresh modifier for manual refresh. Add loading states with shimmer effects during initial load and pagination.
+
+5. **Performance Optimizations**: Use key() in LazyColumn items for stable scrolling. Implement proper remember() for expensive calculations. Ensure smooth 60fps scrolling with optimized recomposition scope. Add contentPadding for proper spacing around FloatingActionButton.
+
+6. **Navigation Integration**: Handle back press in multi-selection mode to clear selection. Implement navigation to individual transcription details on item tap when not in selection mode.
+
+# Test Strategy:
+Create comprehensive UI tests covering: 1) LazyColumn displays transcription items correctly with proper formatting and badges, 2) Search functionality filters items in real-time with debounced queries, 3) Swipe-to-delete gestures work smoothly with confirmation dialogs, 4) Long-press activates multi-selection mode with proper visual feedback, 5) Bulk operations (delete, export) work correctly on selected items, 6) Empty state displays when no transcriptions exist, 7) Pull-to-refresh triggers data reload, 8) Pagination loads additional items smoothly without frame drops, 9) Performance testing ensures 60fps scrolling with large datasets using GPU profiling, 10) Accessibility testing with TalkBack for all interactive elements, 11) State restoration after configuration changes maintains scroll position and selection state.

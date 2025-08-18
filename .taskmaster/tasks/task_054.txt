@@ -1,0 +1,11 @@
+# Task ID: 54
+# Title: Create PermissionsViewModel for permission state management
+# Status: pending
+# Dependencies: 3, 7
+# Priority: high
+# Description: Build a comprehensive ViewModel to manage Android permissions state, provide real-time monitoring, handle permission requests, and guide users through permission resolution flows.
+# Details:
+Create PermissionsViewModel extending BaseViewModel with StateFlow<Map<AppPermission, Boolean>> to track all permission states in real-time. Implement AppPermission enum covering RECORD_AUDIO, SYSTEM_ALERT_WINDOW, BIND_ACCESSIBILITY_SERVICE, FOREGROUND_SERVICE, and INTERNET. Add PermissionMonitor class using ContentObserver to detect permission changes in background. Implement requestPermission() methods with proper Activity result handling and permission rationale display logic. Create navigation helpers using Intent.ACTION_APPLICATION_DETAILS_SETTINGS for each permission type. Add categorization methods for critical vs optional permissions with proper fallback handling. Implement Android 14+ permission changes including notification permissions and enhanced audio permissions. Handle edge cases for different Android versions (API 26+ compatibility). Create permission denial tracking with exponential backoff for repeated requests. Add proper lifecycle handling with viewModelScope coroutines and automatic cleanup.
+
+# Test Strategy:
+Unit tests for permission state updates and StateFlow emissions. Test permission categorization logic (critical vs optional). Mock PermissionMonitor to verify background permission change detection works correctly. Integration tests for permission request flows with different outcomes (granted, denied, never ask again). Test navigation helpers launch correct system settings for each permission type. Verify proper cleanup when ViewModel is cleared. Test Android version compatibility across API 26-35. Test permission rationale display logic with different denial states.

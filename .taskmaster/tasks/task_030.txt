@@ -2,7 +2,7 @@
 # Title: Implement Overlay Notification System
 # Status: pending
 # Dependencies: 7, 20, 10
-# Priority: medium
+# Priority: low
 # Description: Create an overlay-based notification system that displays transcription feedback directly over other apps, similar to chat heads, with animated notifications for success, error, and loading states.
 # Details:
 Create NotificationOverlayService extending Service to manage overlay notifications with TYPE_APPLICATION_OVERLAY window type. Implement NotificationOverlayView with WindowManager.LayoutParams for positioning relative to mic button. Create notification types (success, error, warning, info) with different visual styles and Material Design components. Implement slide-in/slide-out animations using ObjectAnimator and ViewPropertyAnimator. Add notification queue system with NotificationQueue class to handle multiple notifications sequentially. Create auto-dismiss functionality with configurable timeouts (3-5 seconds) and manual dismiss with swipe gestures. Position notifications using screen bounds detection and relative positioning to avoid UI interference. Handle orientation changes and screen density variations. Add haptic feedback integration for important notifications using HapticFeedbackManager. Implement proper z-index layering with WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY and FLAG_NOT_TOUCH_MODAL. Create accessibility support with content descriptions and TalkBack announcements. Add notification persistence for critical errors until user acknowledgment.

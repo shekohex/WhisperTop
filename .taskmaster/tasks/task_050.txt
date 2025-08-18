@@ -1,0 +1,11 @@
+# Task ID: 50
+# Title: Implement 30-day usage trend chart component
+# Status: pending
+# Dependencies: 48, 16, 42
+# Priority: medium
+# Description: Create an interactive line chart component showing daily transcription activity over 30 days with smooth bezier curves, touch interactions, and adaptive theming support.
+# Details:
+Implement TrendChartComponent using Vico charting library for Compose with LineChart configuration for 30-day data visualization. Create DailyUsageData class with date and session count fields. Implement smooth bezier curve visualization with CartesianChartModel and LineSpec with cubic interpolation. Add gradient fill using AreaSpec with vertical gradient from primary color to transparent. Implement touch interaction with ChartEntryModel for displaying daily details popup on tap using Tooltip composable. Configure X-axis with DateTimeAxis showing abbreviated date format (MMM dd) with proper spacing. Set up Y-axis with DecimalAxis for session counts with adaptive scaling using AxisValueOverrider. Create EmptyStateComponent for no-data scenarios with illustration and prompt text. Add chart animations using ChartScrollSpec and ChartZoomSpec for smooth transitions. Implement theme-aware styling with Material3 colors, supporting both light and dark themes using LocalColorScheme. Optimize performance with LazyColumn for large datasets and chart data pagination. Create ChartRepository for data fetching and caching with 30-day window calculations from TranscriptionSession data. Add loading states with shimmer effect during data fetch.
+
+# Test Strategy:
+Unit tests for DailyUsageData calculations and 30-day window logic. Test ChartRepository data aggregation and date range filtering. Verify touch interactions work correctly with mock touch events. Test theme switching between light/dark modes and color adaptation. Performance testing with large datasets (1000+ data points) to ensure smooth scrolling and rendering. Test empty state display when no transcription data exists. Verify gradient animations and bezier curve rendering across different screen sizes. Integration tests for data binding between DashboardViewModel and chart component.

@@ -1,0 +1,11 @@
+# Task ID: 43
+# Title: Remove KoinComponent from AudioRecordingViewModel and Implement Constructor Injection
+# Status: pending
+# Dependencies: 5, 37
+# Priority: high
+# Description: Refactor AudioRecordingViewModel to remove KoinComponent inheritance and replace service locator pattern with proper constructor injection for better testability and adherence to Dependency Inversion Principle.
+# Details:
+CRITICAL ARCHITECTURAL VIOLATION: AudioRecordingViewModel extends KoinComponent (line 25) and uses service locator pattern with 'by inject()' for 6 dependencies (lines 31-36), violating Dependency Inversion Principle and making the class untestable. SOLUTION: 1) Remove KoinComponent interface inheritance from class declaration. 2) Convert all 'by inject()' dependencies to constructor parameters: AudioServiceManager, PermissionHandler, TranscribeWithLanguageDetectionUseCase, SettingsRepository, TextInsertionService, Context. 3) Update AndroidAppModule.kt line 53 from 'viewModel { AudioRecordingViewModel() }' to 'viewModel { AudioRecordingViewModel(get(), get(), get(), get(), get(), get()) }' providing all dependencies explicitly. 4) Remove imports for 'org.koin.core.component.KoinComponent' and 'org.koin.core.component.inject'. 5) Update constructor signature to accept all required dependencies as parameters. This enables proper unit testing with mocked dependencies and follows clean architecture principles where dependencies are explicitly declared rather than implicitly resolved through service location.
+
+# Test Strategy:
+1. Verify ViewModel compiles without KoinComponent interface and inject() usage. 2. Create unit tests with mocked dependencies to confirm improved testability - mock AudioServiceManager, PermissionHandler, TranscribeWithLanguageDetectionUseCase, SettingsRepository, TextInsertionService, and Context. 3. Test complete recording workflow functionality remains intact: service binding, permission handling, recording start/stop/pause/resume, transcription processing, and text insertion. 4. Verify Koin dependency injection works correctly through constructor parameters in AndroidAppModule. 5. Run existing ViewModel tests (if any) to ensure no regression in functionality. 6. Confirm all UI state updates and event flows work properly with constructor-injected dependencies.

@@ -1,0 +1,11 @@
+# Task ID: 59
+# Title: Implement data export and retention policies
+# Status: pending
+# Dependencies: 10, 13, 42, 48
+# Priority: medium
+# Description: Create comprehensive data export functionality for transcription history with configurable retention periods, automatic cleanup jobs, and GDPR-compliant data portability features.
+# Details:
+Implement Room database with TranscriptionSession and TranscriptionHistory entities including timestamps, metadata, and retention flags. Create TranscriptionDatabaseRepository extending BaseRepository with CRUD operations, bulk operations, and date-range queries. Build ExportService with JSON/CSV/TXT format support using kotlinx.serialization and OpenCSV, implementing streaming for large datasets and secure file sharing via FileProvider. Develop RetentionWorker using WorkManager with configurable policies (7/30/90 days/unlimited) stored in AppSettings, implementing atomic cleanup with backup creation before deletion. Create DataExportViewModel with export progress tracking, format selection UI, and retention policy configuration. Implement BulkDeleteWorker with confirmation dialogs, batch processing, and progress notifications. Add privacy-focused clear-all functionality with secure data wiping. Create ExportStatisticsService generating summary reports with anonymized usage patterns. Ensure GDPR compliance with data portability standards, user consent tracking, and audit logging. Use coroutines for background operations, implement proper error handling, and add comprehensive logging throughout.
+
+# Test Strategy:
+Unit tests for database entities, repository CRUD operations, and export service format generation using test data. Integration tests for WorkManager background jobs with test dispatchers and mock time advancement. UI tests for export dialogs, retention policy settings, and bulk delete confirmations using Compose testing. Performance tests for large dataset export using mock data generation up to 10k entries. Security tests for file sharing permissions and data wiping verification. GDPR compliance tests for data portability format validation and user consent flows.

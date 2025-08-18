@@ -2,7 +2,7 @@
 # Title: Fix iOS Platform Build Issues and AudioRecorder Implementation
 # Status: pending
 # Dependencies: 5, 3
-# Priority: medium
+# Priority: low
 # Description: Resolve iOS-specific compilation errors and platform implementation issues, focusing on fixing AudioRecorder iOS implementation with incorrect Java references and imports.
 # Details:
 Address iOS-specific build errors in the AudioRecorder implementation by removing Java-specific class references and replacing with appropriate iOS/Kotlin Multiplatform equivalents. Replace Java-specific imports (java.io.*, java.util.*) with Kotlin Multiplatform alternatives. Implement proper iOS audio recording using AVAudioRecorder through Kotlin/Native interop or appropriate KMP audio libraries. Fix platform-specific file I/O operations for iOS using NSFileManager or Kotlin Multiplatform file APIs. Update WAV file generation to use iOS-compatible audio format APIs. Ensure proper memory management and resource cleanup for iOS platform. Address any iOS-specific permissions (NSMicrophoneUsageDescription) and audio session configuration. Update build configuration files (build.gradle.kts) to properly handle iOS targets and dependencies.
