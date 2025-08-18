@@ -217,6 +217,24 @@ android {
         unitTests {
             isReturnDefaultValues = true
             isIncludeAndroidResources = true
+            all {
+                it.systemProperty("robolectric.enabledSdks", "29")
+                it.systemProperty("robolectric.dependency.repo.url", "https://repo1.maven.org/maven2")
+                it.systemProperty("robolectric.dependency.repo.id", "central")
+                it.jvmArgs = listOf("-noverify")
+            }
+        }
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.ow2.asm:asm:9.7")
+            force("org.ow2.asm:asm-commons:9.7")  
+            force("org.ow2.asm:asm-tree:9.7")
+            force("org.ow2.asm:asm-analysis:9.7")
+            force("org.ow2.asm:asm-util:9.7")
+            // Exclude conflicting annotations
+            exclude(group = "org.jetbrains", module = "annotations-java5")
         }
     }
 }

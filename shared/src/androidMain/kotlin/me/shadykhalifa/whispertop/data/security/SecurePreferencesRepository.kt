@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.data.security
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
@@ -57,9 +58,9 @@ class SecurePreferencesRepositoryImpl(
                 return@withContext Result.Error(IllegalArgumentException(errorMsg))
             }
             
-            encryptedPrefs.edit()
-                .putString(KEY_API_KEY, apiKey.trim())
-                .apply()
+            encryptedPrefs.edit {
+                putString(KEY_API_KEY, apiKey.trim())
+            }
             
             println("SecurePreferencesRepository: API key saved successfully")
             Result.Success(Unit)
@@ -92,9 +93,9 @@ class SecurePreferencesRepositoryImpl(
 
     override suspend fun clearApiKey(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            encryptedPrefs.edit()
-                .remove(KEY_API_KEY)
-                .apply()
+            encryptedPrefs.edit {
+                remove(KEY_API_KEY)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(Exception("Failed to clear API key", e))
@@ -117,9 +118,9 @@ class SecurePreferencesRepositoryImpl(
                 if (it.endsWith("/")) it else "$it/"
             }
             
-            encryptedPrefs.edit()
-                .putString(KEY_API_ENDPOINT, cleanEndpoint)
-                .apply()
+            encryptedPrefs.edit {
+                putString(KEY_API_ENDPOINT, cleanEndpoint)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(Exception("Failed to save API endpoint", e))
