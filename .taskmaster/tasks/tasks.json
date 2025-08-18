@@ -1388,11 +1388,163 @@
             "testStrategy": "Unit tests for TranscriptionRequest field mapping, integration tests for end-to-end transcription with custom settings, API call verification with mock client, and logging validation for custom parameter usage"
           }
         ]
+      },
+      {
+        "id": 36,
+        "title": "Refactor AudioRecordingViewModel to Remove Business Logic and Use TranscriptionWorkflowUseCase",
+        "description": "Remove 100+ lines of business logic from AudioRecordingViewModel (lines 286-373) and delegate ALL business operations to TranscriptionWorkflowUseCase to comply with clean architecture principles.",
+        "details": "CRITICAL ARCHITECTURAL VIOLATION: AudioRecordingViewModel contains extensive business logic that belongs in the domain layer. The startTranscription method (lines 286-373) directly handles: 1) Settings retrieval and validation 2) TranscriptionRequest creation 3) API calls via transcriptionUseCase 4) Text insertion logic 5) Error handling and classification 6) Toast notifications 7) Complex state management. SOLUTION: Replace all business logic with calls to TranscriptionWorkflowUseCase which already provides: startRecording(), stopRecording(), cancelRecording(), retryFromError(), workflowState observation. CHANGES: 1) Remove direct injections of transcriptionUseCase, settingsRepository, textInsertionService 2) Inject TranscriptionWorkflowUseCase instead 3) Replace startTranscription method with workflow.startRecording() call 4) Replace custom state management with WorkflowState observation 5) Map WorkflowState to AudioRecordingUiState 6) Remove all direct service interactions 7) Simplify all action methods to delegate to workflow use case 8) Update initialization to observe workflow state changes. The ViewModel must become a thin layer that ONLY manages UI state mapping and user action delegation.",
+        "testStrategy": "Verify architectural compliance: 1) Confirm AudioRecordingViewModel contains NO direct business logic 2) Verify all transcription operations go through TranscriptionWorkflowUseCase 3) Test that all existing functionality works (record, transcribe, text insertion) 4) Verify state management properly maps WorkflowState to UI state 5) Test error handling flows through workflow use case 6) Confirm no direct service calls from ViewModel 7) Validate clean separation of concerns with unit tests 8) Test complete recording-to-transcription workflow on emulator 9) Verify proper cleanup and lifecycle management",
+        "status": "pending",
+        "dependencies": [
+          3,
+          5,
+          32,
+          33,
+          34
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Fix AudioRecordingViewModel Dependency Injection Violations",
+        "description": "Remove all infrastructure injections from AudioRecordingViewModel and replace with proper use case injections to adhere to clean architecture principles.",
+        "details": "CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel currently injects 6 direct infrastructure components violating clean architecture (lines 31-36): AudioServiceManager, PermissionHandler, SettingsRepository, TextInsertionService, Context. ViewModels must ONLY inject use cases from domain layer.\n\nImplementation Steps:\n1. Create ServiceManagementUseCase to abstract AudioServiceManager operations: bindService(), startRecording(), stopRecording(), pauseRecording(), resumeRecording(), getRecordingState(), getRecordingDuration(), cleanup(). Handle service state flows and error events.\n2. Create PermissionManagementUseCase to abstract PermissionHandler operations: requestAllPermissions(), getPermissionState(). Handle permission state flows.\n3. Create UserFeedbackUseCase to abstract Context/Toast functionality: showToast(message, isError). Remove Context dependency entirely.\n4. Keep existing TextInsertionService injection (domain interface - acceptable). Consider SettingsRepository injection (data layer access pattern needs evaluation).\n5. Refactor AudioRecordingViewModel to remove lines 31-32, 34, 36 and replace with new use case injections.\n6. Update all method calls: initializeService() → serviceManagementUseCase, requestPermissions() → permissionManagementUseCase, showToast() → userFeedbackUseCase.\n7. Update observeServiceState() and observeServiceEvents() to use use cases instead of direct manager access.\n8. Register new use cases in Android Koin module with proper dependency chain.\n9. Ensure all existing functionality is preserved while improving architecture compliance.\n10. Remove KoinComponent inheritance if no longer needed after removing direct injections.",
+        "testStrategy": "1. Verify ViewModel compiles with only use case injections and no infrastructure dependencies. 2. Test complete recording workflow: service binding, permission requests, start/stop/pause/resume recording, transcription flow. 3. Verify all UI state updates work correctly through use case abstractions. 4. Test error handling scenarios: service bind failures, permission denials, recording errors. 5. Verify toast messages display correctly through UserFeedbackUseCase. 6. Test service state observation and recording duration updates work through ServiceManagementUseCase. 7. Confirm no direct Android framework dependencies remain in ViewModel. 8. Run existing AudioRecordingViewModelTest suite to ensure no regressions. 9. Test on Android emulator with overlay service, permissions, and transcription end-to-end workflow.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          8,
+          18
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Create Service Management Use Cases - ServiceInitializationUseCase, PermissionManagementUseCase, and ServiceBindingUseCase",
+        "description": "Build three comprehensive use cases to encapsulate ALL service binding, permission management, and service initialization logic currently polluting AudioRecordingViewModel lines 130-181.",
+        "details": "Create ServiceInitializationUseCase to handle service binding logic (lines 130-158) that currently works with AudioServiceManager.ServiceBindResult infrastructure types. This use case must encapsulate service connection, binding state management, and error handling while returning domain models instead of infrastructure types. Create PermissionManagementUseCase to handle permission request workflows (lines 160-181) that currently work with PermissionHandler.PermissionResult infrastructure types. This use case must manage all permission states, rationale flows, and permission validation while returning domain representations. Create ServiceBindingUseCase to coordinate service binding with permission checks and provide unified service readiness state. These use cases must follow existing patterns: suspend operator fun invoke(), Result<T> return types, proper error handling, and domain model mapping. Create new domain models for ServiceConnectionStatus, PermissionStatus, and ServiceReadinessState to replace infrastructure types. Update AudioRecordingViewModel to use these use cases instead of directly handling ServiceBindResult or PermissionResult types. Implement comprehensive state mapping from infrastructure types (ServiceConnectionState, PermissionState, ServiceBindResult, PermissionResult) to clean domain representations. Include proper dependency injection setup and comprehensive error recovery mechanisms.",
+        "testStrategy": "Create unit tests for each use case verifying proper domain model mapping from infrastructure types. Test all service binding scenarios (success, failure, already bound, errors) and ensure infrastructure types never leak to domain layer. Test permission workflows including granted, denied, rationale scenarios with proper domain model responses. Create integration tests verifying AudioRecordingViewModel no longer handles infrastructure types directly. Verify service readiness coordination between binding and permissions works correctly. Test error scenarios and recovery mechanisms. Mock AudioServiceManager and PermissionHandler to verify proper abstraction layers. Ensure all existing ViewModel functionality remains intact after refactoring.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          7,
+          8,
+          10,
+          11
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "Eliminate Toast Logic from AudioRecordingViewModel",
+        "description": "Remove ALL Toast.makeText() calls from AudioRecordingViewModel and create proper event channel for UI notifications to fix massive clean architecture violation",
+        "details": "CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel directly calls Toast.makeText() on lines 375-378 and injects Android Context (line 36), violating clean architecture principles where ViewModels must NEVER interact with Android UI components directly.\n\nImplementation Steps:\n1. Remove showToast() method (lines 375-378) and all 8 calls to it throughout the ViewModel\n2. Remove Context injection from constructor (line 36) and related imports (Context, Toast)\n3. Create AudioRecordingUiEvent sealed class with events: ShowToast(message: String, isError: Boolean), ShowTranscriptionResult(text: String, language: String?), ShowError(error: String)\n4. Add private _uiEvents = MutableSharedFlow<AudioRecordingUiEvent>() and public val uiEvents: SharedFlow<AudioRecordingUiEvent> = _uiEvents.asSharedFlow()\n5. Replace all showToast() calls with _uiEvents.tryEmit() calls:\n   - Line 94: _uiEvents.tryEmit(ShowToast(\"Recording complete, transcribing...\"))\n   - Line 98: _uiEvents.tryEmit(ShowToast(\"Recording failed - no audio file created\", true))\n   - Line 200: _uiEvents.tryEmit(ShowToast(\"Recording started\"))\n   - Lines 328-331: _uiEvents.tryEmit(ShowTranscriptionResult(previewText, textInserted))\n   - Line 352: _uiEvents.tryEmit(ShowToast(errorMsg, true))\n   - Line 366: _uiEvents.tryEmit(ShowToast(\"Transcription error occurred\", true))\n6. Update UI layer to collect uiEvents flow and handle toast display using existing ToastService dependency injection pattern from TranscriptionWorkflowUseCase",
+        "testStrategy": "1. Verify ViewModel compiles without Context or Toast imports. 2. Test UI event emission for all recording workflow scenarios: start recording, complete recording, transcription success/failure, error states. 3. Verify View layer correctly receives and displays toast messages via ToastService. 4. Test complete recording workflow end-to-end ensuring all user feedback works correctly through event channel. 5. Unit tests for event emission timing and content accuracy.",
+        "status": "pending",
+        "dependencies": [
+          37,
+          8,
+          6
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "Refactor AudioServiceManager to Proper Abstraction with Clean Architecture Compliance",
+        "description": "Extract business logic from AudioServiceManager (217 lines) to domain layer, create IAudioServiceManager interface, and move state management to comply with Interface Segregation and Single Responsibility principles.",
+        "details": "CRITICAL ARCHITECTURAL VIOLATION: AudioServiceManager violates SOLID principles by mixing Android service binding with business logic. Current issues: 1) Manages both service connection AND recording state (lines 29-43) 2) Handles error events and channels (lines 35-39, 69-85) 3) Coordinates business operations (lines 130-184) 4) Mixed concerns across presentation, domain, and platform layers. SOLUTION: 1) Create IAudioServiceManager interface with only service binding methods (bindService, unbindService, getServiceReference) 2) Create AudioRecordingStateManager in domain layer to handle recording state flows and coordination 3) Move error event channels to domain ErrorLoggingService 4) Create BindAudioServiceUseCase and UnbindAudioServiceUseCase for clean service lifecycle management 5) Refactor AudioServiceManager to implement interface with ONLY Android-specific service binding logic (should be ~50 lines max) 6) Update AudioRecordingViewModel to use domain state manager instead of direct service manager 7) Preserve all existing functionality while achieving clean architecture separation.",
+        "testStrategy": "Verify architectural compliance: 1) Confirm AudioServiceManager implements IAudioServiceManager with only service binding methods 2) Verify all recording state management moved to domain AudioRecordingStateManager 3) Test error handling works through domain ErrorLoggingService 4) Verify use cases properly coordinate service binding 5) Test existing functionality (service binding, recording state sync, error propagation) 6) Verify no direct service access from ViewModels 7) Run existing AudioServiceManagerTest and update for new interface 8) Integration tests with AudioRecordingViewModel to ensure proper state flow 9) Test service recovery scenarios work with new architecture",
+        "status": "pending",
+        "dependencies": [
+          5,
+          18,
+          32
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 41,
+        "title": "Refactor ViewModel State Management - Separate UI State from Domain State",
+        "description": "Clean up AudioRecordingUiState by separating domain concerns from UI concerns, implementing proper WorkflowState to UiState transformations, and reducing ViewModel infrastructure dependencies.",
+        "details": "PHASE 1 - Create Clean Presentation Models: Create AudioFilePresentationModel with UI-formatted data (duration string, file size text, validity status) to replace direct AudioFile usage. Create TranscriptionDisplayModel with preview text truncation and insertion status for UI display. Define clean RecordingStatus enum (Idle, Recording, Processing, InsertingText, Success, Error) for pure UI state representation. PHASE 2 - Implement State Mapping Layer: Create WorkflowState.toUiState() extension function to transform domain WorkflowState to clean AudioRecordingUiState. Implement domain model to presentation model mappers (AudioFile → AudioFilePresentationModel, TranscriptionResult → TranscriptionDisplayModel). Add error message transformation from domain errors to user-friendly display messages. PHASE 3 - Refactor AudioRecordingViewModel: Remove 5 infrastructure dependencies (AudioServiceManager, PermissionHandler, SettingsRepository, TextInsertionService, Context), keep only TranscriptionWorkflowUseCase. Replace complex state combination logic (lines 386-398) with single workflowState.collect transformation. Move all business logic (100+ lines) from ViewModel to appropriate domain use cases. Reduce ViewModel from 398 lines to approximately 100 lines focusing purely on UI state management. PHASE 4 - Create Missing Domain Use Cases: Implement ServiceManagementUseCase to handle service binding, connection state, and permission management abstractly. Update TranscriptionWorkflowUseCase to be the single source of truth for workflow state, ensuring it properly orchestrates the complete recording-to-transcription-to-insertion workflow. Create proper domain events for state transitions instead of direct UI state manipulation.",
+        "testStrategy": "Unit test new presentation model mappers with various domain model inputs including edge cases (null values, empty strings, large files). Test WorkflowState.toUiState() transformation function with all possible workflow states ensuring UI state correctness. Mock TranscriptionWorkflowUseCase in ViewModel tests to verify clean state observation and UI state updates. Integration test complete workflow to ensure domain-to-UI state transformation maintains existing functionality. Test ViewModel with various WorkflowState sequences to verify UI state consistency. Verify no business logic remains in ViewModel through code review and testing. Test that UI components still receive correct state for rendering after refactoring.",
+        "status": "pending",
+        "dependencies": [
+          3,
+          10
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 42,
+        "title": "Implement Proper Error Handling Abstraction with ErrorMapper",
+        "description": "Create ErrorMapper abstraction to transform domain errors to UI-friendly messages, eliminating direct error message construction in ViewModels and properly integrating ErrorClassifier and ErrorNotificationService through use cases.",
+        "details": "Create ErrorMapper interface and implementation that transforms domain errors (TranscriptionError, AudioRecordingError, OpenAIException) to ErrorInfo objects using existing ErrorClassifier. Refactor AudioRecordingViewModel lines 74-84 to use ErrorMapper instead of direct error string assignment. Update SettingsViewModel.handleError() to delegate to ErrorMapper. Enhance use cases (TranscriptionUseCase, StartRecordingUseCase, StopRecordingUseCase) to integrate ErrorNotificationService for centralized error handling. Create ViewModelErrorHandler that encapsulates error processing logic. Update UI state classes to handle ErrorInfo objects instead of raw error strings. Implement error action handling in UI components (retry, settings navigation, dismiss). Add ErrorContext data class to provide contextual information for better error classification. Integrate with existing ErrorLoggingService for comprehensive error tracking. Remove all direct error message construction from ViewModels - they should only receive and display pre-classified ErrorInfo objects.",
+        "testStrategy": "Unit tests for ErrorMapper transformation of all domain error types to appropriate ErrorInfo objects. Test ViewModel integration ensures no direct error string construction occurs. Integration tests verify ErrorNotificationService receives properly classified errors from use cases. UI tests confirm error actions (retry, navigate to settings) work correctly. Mock error scenarios to verify complete error flow from domain through ErrorMapper to UI display. Verify ErrorLoggingService integration captures all error transformations with proper context.",
+        "status": "pending",
+        "dependencies": [
+          10,
+          13,
+          23
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 43,
+        "title": "Remove KoinComponent from AudioRecordingViewModel and Implement Constructor Injection",
+        "description": "Refactor AudioRecordingViewModel to remove KoinComponent inheritance and replace service locator pattern with proper constructor injection for better testability and adherence to Dependency Inversion Principle.",
+        "details": "CRITICAL ARCHITECTURAL VIOLATION: AudioRecordingViewModel extends KoinComponent (line 25) and uses service locator pattern with 'by inject()' for 6 dependencies (lines 31-36), violating Dependency Inversion Principle and making the class untestable. SOLUTION: 1) Remove KoinComponent interface inheritance from class declaration. 2) Convert all 'by inject()' dependencies to constructor parameters: AudioServiceManager, PermissionHandler, TranscribeWithLanguageDetectionUseCase, SettingsRepository, TextInsertionService, Context. 3) Update AndroidAppModule.kt line 53 from 'viewModel { AudioRecordingViewModel() }' to 'viewModel { AudioRecordingViewModel(get(), get(), get(), get(), get(), get()) }' providing all dependencies explicitly. 4) Remove imports for 'org.koin.core.component.KoinComponent' and 'org.koin.core.component.inject'. 5) Update constructor signature to accept all required dependencies as parameters. This enables proper unit testing with mocked dependencies and follows clean architecture principles where dependencies are explicitly declared rather than implicitly resolved through service location.",
+        "testStrategy": "1. Verify ViewModel compiles without KoinComponent interface and inject() usage. 2. Create unit tests with mocked dependencies to confirm improved testability - mock AudioServiceManager, PermissionHandler, TranscribeWithLanguageDetectionUseCase, SettingsRepository, TextInsertionService, and Context. 3. Test complete recording workflow functionality remains intact: service binding, permission handling, recording start/stop/pause/resume, transcription processing, and text insertion. 4. Verify Koin dependency injection works correctly through constructor parameters in AndroidAppModule. 5. Run existing ViewModel tests (if any) to ensure no regression in functionality. 6. Confirm all UI state updates and event flows work properly with constructor-injected dependencies.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          37
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 44,
+        "title": "Create DurationTrackerUseCase to Eliminate Coroutine Management from ViewModel",
+        "description": "Remove the coroutine and delay management from AudioRecordingViewModel by creating a DurationTrackerUseCase that emits Flow<Long> for recording duration, moving timing logic to proper domain layer architecture.",
+        "details": "CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel directly manages coroutines and delays (lines 120-128) with startDurationTimer() method containing a while loop with kotlinx.coroutines.delay(100). This violates clean architecture - ViewModels must ONLY collect flows, not manage timing infrastructure.\n\nImplementation Steps:\n1. Create DurationTrackerUseCase in shared/src/commonMain/kotlin/.../domain/usecases/ that observes AudioRepository.recordingState flow\n2. Map RecordingState.Recording(duration) to emit duration values as Flow<Long>, emit 0L for non-recording states\n3. Add proper error handling and ensure flow completes when recording stops\n4. Remove startDurationTimer() method entirely from AudioRecordingViewModel (lines 120-128)\n5. Remove _recordingDuration StateFlow management from ViewModel - duration will come from use case\n6. Update observeServiceEvents() method to collect from DurationTrackerUseCase.execute() instead of manual timer\n7. Inject DurationTrackerUseCase into AudioRecordingViewModel constructor\n8. Register DurationTrackerUseCase in Koin dependency injection modules\n9. Update recordingDuration StateFlow to collect from use case flow instead of manual updates\n10. Ensure existing UI duration display continues working through proper flow-based architecture\n11. Remove all direct audioServiceManager.getRecordingDuration() calls from ViewModel\n12. The egregious while loop with delay(100) will be completely eliminated, replaced with clean reactive flow architecture",
+        "testStrategy": "1. Verify DurationTrackerUseCase emits correct duration values during recording states and 0L when idle. 2. Test duration updates every 100ms through flow emissions without ViewModel managing any timers. 3. Confirm startDurationTimer() method is completely removed from AudioRecordingViewModel. 4. Test recording duration UI updates work correctly through new use case flow. 5. Verify no coroutine management or delay() calls remain in ViewModel. 6. Test that duration resets to 0 when recording stops through use case flow. 7. Run existing AudioRecordingViewModelTest to ensure no regressions in functionality. 8. Test complete recording workflow: start recording → duration updates → stop recording → duration reset. 9. Verify memory and performance - no timer leaks when ViewModel is destroyed.",
+        "status": "pending",
+        "dependencies": [
+          10,
+          39,
+          6
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 45,
+        "title": "Create Integration Tests for Clean Architecture Compliance",
+        "description": "Build comprehensive integration tests using MockK to verify ViewModels only call use cases, no business logic exists in presentation layer, proper dependency injection is used, and clean separation of concerns is maintained.",
+        "details": "Create four integration test files: 1) ArchitectureIntegrationTest.kt - Main clean architecture verification using reflection to scan ViewModels and verify they only inject/call use cases, never repositories or services directly. Test that all ViewModel methods delegate to use cases. 2) ViewModelLayerIntegrationTest.kt - Specific tests for each ViewModel (AudioRecordingViewModel, SettingsViewModel) using MockK to verify they never call AudioServiceManager, PermissionHandler, or repository methods directly. Mock all use cases and verify interaction patterns. 3) DependencyInjectionIntegrationTest.kt - Test Koin dependency graph ensures ViewModels receive use cases via constructor injection, not manual inject() calls. Verify proper dependency hierarchy. 4) BusinessLogicSeparationTest.kt - Test that ViewModels contain only presentation logic (state management, UI events) while business logic resides in use cases. Use MockK.verify to ensure ViewModels never perform business operations like API calls, data validation, or complex processing. Include negative tests that verify architectural violations are caught. Test both shared (commonTest) and Android-specific (androidTest) scenarios. Create helper functions to analyze class dependencies and detect violations programmatically.",
+        "testStrategy": "Use MockK to create integration test scenarios where all use cases are mocked and verify ViewModels interact only with use cases. Test dependency injection graph with Koin test utilities to ensure proper wiring. Use reflection to scan ViewModel classes and verify they don't import or reference data/infrastructure layer classes directly. Create test scenarios for common workflows (recording, transcription, settings) and verify business logic flows through use cases. Test error scenarios to ensure ViewModels delegate error handling to use cases. Include performance tests to verify dependency injection doesn't create circular dependencies or memory leaks.",
+        "status": "pending",
+        "dependencies": [
+          10,
+          18,
+          38
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-18T12:55:53.882Z",
+      "updated": "2025-08-18T14:14:02.172Z",
       "description": "Tasks for master context"
     }
   }
