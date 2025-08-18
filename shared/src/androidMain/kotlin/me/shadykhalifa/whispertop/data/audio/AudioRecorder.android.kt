@@ -37,7 +37,7 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     private val configuration: AudioConfigurationProvider = AudioConfiguration()
     private val audioFocusManager: AudioFocusManager = AudioFocusManagerImpl()
     private val qualityManager: AudioQualityManager = AudioQualityManager()
-    private val audioProcessor: AudioProcessor = AudioProcessor()
+    private val audioProcessor: AudioProcessor = AudioProcessor(gainFactor = 2.5f)
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recordingExecutor = Executors.newSingleThreadExecutor { Thread(it, "AudioRecorder") }
@@ -253,7 +253,7 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
             Log.d(TAG, "createAudioRecord: sampleRate=${configuration.sampleRate}, bufferSize=$bufferSize")
             
             val audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
                 configuration.sampleRate,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
@@ -319,6 +319,49 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     
     fun getRecordingStatistics(): RecordingStatistics? = qualityManager.recordingStatistics.value
     
+    fun isAudioLevelAcceptable(): Boolean {
+        val metrics = qualityManager.currentMetrics.value
+        val stats = qualityManager.recordingStatistics.value
+        
+        // Check if audio levels are sufficient for transcription
+        val hasAcceptableRMS = metrics.rmsLevel > 0.02f // At least 2% of max amplitude
+        val hasAcceptableDB = metrics.dbLevel > -50f    // Above -50dB
+        val notTooQuiet = stats?.averageLevel ?: 0f > 0.01f
+        
+        val acceptable = hasAcceptableRMS && hasAcceptableDB && notTooQuiet
+        
+        Log.d(TAG, "isAudioLevelAcceptable: rms=${metrics.rmsLevel}, db=${metrics.dbLevel}, avg=${stats?.averageLevel}, acceptable=$acceptable")
+        
+        return acceptable
+    }
+    
+    fun logAudioDiagnostics() {
+        val metrics = getCurrentMetrics()
+        val stats = getRecordingStatistics()
+        val report = getQualityReport()
+        
+        Log.d(TAG, "=== AUDIO DIAGNOSTICS ===")
+        Log.d(TAG, "Current RMS: ${metrics.rmsLevel} (${(metrics.rmsLevel * 100).toInt()}%)")
+        Log.d(TAG, "Current Peak: ${metrics.peakLevel} (${(metrics.peakLevel * 100).toInt()}%)")
+        Log.d(TAG, "Current dB: ${metrics.dbLevel}")
+        Log.d(TAG, "Quality Score: ${metrics.qualityScore}/100")
+        Log.d(TAG, "Is Silent: ${metrics.isSilent}")
+        Log.d(TAG, "Is Clipping: ${metrics.isClipping}")
+        
+        stats?.let {
+            Log.d(TAG, "Recording Duration: ${it.duration}ms")
+            Log.d(TAG, "Average Level: ${it.averageLevel}")
+            Log.d(TAG, "File Size: ${it.fileSize} bytes")
+            Log.d(TAG, "Silence: ${it.silencePercentage}%")
+        }
+        
+        if (report.issues.isNotEmpty()) {
+            Log.w(TAG, "Quality Issues: ${report.issues}")
+            Log.w(TAG, "Recommendations: ${report.recommendations}")
+        }
+        Log.d(TAG, "========================")
+    }
+    
     fun cleanup() {
         scope.cancel()
         recordingExecutor.shutdown()
@@ -349,6 +392,7 @@ private class AudioRecordingThread(
             val buffer = ShortArray(bufferSize / 2)
             val allData = mutableListOf<Short>()
             var totalBytes = 0L
+            var bufferCount = 0
             
             Log.d("AudioRecordingThread", "Starting recording: sampleRate=${audioRecord.sampleRate}, bufferSize=$bufferSize, outputPath=$outputPath")
             
@@ -368,6 +412,13 @@ private class AudioRecordingThread(
                     }
                     
                     qualityManager.processAudioBuffer(bufferSlice)
+                    
+                    // Log audio levels every 50 buffers (~5 seconds at 100ms buffers)
+                    bufferCount++
+                    if (bufferCount % 50 == 0) {
+                        val metrics = qualityManager.currentMetrics.value
+                        Log.d("AudioRecordingThread", "Audio levels: RMS=${metrics.rmsLevel}, Peak=${metrics.peakLevel}, dB=${metrics.dbLevel}, Silent=${metrics.isSilent}")
+                    }
                     
                     // Check if we should stop due to file size
                     totalBytes += read * 2 // 2 bytes per sample

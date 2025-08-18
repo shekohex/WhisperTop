@@ -7,11 +7,17 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 class AudioProcessor(
-    private val qualityPreset: QualityPreset = QualityPreset.MEDIUM
+    private val qualityPreset: QualityPreset = QualityPreset.MEDIUM,
+    private val gainFactor: Float = 1.0f // Default no amplification for backward compatibility
 ) {
     
     fun processAudio(audioData: ShortArray): ShortArray {
         var processed = audioData
+        
+        // Apply gain amplification first to boost weak signals
+        if (gainFactor != 1.0f) {
+            processed = applyGain(processed)
+        }
         
         if (qualityPreset.silenceTrimming) {
             processed = trimSilence(processed)
@@ -61,7 +67,7 @@ class AudioProcessor(
     fun applyNoiseGate(audioData: ShortArray): ShortArray {
         if (audioData.isEmpty()) return audioData
         
-        val gateThreshold = (32768 * 0.005f).toInt() // 0.5% of max amplitude
+        val gateThreshold = (32768 * 0.001f).toInt() // 0.1% of max amplitude (less aggressive)
         val windowSize = 100
         val result = ShortArray(audioData.size)
         
@@ -182,5 +188,44 @@ class AudioProcessor(
         }
         
         return result
+    }
+    
+    fun applyGain(audioData: ShortArray): ShortArray {
+        if (audioData.isEmpty() || gainFactor == 1.0f) return audioData
+        
+        val result = ShortArray(audioData.size)
+        
+        for (i in audioData.indices) {
+            val amplified = (audioData[i] * gainFactor).roundToInt()
+            // Clip to prevent overflow and distortion
+            result[i] = amplified.coerceIn(-32768, 32767).toShort()
+        }
+        
+        return result
+    }
+    
+    fun calculateAutoGain(audioData: ShortArray): Float {
+        if (audioData.isEmpty()) return 1.0f
+        
+        // Calculate RMS (Root Mean Square) for average signal level
+        var sumOfSquares = 0.0
+        for (sample in audioData) {
+            val normalized = sample / 32768.0
+            sumOfSquares += normalized * normalized
+        }
+        val rms = sqrt(sumOfSquares / audioData.size)
+        
+        // Target RMS level (about 25% of maximum)
+        val targetRms = 0.25
+        
+        // Calculate gain needed to reach target
+        val suggestedGain = if (rms > 0) {
+            (targetRms / rms).toFloat()
+        } else {
+            1.0f
+        }
+        
+        // Limit gain to reasonable range (0.5x to 8x)
+        return suggestedGain.coerceIn(0.5f, 8.0f)
     }
 }

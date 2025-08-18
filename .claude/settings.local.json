@@ -16,5 +16,9 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "mobile"
+  ],
+  "enableAllProjectMcpServers": true
 }

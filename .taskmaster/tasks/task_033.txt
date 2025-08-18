@@ -1,0 +1,43 @@
+# Task ID: 33
+# Title: Fix Audio Recording Quality and Sensitivity Issues
+# Status: pending
+# Dependencies: 5, 22
+# Priority: high
+# Description: Audio recordings have very low volume/dB levels causing transcription to return empty results. Need to fix microphone sensitivity and audio configuration.
+# Details:
+Critical bug: WAV files have low audio levels making transcription fail. Issues: 1) Check AudioRecord configuration (sample rate, channel, encoding) 2) Remove/optimize noise suppression if causing issues 3) Increase microphone gain/sensitivity 4) Verify WAV encoding is correct 5) Test audio levels with monitoring tools
+
+# Test Strategy:
+Test on emulator: 1) Record sample audio 2) Analyze WAV file with audio tools 3) Check dB levels 4) Verify transcription returns text 5) Compare with working audio samples
+
+# Subtasks:
+## 1. Analyze Current Audio Configuration [pending]
+### Dependencies: None
+### Description: Review AudioRecord setup and identify potential issues with low volume
+### Details:
+Check: AudioSource (should be MIC or VOICE_RECOGNITION), sample rate (16kHz), channel config (MONO), audio format (PCM_16BIT), buffer size calculation. Log actual vs minimum buffer sizes.
+
+## 2. Remove or Optimize Noise Suppression [pending]
+### Dependencies: 33.1
+### Description: Identify and fix any noise reduction causing low audio levels
+### Details:
+Check for: NoiseSuppressor, AcousticEchoCanceler, AutomaticGainControl usage. If present, make configurable or remove. Test with VOICE_RECOGNITION source which has less processing.
+
+## 3. Implement Audio Gain Amplification [pending]
+### Dependencies: 33.2
+### Description: Add configurable gain to boost audio signal before WAV encoding
+### Details:
+Implement audio amplification: multiply PCM samples by gain factor (1.5-3.0), clip to prevent overflow, add setting for user adjustment. Calculate RMS for auto-gain if needed.
+
+## 4. Verify WAV File Encoding [pending]
+### Dependencies: 33.3
+### Description: Ensure WAV headers and PCM data are correctly formatted
+### Details:
+Validate: WAV header (RIFF, fmt, data chunks), byte order (little-endian), sample rate matches recording, bit depth (16-bit), data chunk size. Compare with reference WAV that works with Whisper API.
+
+## 5. Add Audio Level Monitoring and Tests [pending]
+### Dependencies: 33.4
+### Description: Implement real-time audio level monitoring and automated tests
+### Details:
+Add: VU meter in debug mode, log RMS/peak levels, automated test comparing output levels, test with various input volumes. Create reference audio files for testing.
+

@@ -1,0 +1,43 @@
+# Task ID: 34
+# Title: Fix Accessibility Service Text Insertion
+# Status: pending
+# Dependencies: 8, 11, 32, 33
+# Priority: high
+# Description: Accessibility service fails to paste transcribed text into focused text fields. Critical functionality completely broken.
+# Details:
+Critical bug: Text insertion doesn't work at all. Need to: 1) Verify accessibility service is properly enabled 2) Check focus detection logic 3) Fix text insertion method 4) Handle different input field types 5) Test across various apps. Could be related to transcription bugs if no text is being generated.
+
+# Test Strategy:
+Test on emulator: 1) Enable accessibility service 2) Open any app with text field 3) Focus on field 4) Trigger recording 5) Verify text appears 6) Test in Chrome, Messages, Notes apps
+
+# Subtasks:
+## 1. Diagnose Accessibility Service Status [pending]
+### Dependencies: None
+### Description: Verify accessibility service is running and receiving events
+### Details:
+Add logging to onAccessibilityEvent, onServiceConnected. Check: service enabled in settings, receiving TYPE_VIEW_FOCUSED events, finding focused node correctly. Use adb to verify service status.
+
+## 2. Fix Focus Detection Logic [pending]
+### Dependencies: 34.1
+### Description: Ensure service correctly identifies focused editable text fields
+### Details:
+Implement: findFocus(AccessibilityNodeInfo.FOCUS_INPUT), check isEditable(), handle WebView inputs, traverse node tree if needed. Log all detected input fields for debugging.
+
+## 3. Implement Robust Text Insertion Methods [pending]
+### Dependencies: 34.2
+### Description: Fix text insertion using multiple fallback methods
+### Details:
+Try in order: 1) performAction(ACTION_SET_TEXT) 2) Bundle with ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE 3) ACTION_PASTE via clipboard 4) Simulated key events. Handle existing text append vs replace.
+
+## 4. Handle Different Input Field Types [pending]
+### Dependencies: 34.3
+### Description: Support various input field types across different apps
+### Details:
+Test and fix for: EditText, WebView inputs, Chrome address bar, messaging apps, secure fields. Add app-specific handling if needed (package name detection).
+
+## 5. Write Comprehensive Accessibility Tests [pending]
+### Dependencies: 34.4
+### Description: Create UI tests for text insertion across multiple apps
+### Details:
+Use UiAutomator to test: focus detection, text insertion, multiple apps (Chrome, Messages, Keep). Mock transcription results to isolate accessibility testing. Verify text appears correctly.
+

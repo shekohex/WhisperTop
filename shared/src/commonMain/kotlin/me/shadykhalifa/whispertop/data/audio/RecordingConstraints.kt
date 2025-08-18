@@ -47,7 +47,7 @@ data class QualityPreset(
             quality = AudioQuality.MEDIUM,
             sampleRate = 16000,
             bitDepth = 16,
-            noiseReduction = true,
+            noiseReduction = false,
             silenceTrimming = true,
             normalization = true
         )

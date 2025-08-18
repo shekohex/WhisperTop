@@ -209,4 +209,48 @@ class AudioQualityIntegrationTest : KoinTest {
             }
         }
     }
+    
+    @Test
+    fun testAudioLevelValidation() = runTest {
+        val recorder = AudioRecorderImpl()
+        val outputPath = File(testOutputDir, "level_test.wav").absolutePath
+        
+        // Start recording
+        val result = recorder.startRecording(outputPath)
+        assertTrue(result is AudioRecordingResult.Success)
+        
+        // Record for enough time to get meaningful metrics
+        Thread.sleep(2000)
+        
+        // Test audio level validation
+        val isAcceptable = recorder.isAudioLevelAcceptable()
+        val metrics = recorder.getCurrentMetrics()
+        val stats = recorder.getRecordingStatistics()
+        
+        // Log diagnostics for debugging
+        recorder.logAudioDiagnostics()
+        
+        // Audio should have some level (might be quiet depending on environment)
+        assertNotNull(metrics)
+        assertNotNull(stats)
+        
+        // Check that metrics are being calculated
+        assertTrue(metrics.rmsLevel >= 0f)
+        assertTrue(metrics.peakLevel >= 0f)
+        assertTrue(metrics.dbLevel <= 0f) // dB should be negative or 0
+        assertTrue(metrics.qualityScore in 0..100)
+        
+        // Stop recording  
+        val audioFile = recorder.stopRecording()
+        assertNotNull(audioFile)
+        
+        // Verify WAV file was created with content
+        val file = File(audioFile.path)
+        assertTrue(file.exists())
+        assertTrue(file.length() > 44) // Header + some audio data
+        
+        // Cleanup
+        recorder.cleanup()
+        file.delete()
+    }
 }

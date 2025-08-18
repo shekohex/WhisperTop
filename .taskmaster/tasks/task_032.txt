@@ -1,0 +1,43 @@
+# Task ID: 32
+# Title: Fix Background Transcription Service Reliability
+# Status: pending
+# Dependencies: 5, 21, 29
+# Priority: high
+# Description: The transcription service fails when app is in background. Must ensure AudioRecordingService runs as proper foreground service with wake locks and persists when app is backgrounded.
+# Details:
+Critical bug: The entire purpose of an overlay app is defeated if transcription doesn't work in background. Need to: 1) Verify foreground service implementation with proper notification 2) Add wake lock acquisition 3) Fix service binding/lifecycle 4) Test with Android emulator monitoring logcat 5) Ensure service survives app backgrounding
+
+# Test Strategy:
+Test on Android emulator: 1) Start recording from overlay 2) Switch to different app 3) Verify recording continues in logcat 4) Complete transcription 5) Test with screen off
+
+# Subtasks:
+## 1. Diagnose Foreground Service Implementation [pending]
+### Dependencies: None
+### Description: Analyze current AudioRecordingService to identify why it stops in background
+### Details:
+Use logcat to monitor service lifecycle. Check: notification channel setup, startForeground() timing, service type declaration, binding modes. Add debug logs at all lifecycle methods.
+
+## 2. Fix Service Binding and Lifecycle [pending]
+### Dependencies: 32.1
+### Description: Ensure service uses START_STICKY and proper binding flags for persistence
+### Details:
+Implement onStartCommand with START_STICKY, use Context.BIND_AUTO_CREATE for binding, handle rebinding on process death. Verify service declaration in manifest has android:foregroundServiceType='microphone'.
+
+## 3. Add Wake Lock and Power Management [pending]
+### Dependencies: 32.2
+### Description: Implement partial wake lock to keep CPU active during recording
+### Details:
+Add WAKE_LOCK permission, acquire PowerManager.PARTIAL_WAKE_LOCK during recording, release on stop. Handle Doze mode with setExactAndAllowWhileIdle if needed. Test with screen off.
+
+## 4. Test Background Recording Persistence [pending]
+### Dependencies: 32.3
+### Description: Comprehensive testing on emulator with different background scenarios
+### Details:
+Test: 1) App minimized 2) Switch between apps 3) Screen locked 4) After 5+ minutes in background 5) Low memory conditions. Monitor with adb logcat, verify audio file creation.
+
+## 5. Write Unit Tests for Service Lifecycle [pending]
+### Dependencies: 32.4
+### Description: Add tests to ensure service persists correctly in all scenarios
+### Details:
+Create ServiceTestRule tests for: foreground notification, wake lock acquisition/release, rebinding after process death, START_STICKY behavior. Use Robolectric for service testing.
+
