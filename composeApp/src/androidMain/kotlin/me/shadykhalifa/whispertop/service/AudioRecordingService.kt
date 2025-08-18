@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -17,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.MainActivity
 import me.shadykhalifa.whispertop.R
@@ -72,6 +75,8 @@ class AudioRecordingService : Service() {
     private var currentOutputPath: String? = null
     private var currentSessionId: String? = null
     private var bufferUnderrunCount: Int = 0
+    private var isForegroundService = false
+    private var lastHealthCheck: Long = 0
     
     private val stateListeners = mutableSetOf<RecordingStateListener>()
     
@@ -92,7 +97,7 @@ class AudioRecordingService : Service() {
         acquireIntelligentWakeLock()
         
         // Start as foreground service immediately to prevent ANR
-        startForeground(NOTIFICATION_ID, createNotification())
+        startForegroundWithType(NOTIFICATION_ID, createNotification())
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -100,7 +105,7 @@ class AudioRecordingService : Service() {
             ACTION_START_FOREGROUND -> {
                 // Ensure we're running as foreground service
                 if (!isInForeground()) {
-                    startForeground(NOTIFICATION_ID, createNotification())
+                    startForegroundWithType(NOTIFICATION_ID, createNotification())
                 }
             }
             ACTION_STOP_FOREGROUND -> {
@@ -133,11 +138,16 @@ class AudioRecordingService : Service() {
                 currentState.set(RecordingState.IDLE)
             }
             
+            // Mark service as no longer foreground
+            isForegroundService = false
+            
             // Cleanup power management
             powerManager.cleanup()
             
             // Release wake lock
             releaseWakeLock()
+            
+            Log.d(TAG, "onDestroy: Service destroyed, resources cleaned up")
             
         } finally {
             // Always cancel scope last
@@ -215,11 +225,27 @@ class AudioRecordingService : Service() {
                 // Start periodic memory monitoring
                 startMemoryMonitoring()
                 
+                // Start service health monitoring
+                startHealthMonitoring()
+                
             } catch (e: Exception) {
                 setState(RecordingState.IDLE)
                 currentSessionId?.let { sessionId ->
                     metricsCollector.endRecordingMetrics(sessionId, false, "Recording error: ${e.message}")
                 }
+                Log.e(TAG, "startRecording: Critical error occurred", e)
+                
+                // Ensure we maintain foreground status even after error
+                try {
+                    if (isForegroundService) {
+                        updateNotification()
+                    } else {
+                        startForegroundWithType(NOTIFICATION_ID, createNotification())
+                    }
+                } catch (foregroundError: Exception) {
+                    Log.e(TAG, "startRecording: Failed to maintain foreground status", foregroundError)
+                }
+                
                 notifyError("Recording error: ${e.message}")
             }
         }
@@ -272,8 +298,8 @@ class AudioRecordingService : Service() {
                     )
                 }
                 
-                // Keep service running but remove foreground status
-                stopForeground(STOP_FOREGROUND_DETACH)
+                // Keep service in foreground with updated notification
+                // Don't call stopForeground() to maintain background recording capability
                 updateNotification()
                 notifyRecordingComplete(audioFile)
                 
@@ -282,7 +308,8 @@ class AudioRecordingService : Service() {
                 currentSessionId?.let { sessionId ->
                     metricsCollector.endRecordingMetrics(sessionId, false, "Error stopping recording: ${e.message}")
                 }
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                // Keep foreground status to maintain service reliability
+                updateNotification()
                 notifyError("Error stopping recording: ${e.message}")
             }
         }
@@ -547,6 +574,42 @@ class AudioRecordingService : Service() {
     
     fun getCurrentSessionId(): String? = currentSessionId
     
+    /**
+     * Start health monitoring to detect and recover from service issues
+     */
+    private fun startHealthMonitoring() {
+        scope.launch {
+            while (isActive && currentState.get() != RecordingState.IDLE) {
+                try {
+                    lastHealthCheck = System.currentTimeMillis()
+                    
+                    // Check if we're still properly in foreground
+                    if (!isForegroundService && currentState.get() != RecordingState.IDLE) {
+                        Log.w(TAG, "Service lost foreground status, re-promoting to foreground")
+                        startForegroundWithType(NOTIFICATION_ID, createNotification())
+                    }
+                    
+                    // Check if wake lock is still held
+                    wakeLock?.let { wl ->
+                        if (!wl.isHeld && currentState.get() == RecordingState.RECORDING) {
+                            Log.w(TAG, "Wake lock was released during recording, re-acquiring")
+                            acquireIntelligentWakeLock()
+                        }
+                    }
+                    
+                    // Update notification to show we're alive
+                    updateNotification()
+                    
+                } catch (e: Exception) {
+                    Log.w(TAG, "Health monitoring error: ${e.message}", e)
+                }
+                
+                // Check every 30 seconds during active recording
+                delay(30_000)
+            }
+        }
+    }
+    
     private fun acquireIntelligentWakeLock() {
         releaseWakeLock() // Release any existing wake lock first
         
@@ -555,7 +618,10 @@ class AudioRecordingService : Service() {
             PowerManager.PARTIAL_WAKE_LOCK,
             "WhisperTop::AudioRecording"
         )
-        wakeLock?.acquire(10 * 60 * 1000L) // 10 minutes timeout
+        // Acquire indefinite wake lock for background recording reliability
+        // This is safe because it's released when service is destroyed
+        wakeLock?.acquire()
+        Log.d(TAG, "acquireIntelligentWakeLock: Wake lock acquired for background recording")
     }
     
     private fun acquireWakeLock() {
@@ -564,18 +630,12 @@ class AudioRecordingService : Service() {
     }
     
     private fun isInForeground(): Boolean {
-        return try {
-            // Check if service is running in foreground
-            // This is a simplified check - in practice, we track this state
-            currentState.get() != RecordingState.IDLE
-        } catch (e: Exception) {
-            false
-        }
+        return isForegroundService
     }
     
     fun ensureForegroundService() {
         if (!isInForeground() && currentState.get() != RecordingState.IDLE) {
-            startForeground(NOTIFICATION_ID, createNotification())
+            startForegroundWithType(NOTIFICATION_ID, createNotification())
         }
     }
     
@@ -586,5 +646,20 @@ class AudioRecordingService : Service() {
             }
         }
         wakeLock = null
+    }
+    
+    /**
+     * Start foreground service with proper microphone service type for Android 11+
+     */
+    private fun startForegroundWithType(id: Int, notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ requires explicit service type for microphone access
+            startForeground(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else {
+            // Pre-Android 11 doesn't require service type
+            startForeground(id, notification)
+        }
+        isForegroundService = true
+        Log.d(TAG, "startForegroundWithType: Service promoted to foreground with microphone type")
     }
 }

@@ -388,6 +388,10 @@ private class AudioRecordingThread(
     
     override fun run() {
         try {
+            // Set high priority thread for audio recording to prevent buffer underruns
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+            Log.d("AudioRecordingThread", "Audio recording thread priority set to THREAD_PRIORITY_AUDIO")
+            
             startTime.set(System.currentTimeMillis())
             val buffer = ShortArray(bufferSize / 2)
             val allData = mutableListOf<Short>()
