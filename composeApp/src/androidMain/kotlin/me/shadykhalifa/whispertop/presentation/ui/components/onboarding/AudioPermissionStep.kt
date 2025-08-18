@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.presentation.ui.components.onboarding
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -67,37 +68,41 @@ fun AudioPermissionStep(
             description = "Required for voice recording",
             icon = Icons.Default.Mic,
             permissionState = permissionState,
-            isRequired = true
+            isRequired = true,
+            onClick = if (permissionState.state != PermissionState.Granted) onRequestPermission else null
         )
         
         if (notificationPermissionState.isRequired) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             PermissionStatusCard(
                 title = "Notifications",
                 description = "Shows recording status",
                 icon = Icons.Default.Notifications,
                 permissionState = notificationPermissionState,
-                isRequired = true
+                isRequired = true,
+                onClick = if (notificationPermissionState.state != PermissionState.Granted) onRequestPermission else null
             )
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         PermissionStatusCard(
             title = "Foreground Service",
             description = "Enables background recording",
             icon = Icons.Default.PlayArrow,
             permissionState = foregroundServicePermissionState,
-            isRequired = true
+            isRequired = true,
+            onClick = if (foregroundServicePermissionState.state != PermissionState.Granted) onRequestPermission else null
         )
         
         if (foregroundServiceMicrophonePermissionState.isRequired) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             PermissionStatusCard(
                 title = "Microphone Service",
                 description = "Background microphone access",
                 icon = Icons.Default.MicNone,
                 permissionState = foregroundServiceMicrophonePermissionState,
-                isRequired = true
+                isRequired = true,
+                onClick = if (foregroundServiceMicrophonePermissionState.state != PermissionState.Granted) onRequestPermission else null
             )
         }
         
@@ -271,7 +276,8 @@ private fun PermissionStatusCard(
     description: String,
     icon: ImageVector,
     permissionState: IndividualPermissionState,
-    isRequired: Boolean
+    isRequired: Boolean,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -280,7 +286,12 @@ private fun PermissionStatusCard(
                 PermissionState.PermanentlyDenied -> MaterialTheme.colorScheme.errorContainer
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
-        )
+        ),
+        modifier = if (onClick != null) {
+            Modifier.clickable { onClick() }
+        } else {
+            Modifier
+        }
     ) {
         Row(
             modifier = Modifier

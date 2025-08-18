@@ -19,12 +19,14 @@ WhisperTop provides seamless speech-to-text functionality through a system-wide 
 
 ### Core Features
 - **Floating Microphone Button**: Draggable overlay button accessible from any app
-- **Direct Text Insertion**: Transcribed text automatically appears in active text fields
+- **Intelligent Text Insertion**: Transcribed text automatically appears in active text fields with smart spacing
+- **Text Replacement vs. Appending**: Replaces selected text or intelligently appends to existing content
 - **OpenAI Integration**: Support for Whisper 3 Turbo, GPT-4o, and other transcription models
 - **Multi-language Support**: Automatic language detection or manual selection
 - **Secure Storage**: API keys encrypted locally using Android's EncryptedSharedPreferences
 - **Visual Feedback**: Color-coded states (idle, recording, processing) with animated indicators
 - **Custom Endpoints**: Support for OpenAI-compatible transcription services
+- **Clickable Permission Cards**: Intuitive onboarding with interactive permission requests
 
 ### Privacy & Security
 - All transcription requests sent directly to OpenAI using your API key
@@ -173,8 +175,11 @@ Key components:
 - [x] Floating overlay microphone button
 - [x] Audio recording and WAV file generation
 - [x] OpenAI API integration
+- [x] Intelligent text insertion with smart spacing
+- [x] Text selection handling (replace vs. append)
 - [x] Accessibility-based text insertion
 - [x] Secure API key storage
+- [x] Interactive onboarding with clickable permission cards
 
 ### Phase 2 (P1 Features)
 - [ ] Quick Settings Tile integration
