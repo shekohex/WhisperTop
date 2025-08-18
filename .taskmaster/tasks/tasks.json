@@ -718,7 +718,7 @@
         "dependencies": [
           11
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -773,7 +773,7 @@
               "23.3"
             ],
             "details": "Create DebugOverlayService that displays floating debug panel (similar to existing MicButtonOverlay.kt architecture) showing real-time FPS, memory usage, network request count, current recording state, and active log level. Add network request monitoring display with request/response times and error counts. Implement real-time log viewer with filtering and log level switcher directly in overlay. Add crash detection and automatic log capture functionality. Make overlay togglable via developer settings and position-adjustable with persistence. Ensure overlay only appears in debug builds and doesn't interfere with main app functionality.",
-            "status": "cancelled",
+            "status": "done",
             "testStrategy": "Overlay positioning and interaction tests, real-time metric display accuracy verification, debug build conditional display testing, crash detection simulation, and performance impact assessment of overlay itself."
           }
         ]
@@ -906,7 +906,7 @@
         "id": 26,
         "title": "Fix iOS Platform Build Issues and AudioRecorder Implementation",
         "description": "Resolve iOS-specific compilation errors and platform implementation issues, focusing on fixing AudioRecorder iOS implementation with incorrect Java references and imports.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           5,
           3
@@ -919,7 +919,7 @@
             "id": 1,
             "title": "Fix iOS AudioRecorder Java Import Dependencies",
             "description": "Replace Java-specific imports and classes in iOS AudioRecorder implementation with Kotlin Multiplatform equivalents",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "CRITICAL BUILD ISSUE: The iOS AudioRecorder implementation (shared/src/iosMain/kotlin/.../AudioRecorder.ios.kt) contains Java-specific imports and class references that prevent iOS compilation.\n\nSPECIFIC COMPILATION ERRORS TO FIX:\n1. Unresolved reference 'java' imports:\n   - import java.io.*\n   - import java.util.*\n   - import java.util.concurrent.*\n\n2. Unresolved Java class references:\n   - AtomicBoolean -> Replace with kotlinx.atomicfu.AtomicBoolean or platform-specific equivalent\n   - AtomicReference -> Replace with kotlinx.atomicfu.AtomicRef\n   - CopyOnWriteArrayList -> Replace with thread-safe Kotlin collection or synchronized wrapper\n\n3. Unresolved iOS audio constants:\n   - kAudioFormatLinearPCM -> Use proper AVAudioFormat constants via Kotlin/Native interop\n\n4. Invalid operator usage:\n   - Multiple 'not' operator usage ('!') -> Replace with proper Kotlin boolean negation\n\n5. Type inference and platform API issues:\n   - NSObject assignment type mismatches\n   - Incorrect method signatures for iOS audio APIs\n   - Missing NSFileManager usage for iOS file operations\n\nIMPLEMENTATION PLAN:\n- Replace java.util.concurrent.atomic classes with kotlinx.atomicfu equivalents\n- Implement proper iOS audio session management using AVAudioSession\n- Use NSFileManager for iOS file operations instead of Java File APIs\n- Implement proper Kotlin/Native interop for AVAudioRecorder\n- Add proper iOS audio format configuration\n- Fix memory management and resource cleanup for iOS platform\n- Ensure proper thread safety using iOS-appropriate mechanisms\n\nDEPENDENCIES:\n- May require adding kotlinx-atomicfu dependency to build.gradle.kts\n- Ensure proper iOS audio framework linking in build configuration\n- Verify NSMicrophoneUsageDescription is properly configured in iOS Info.plist",
             "testStrategy": ""
@@ -1075,7 +1075,7 @@
         "id": 30,
         "title": "Implement Overlay Notification System",
         "description": "Create an overlay-based notification system that displays transcription feedback directly over other apps, similar to chat heads, with animated notifications for success, error, and loading states.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           7,
           20,
@@ -1107,7 +1107,7 @@
         "description": "The transcription service fails when app is in background. Must ensure AudioRecordingService runs as proper foreground service with wake locks and persists when app is backgrounded.",
         "details": "Critical bug: The entire purpose of an overlay app is defeated if transcription doesn't work in background. Need to: 1) Verify foreground service implementation with proper notification 2) Add wake lock acquisition 3) Fix service binding/lifecycle 4) Test with Android emulator monitoring logcat 5) Ensure service survives app backgrounding",
         "testStrategy": "Test on Android emulator: 1) Start recording from overlay 2) Switch to different app 3) Verify recording continues in logcat 4) Complete transcription 5) Test with screen off",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           5,
           21,
@@ -1120,7 +1120,7 @@
             "title": "Diagnose Foreground Service Implementation",
             "description": "Analyze current AudioRecordingService to identify why it stops in background",
             "details": "Use logcat to monitor service lifecycle. Check: notification channel setup, startForeground() timing, service type declaration, binding modes. Add debug logs at all lifecycle methods.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 32
           },
@@ -1129,7 +1129,7 @@
             "title": "Fix Service Binding and Lifecycle",
             "description": "Ensure service uses START_STICKY and proper binding flags for persistence",
             "details": "Implement onStartCommand with START_STICKY, use Context.BIND_AUTO_CREATE for binding, handle rebinding on process death. Verify service declaration in manifest has android:foregroundServiceType='microphone'.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "32.1"
             ],
@@ -1140,7 +1140,7 @@
             "title": "Add Wake Lock and Power Management",
             "description": "Implement partial wake lock to keep CPU active during recording",
             "details": "Add WAKE_LOCK permission, acquire PowerManager.PARTIAL_WAKE_LOCK during recording, release on stop. Handle Doze mode with setExactAndAllowWhileIdle if needed. Test with screen off.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "32.2"
             ],
@@ -1151,7 +1151,7 @@
             "title": "Test Background Recording Persistence",
             "description": "Comprehensive testing on emulator with different background scenarios",
             "details": "Test: 1) App minimized 2) Switch between apps 3) Screen locked 4) After 5+ minutes in background 5) Low memory conditions. Monitor with adb logcat, verify audio file creation.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "32.3"
             ],
@@ -1162,7 +1162,7 @@
             "title": "Write Unit Tests for Service Lifecycle",
             "description": "Add tests to ensure service persists correctly in all scenarios",
             "details": "Create ServiceTestRule tests for: foreground notification, wake lock acquisition/release, rebinding after process death, START_STICKY behavior. Use Robolectric for service testing.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "32.4"
             ],
@@ -1244,7 +1244,7 @@
         "description": "Accessibility service fails to paste transcribed text into focused text fields. Critical functionality completely broken.",
         "details": "Critical bug: Text insertion doesn't work at all. Need to: 1) Verify accessibility service is properly enabled 2) Check focus detection logic 3) Fix text insertion method 4) Handle different input field types 5) Test across various apps. Could be related to transcription bugs if no text is being generated.",
         "testStrategy": "Test on emulator: 1) Enable accessibility service 2) Open any app with text field 3) Focus on field 4) Trigger recording 5) Verify text appears 6) Test in Chrome, Messages, Notes apps",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           8,
           11,
@@ -1258,7 +1258,7 @@
             "title": "Diagnose Accessibility Service Status",
             "description": "Verify accessibility service is running and receiving events",
             "details": "Add logging to onAccessibilityEvent, onServiceConnected. Check: service enabled in settings, receiving TYPE_VIEW_FOCUSED events, finding focused node correctly. Use adb to verify service status.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 34
           },
@@ -1267,7 +1267,7 @@
             "title": "Fix Focus Detection Logic",
             "description": "Ensure service correctly identifies focused editable text fields",
             "details": "Implement: findFocus(AccessibilityNodeInfo.FOCUS_INPUT), check isEditable(), handle WebView inputs, traverse node tree if needed. Log all detected input fields for debugging.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "34.1"
             ],
@@ -1278,7 +1278,7 @@
             "title": "Implement Robust Text Insertion Methods",
             "description": "Fix text insertion using multiple fallback methods",
             "details": "Try in order: 1) performAction(ACTION_SET_TEXT) 2) Bundle with ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE 3) ACTION_PASTE via clipboard 4) Simulated key events. Handle existing text append vs replace.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "34.2"
             ],
@@ -1289,7 +1289,7 @@
             "title": "Handle Different Input Field Types",
             "description": "Support various input field types across different apps",
             "details": "Test and fix for: EditText, WebView inputs, Chrome address bar, messaging apps, secure fields. Add app-specific handling if needed (package name detection).",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "34.3"
             ],
@@ -1300,7 +1300,7 @@
             "title": "Write Comprehensive Accessibility Tests",
             "description": "Create UI tests for text insertion across multiple apps",
             "details": "Use UiAutomator to test: focus detection, text insertion, multiple apps (Chrome, Messages, Keep). Mock transcription results to isolate accessibility testing. Verify text appears correctly.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "34.4"
             ],
@@ -1314,7 +1314,7 @@
         "description": "Add custom prompt field and temperature slider to advanced transcription settings, allowing users to customize OpenAI Whisper API behavior with custom prompts and temperature control.",
         "details": "Extend AppSettings data class to include customPrompt (String?) and temperature (Float, default 0.0) fields. Update SettingsViewModel to handle new fields with proper validation (temperature 0.0-2.0 range, prompt length limits). Add UI components to SettingsScreen in advanced section: TextField for custom prompt with character counter and validation, Slider for temperature with real-time value display and description tooltip. Modify OpenAI API client (OpenAIApiService) to include custom prompt and temperature parameters in transcription requests. Update TranscriptionRequest data class to support optional prompt and temperature fields. Implement proper field persistence using DataStore preferences. Add input validation for prompt length (max 224 tokens as per OpenAI docs) and temperature range. Include helpful UI descriptions explaining how custom prompts can improve transcription accuracy for specific domains (technical terms, names, etc.) and temperature effects on output randomness.",
         "testStrategy": "Unit tests for AppSettings field validation and persistence. Test SettingsViewModel with various prompt lengths and temperature values including edge cases (empty prompt, temperature bounds 0.0-2.0). UI tests for settings screen components including slider interaction and text field input validation. Integration tests for OpenAI API client with custom prompt and temperature parameters. Test transcription workflow with different prompt and temperature combinations. Verify settings persistence across app restarts and proper default values.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           12,
           31
@@ -1327,7 +1327,7 @@
             "description": "Extend AppSettings data class and AppSettingsEntity with customPrompt (String?) and temperature (Float) fields, including proper default values and mapping functions",
             "dependencies": [],
             "details": "Add customPrompt: String? = null and temperature: Float = 0.0f to AppSettings data class in domain/models/AppSettings.kt. Update AppSettingsEntity in data/models/AppSettingsEntity.kt with corresponding fields. Update toDomain() and toEntity() mapping functions to handle the new fields. Ensure temperature defaults to 0.0 and customPrompt defaults to null for backward compatibility.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for AppSettings default values, field assignments, and mapping functions between domain and entity models"
           },
           {
@@ -1338,7 +1338,7 @@
               "35.1"
             ],
             "details": "Add validation functions to SettingsViewModel for temperature (must be between 0.0-2.0) and customPrompt (max 224 tokens, approximately 896 characters). Add updateTemperature() and updateCustomPrompt() methods with debounced saving. Update SettingsUiState to include temperatureError and promptError fields. Implement token counting logic or character limit as approximation (4 chars per token average).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for validation edge cases, boundary values (0.0, 2.0), invalid temperatures (-1.0, 3.0), prompt length validation, and debounced saving behavior"
           },
           {
@@ -1349,7 +1349,7 @@
               "35.2"
             ],
             "details": "Create CustomPromptField composable in SettingsScreen.kt with TextField, character counter showing current/max length (896 chars ≈ 224 tokens), validation error display, and description explaining how custom prompts improve transcription accuracy for technical terms, names, etc. Include examples like 'The following audio contains technical programming terms and company names.' Add clear button when text exists.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests for text input, character counter updates, validation error display, clear functionality, and description text rendering"
           },
           {
@@ -1360,7 +1360,7 @@
               "35.2"
             ],
             "details": "Create TemperatureSlider composable in SettingsScreen.kt with Slider component, real-time value display formatted to 1 decimal place, description explaining temperature effects (0.0 = deterministic, higher = more creative/varied), range indicators (0.0-2.0), and reset to default button. Include visual indicators for recommended ranges (0.0-0.3 for accuracy, 0.7-1.0 for creativity).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests for slider interaction, value display updates, range validation, reset functionality, and description text accuracy"
           },
           {
@@ -1372,7 +1372,7 @@
               "35.4"
             ],
             "details": "Add the new components to SettingsScreen.kt in the advanced settings expandable section. Wire up state management by connecting components to SettingsViewModel state and update functions. Add section header 'Transcription Customization' with description. Ensure proper spacing, Material 3 theming consistency, and responsive layout. Connect validation errors to UI feedback.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI integration tests for component placement, state binding, theme consistency, validation error display, and settings persistence across screen rotation"
           },
           {
@@ -1384,7 +1384,7 @@
               "35.5"
             ],
             "details": "Update TranscriptionRequest in domain/models/TranscriptionRequest.kt to include customPrompt and temperature fields. Modify TranscriptionUseCase and related workflows to pass these values from AppSettings to API calls. Verify OpenAIApiService.transcribe() methods correctly receive and use these parameters. Add logging to track when custom settings are applied during transcription.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for TranscriptionRequest field mapping, integration tests for end-to-end transcription with custom settings, API call verification with mock client, and logging validation for custom parameter usage"
           }
         ]
@@ -1834,7 +1834,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-18T14:45:05.611Z",
+      "updated": "2025-08-18T19:47:34.805Z",
       "description": "Tasks for master context"
     }
   }
