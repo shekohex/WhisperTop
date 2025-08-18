@@ -14,6 +14,8 @@ interface SettingsRepository {
     suspend fun updateTheme(theme: me.shadykhalifa.whispertop.domain.models.Theme): Result<Unit>
     suspend fun updateBaseUrl(baseUrl: String): Result<Unit>
     suspend fun updateCustomEndpoint(isCustom: Boolean): Result<Unit>
+    suspend fun updateCustomPrompt(prompt: String?): Result<Unit>
+    suspend fun updateTemperature(temperature: Float): Result<Unit>
     suspend fun updateSettings(settings: AppSettings): Result<Unit>
     suspend fun clearApiKey(): Result<Unit>
     suspend fun clearAllData(): Result<Unit>

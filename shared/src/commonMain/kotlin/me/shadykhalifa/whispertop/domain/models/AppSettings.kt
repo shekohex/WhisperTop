@@ -12,6 +12,9 @@ data class AppSettings(
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
     val languagePreference: LanguagePreference = LanguagePreference(),
+    // Transcription customization settings
+    val customPrompt: String? = null,
+    val temperature: Float = 0.0f,
     val theme: Theme = Theme.System,
     val enableHapticFeedback: Boolean = true,
     val enableBatteryOptimization: Boolean = false,

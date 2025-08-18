@@ -3,5 +3,7 @@ package me.shadykhalifa.whispertop.domain.models
 data class TranscriptionRequest(
     val audioFile: AudioFile,
     val language: String? = null,
-    val model: String = "whisper-1"
+    val model: String = "whisper-1",
+    val customPrompt: String? = null,
+    val temperature: Float = 0.0f
 )

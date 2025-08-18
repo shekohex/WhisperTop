@@ -46,6 +46,7 @@ import me.shadykhalifa.whispertop.presentation.ui.components.ModelRecommendation
 import me.shadykhalifa.whispertop.presentation.ui.components.CustomModelInput
 import me.shadykhalifa.whispertop.presentation.ui.components.LanguagePreferenceSection
 import me.shadykhalifa.whispertop.presentation.ui.components.BatteryOptimizationSection
+import me.shadykhalifa.whispertop.presentation.ui.components.TranscriptionCustomizationSection
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,6 +145,20 @@ fun SettingsScreen(
                     onCustomModelInputChange = modelSelectionViewModel::updateCustomModelInput,
                     onConfirmAddCustomModel = modelSelectionViewModel::addCustomModel,
                     onCancelAddCustomModel = modelSelectionViewModel::hideAddCustomModelDialog
+                )
+                
+                HorizontalDivider()
+                
+                // Transcription Customization Section
+                TranscriptionCustomizationSection(
+                    customPrompt = uiState.customPrompt,
+                    temperature = uiState.temperature,
+                    promptError = uiState.validationErrors["customPrompt"],
+                    temperatureError = uiState.validationErrors["temperature"],
+                    savingCustomPrompt = uiState.savingCustomPrompt,
+                    savingTemperature = uiState.savingTemperature,
+                    onCustomPromptChange = viewModel::updateCustomPrompt,
+                    onTemperatureChange = viewModel::updateTemperature
                 )
                 
                 HorizontalDivider()

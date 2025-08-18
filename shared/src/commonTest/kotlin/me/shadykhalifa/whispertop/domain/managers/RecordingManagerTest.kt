@@ -37,6 +37,7 @@ class RecordingManagerTest {
     private lateinit var recordingManager: RecordingManager
     private lateinit var mockAudioRepository: MockAudioRepository
     private lateinit var mockTranscriptionRepository: MockTranscriptionRepository
+    private lateinit var mockSettingsRepository: MockSettingsRepository
     
     @BeforeTest
     fun setup() {
@@ -44,6 +45,7 @@ class RecordingManagerTest {
         
         mockAudioRepository = MockAudioRepository()
         mockTranscriptionRepository = MockTranscriptionRepository()
+        mockSettingsRepository = MockSettingsRepository()
         
         // Create a test scope with the test dispatcher
         val testScope = CoroutineScope(SupervisorJob() + testDispatcher)
@@ -53,6 +55,7 @@ class RecordingManagerTest {
                 module {
                     single<AudioRepository> { mockAudioRepository }
                     single<TranscriptionRepository> { mockTranscriptionRepository }
+                    single<me.shadykhalifa.whispertop.domain.repositories.SettingsRepository> { mockSettingsRepository }
                     single<CoroutineScope> { testScope }
                 }
             )
@@ -338,5 +341,42 @@ class RecordingManagerTest {
         }
         
         override suspend fun isConfigured(): Boolean = true
+    }
+    
+    private class MockSettingsRepository : me.shadykhalifa.whispertop.domain.repositories.SettingsRepository {
+        private val testSettings = me.shadykhalifa.whispertop.domain.models.AppSettings(
+            apiKey = "sk-test123",
+            selectedModel = "whisper-1",
+            customPrompt = null,
+            temperature = 0.0f
+        )
+        
+        override val settings = kotlinx.coroutines.flow.flowOf(testSettings)
+        
+        override suspend fun getSettings(): me.shadykhalifa.whispertop.domain.models.AppSettings = testSettings
+        
+        override suspend fun updateApiKey(apiKey: String): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateSelectedModel(model: String): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateLanguage(language: String?): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateTheme(theme: me.shadykhalifa.whispertop.domain.models.Theme): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateBaseUrl(baseUrl: String): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateCustomEndpoint(isCustom: Boolean): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateCustomPrompt(prompt: String?): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateTemperature(temperature: Float): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun updateSettings(settings: me.shadykhalifa.whispertop.domain.models.AppSettings): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun clearApiKey(): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun clearAllData(): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        override suspend fun cleanupTemporaryFiles(): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
     }
 }

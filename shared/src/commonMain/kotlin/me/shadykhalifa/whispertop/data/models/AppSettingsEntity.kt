@@ -17,6 +17,8 @@ data class AppSettingsEntity(
     val language: String? = null,
     val autoDetectLanguage: Boolean = true,
     val languagePreference: LanguagePreference = LanguagePreference(),
+    val customPrompt: String? = null,
+    val temperature: Float = 0.0f,
     val theme: String = "System",
     val enableHapticFeedback: Boolean = true,
     val enableBatteryOptimization: Boolean = false,
@@ -37,6 +39,8 @@ fun AppSettingsEntity.toDomain(): AppSettings {
         language = language,
         autoDetectLanguage = autoDetectLanguage,
         languagePreference = languagePreference,
+        customPrompt = customPrompt,
+        temperature = temperature,
         theme = when (theme) {
             "Light" -> Theme.Light
             "Dark" -> Theme.Dark
@@ -62,6 +66,8 @@ fun AppSettings.toEntity(): AppSettingsEntity {
         language = language,
         autoDetectLanguage = autoDetectLanguage,
         languagePreference = languagePreference,
+        customPrompt = customPrompt,
+        temperature = temperature,
         theme = theme.name,
         enableHapticFeedback = enableHapticFeedback,
         enableBatteryOptimization = enableBatteryOptimization,

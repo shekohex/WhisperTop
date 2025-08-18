@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.services.TextInsertionService
 import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
 import me.shadykhalifa.whispertop.managers.PermissionHandler
@@ -31,6 +32,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     private val permissionHandler: PermissionHandler by inject()
     private val transcriptionUseCase: TranscribeWithLanguageDetectionUseCase by inject()
     private val settingsRepository: SettingsRepository by inject()
+    private val textInsertionService: TextInsertionService by inject()
     private val context: Context by inject()
     
     private val _uiState = MutableStateFlow(AudioRecordingUiState())
@@ -292,7 +294,9 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
                 val transcriptionRequest = TranscriptionRequest(
                     audioFile = audioFile,
                     model = settings.selectedModel,
-                    language = settings.language
+                    language = settings.language,
+                    customPrompt = settings.customPrompt,
+                    temperature = settings.temperature
                 )
                 
                 Log.d(TAG, "Transcription request created: model=${transcriptionRequest.model}, file=${transcriptionRequest.audioFile.path}")
@@ -302,13 +306,29 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
                         Log.d(TAG, "Transcription successful: '${result.data.text}' (${result.data.text.length} chars)")
                         Log.d(TAG, "Detected language: ${result.data.language}")
                         
+                        // Attempt text insertion via accessibility service
+                        val textInserted = try {
+                            Log.d(TAG, "Attempting text insertion via accessibility service")
+                            textInsertionService.insertText(result.data.text)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Text insertion failed", e)
+                            false
+                        }
+                        
+                        Log.d(TAG, "Text insertion result: $textInserted")
+                        
                         // Show success toast with transcription preview
                         val previewText = if (result.data.text.length > 50) {
                             "${result.data.text.take(47)}..."
                         } else {
                             result.data.text
                         }
-                        showToast("Transcribed: $previewText")
+                        
+                        if (textInserted) {
+                            showToast("Text inserted: $previewText")
+                        } else {
+                            showToast("Transcribed: $previewText (insertion failed)")
+                        }
                         
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,

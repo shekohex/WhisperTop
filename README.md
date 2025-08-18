@@ -26,6 +26,7 @@ WhisperTop provides seamless speech-to-text functionality through a system-wide 
 - **Secure Storage**: API keys encrypted locally using Android's EncryptedSharedPreferences
 - **Visual Feedback**: Color-coded states (idle, recording, processing) with animated indicators
 - **Custom Endpoints**: Support for OpenAI-compatible transcription services
+- **Transcription Customization**: Custom prompts and temperature control for improved accuracy
 - **Clickable Permission Cards**: Intuitive onboarding with interactive permission requests
 
 ### Privacy & Security
@@ -104,6 +105,15 @@ You'll be prompted to grant these permissions during initial setup.
 - **Base URL**: Custom endpoint for OpenAI-compatible services
 - **Model Selection**: Choose from available transcription models
 - **Language**: Auto-detect or specify a target language
+
+### Transcription Customization
+- **Custom Prompt**: Provide context to improve transcription accuracy for domain-specific terms, names, or technical vocabulary (up to ~224 tokens)
+- **Temperature Control**: Adjust transcription randomness:
+  - **0.0-0.3**: More accurate and consistent results
+  - **0.4-0.7**: Balanced approach 
+  - **0.8-2.0**: More creative interpretations (may introduce variations)
+
+These advanced settings allow you to fine-tune the OpenAI Whisper API behavior for your specific use case, improving accuracy for specialized vocabulary or adjusting the consistency of transcriptions.
 
 ### Interface Settings
 - **Overlay Position**: Drag the button to your preferred location

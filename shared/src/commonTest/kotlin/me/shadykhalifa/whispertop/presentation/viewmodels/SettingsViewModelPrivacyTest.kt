@@ -211,6 +211,10 @@ private class MockSettingsRepository : SettingsRepository {
     
     override suspend fun updateCustomEndpoint(isCustom: Boolean): Result<Unit> = Result.Success(Unit)
     
+    override suspend fun updateCustomPrompt(prompt: String?): Result<Unit> = Result.Success(Unit)
+    
+    override suspend fun updateTemperature(temperature: Float): Result<Unit> = Result.Success(Unit)
+    
     override suspend fun cleanupTemporaryFiles(): Result<Unit> {
         cleanupTemporaryFilesCalled = true
         return Result.Success(Unit)

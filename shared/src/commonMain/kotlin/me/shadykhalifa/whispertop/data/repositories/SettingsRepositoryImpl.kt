@@ -87,6 +87,22 @@ class SettingsRepositoryImpl(
         preferencesDataSource.saveSettings(updatedSettings)
     }
 
+    override suspend fun updateCustomPrompt(prompt: String?): Result<Unit> = execute {
+        val currentSettings = preferencesDataSource.getSettings()
+        val updatedSettings = currentSettings.copy(customPrompt = prompt?.takeIf { it.isNotBlank() })
+        preferencesDataSource.saveSettings(updatedSettings)
+    }
+
+    override suspend fun updateTemperature(temperature: Float): Result<Unit> = execute {
+        if (temperature < 0.0f || temperature > 2.0f) {
+            throw IllegalArgumentException("Temperature must be between 0.0 and 2.0")
+        }
+        
+        val currentSettings = preferencesDataSource.getSettings()
+        val updatedSettings = currentSettings.copy(temperature = temperature)
+        preferencesDataSource.saveSettings(updatedSettings)
+    }
+
     override suspend fun cleanupTemporaryFiles(): Result<Unit> = execute {
         preferencesDataSource.clearLastRecording()
     }

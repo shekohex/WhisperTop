@@ -32,6 +32,10 @@ data class SettingsUiState(
     val testingConnection: Boolean = false,
     val connectionTestResult: ConnectionTestResult? = null,
     val apiEndpoint: String = "https://api.openai.com/v1/",
+    val customPrompt: String = "",
+    val temperature: Float = 0.0f,
+    val savingCustomPrompt: Boolean = false,
+    val savingTemperature: Boolean = false,
     val showClearApiKeyDialog: Boolean = false,
     val showClearAllDataDialog: Boolean = false,
     val showPrivacyPolicyDialog: Boolean = false,
@@ -53,8 +57,12 @@ class SettingsViewModel(
     
     private var saveApiKeyJob: Job? = null
     private var saveApiEndpointJob: Job? = null
+    private var saveCustomPromptJob: Job? = null
+    private var saveTemperatureJob: Job? = null
     private val apiKeySaveDebounceMs = 500L
     private val apiEndpointSaveDebounceMs = 500L
+    private val customPromptSaveDebounceMs = 800L // Longer debounce for text input
+    private val temperatureSaveDebounceMs = 300L // Shorter for slider
     
     // Computed property to get the current API key value (optimistic or saved)
     val currentApiKey: String
@@ -70,7 +78,9 @@ class SettingsViewModel(
             settingsRepository.settings.collect { settings ->
                 _uiState.value = _uiState.value.copy(
                     settings = settings,
-                    apiKeyValue = if (_uiState.value.apiKeyValue.isEmpty()) settings.apiKey else _uiState.value.apiKeyValue
+                    apiKeyValue = if (_uiState.value.apiKeyValue.isEmpty()) settings.apiKey else _uiState.value.apiKeyValue,
+                    customPrompt = if (_uiState.value.customPrompt.isEmpty()) settings.customPrompt ?: "" else _uiState.value.customPrompt,
+                    temperature = if (_uiState.value.temperature == 0.0f) settings.temperature else _uiState.value.temperature
                 )
             }
         }
@@ -510,6 +520,126 @@ class SettingsViewModel(
                 handleError(e)
             }
         }
+    }
+    
+    fun updateCustomPrompt(prompt: String) {
+        // Update UI immediately
+        _uiState.value = _uiState.value.copy(customPrompt = prompt)
+        
+        // Clear existing errors
+        clearCustomPromptValidation()
+        
+        // Cancel previous save job
+        saveCustomPromptJob?.cancel()
+        
+        // Debounce the save operation
+        saveCustomPromptJob = viewModelScope.launch {
+            delay(customPromptSaveDebounceMs)
+            
+            val validationError = validateCustomPrompt(prompt)
+            if (validationError != null) {
+                val currentErrors = _uiState.value.validationErrors.toMutableMap()
+                currentErrors["customPrompt"] = validationError
+                _uiState.value = _uiState.value.copy(validationErrors = currentErrors)
+                return@launch
+            }
+            
+            _uiState.value = _uiState.value.copy(savingCustomPrompt = true)
+            try {
+                when (val result = settingsRepository.updateCustomPrompt(prompt.ifBlank { null })) {
+                    is Result.Success -> {
+                        clearCustomPromptValidation()
+                    }
+                    is Result.Error -> {
+                        handleError(result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Loading state handled by granular state
+                    }
+                }
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _uiState.value = _uiState.value.copy(savingCustomPrompt = false)
+            }
+        }
+    }
+    
+    fun updateTemperature(temperature: Float) {
+        // Update UI immediately
+        _uiState.value = _uiState.value.copy(temperature = temperature)
+        
+        // Clear existing errors
+        clearTemperatureValidation()
+        
+        // Cancel previous save job
+        saveTemperatureJob?.cancel()
+        
+        // Debounce the save operation
+        saveTemperatureJob = viewModelScope.launch {
+            delay(temperatureSaveDebounceMs)
+            
+            val validationError = validateTemperature(temperature)
+            if (validationError != null) {
+                val currentErrors = _uiState.value.validationErrors.toMutableMap()
+                currentErrors["temperature"] = validationError
+                _uiState.value = _uiState.value.copy(validationErrors = currentErrors)
+                return@launch
+            }
+            
+            _uiState.value = _uiState.value.copy(savingTemperature = true)
+            try {
+                when (val result = settingsRepository.updateTemperature(temperature)) {
+                    is Result.Success -> {
+                        clearTemperatureValidation()
+                    }
+                    is Result.Error -> {
+                        handleError(result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Loading state handled by granular state
+                    }
+                }
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _uiState.value = _uiState.value.copy(savingTemperature = false)
+            }
+        }
+    }
+    
+    private fun validateCustomPrompt(prompt: String): String? {
+        if (prompt.isBlank()) return null // Empty prompts are allowed
+        
+        // OpenAI documentation states max 224 tokens
+        // Rough approximation: 1 token ≈ 4 characters
+        val maxCharacters = 224 * 4 // 896 characters
+        
+        return when {
+            prompt.length > maxCharacters -> "Custom prompt is too long (${prompt.length}/$maxCharacters characters). Maximum is approximately 224 tokens."
+            prompt.trim().isEmpty() -> null // Allow whitespace-only as empty
+            else -> null
+        }
+    }
+    
+    private fun validateTemperature(temperature: Float): String? {
+        return when {
+            temperature < 0.0f -> "Temperature must be between 0.0 and 2.0"
+            temperature > 2.0f -> "Temperature must be between 0.0 and 2.0"
+            else -> null
+        }
+    }
+    
+    fun clearCustomPromptValidation() {
+        val currentErrors = _uiState.value.validationErrors.toMutableMap()
+        currentErrors.remove("customPrompt")
+        _uiState.value = _uiState.value.copy(validationErrors = currentErrors)
+    }
+    
+    fun clearTemperatureValidation() {
+        val currentErrors = _uiState.value.validationErrors.toMutableMap()
+        currentErrors.remove("temperature")
+        _uiState.value = _uiState.value.copy(validationErrors = currentErrors)
     }
     
     fun clearConnectionTestResult() {

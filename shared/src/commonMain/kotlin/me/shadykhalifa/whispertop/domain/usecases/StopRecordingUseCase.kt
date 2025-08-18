@@ -24,7 +24,9 @@ class StopRecordingUseCase(
                 val request = TranscriptionRequest(
                     audioFile = audioFileResult.data,
                     language = if (settings.autoDetectLanguage) null else settings.language,
-                    model = settings.selectedModel
+                    model = settings.selectedModel,
+                    customPrompt = settings.customPrompt,
+                    temperature = settings.temperature
                 )
                 
                 when (val transcriptionResult = transcriptionRepository.transcribe(request)) {

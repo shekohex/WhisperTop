@@ -48,7 +48,7 @@ class TranscriptionRepositoryImpl(
 
     override suspend fun transcribe(request: TranscriptionRequest): Result<TranscriptionResponse> = execute {
         log(TAG, "Starting transcription for audio file: ${request.audioFile.path}")
-        log(TAG, "Request details: model=${request.model}, language=${request.language}")
+        log(TAG, "Request details: model=${request.model}, language=${request.language}, customPrompt=${request.customPrompt?.take(50)?.let { "$it..." } ?: "none"}, temperature=${request.temperature}")
         
         val settings = settingsRepository.getSettings()
         val sessionId = request.audioFile.sessionId ?: generateSessionId()
@@ -118,6 +118,10 @@ class TranscriptionRepositoryImpl(
                             if (request.language != null) {
                                 append("language", request.language)
                             }
+                            if (request.customPrompt?.isNotBlank() == true) {
+                                append("prompt", request.customPrompt)
+                            }
+                            append("temperature", request.temperature.toString())
                         }
                     ) {
                         headers {

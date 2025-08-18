@@ -16,6 +16,7 @@ import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
+import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -25,6 +26,7 @@ class RecordingManager(
 ) : KoinComponent {
     private val audioRepository: AudioRepository by inject()
     private val transcriptionRepository: TranscriptionRepository by inject()
+    private val settingsRepository: SettingsRepository by inject()
     
     private val _recordingState = MutableStateFlow<RecordingState>(RecordingState.Idle)
     val recordingState: StateFlow<RecordingState> = _recordingState.asStateFlow()
@@ -164,7 +166,14 @@ class RecordingManager(
                 delay(50) // Simulate progress updates
             }
             
-            val transcriptionRequest = TranscriptionRequest(audioFile = audioFile)
+            val settings = settingsRepository.getSettings()
+            val transcriptionRequest = TranscriptionRequest(
+                audioFile = audioFile,
+                language = if (settings.autoDetectLanguage) null else settings.language,
+                model = settings.selectedModel,
+                customPrompt = settings.customPrompt,
+                temperature = settings.temperature
+            )
             val transcriptionResult = transcriptionRepository.transcribe(transcriptionRequest)
             
             when (transcriptionResult) {
