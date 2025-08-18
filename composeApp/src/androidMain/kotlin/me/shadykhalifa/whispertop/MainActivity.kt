@@ -33,18 +33,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Check if onboarding should be shown
-        if (PermissionOnboardingActivity.shouldShowOnboarding(this)) {
+        val requestPermissions = intent?.getBooleanExtra("request_permissions", false) ?: false
+        val showSettings = intent?.getBooleanExtra("show_settings", false) ?: false
+
+        // Check if onboarding should be shown (skip if showing settings directly)
+        if (!showSettings && PermissionOnboardingActivity.shouldShowOnboarding(this)) {
             val intent = Intent(this, PermissionOnboardingActivity::class.java)
             startActivity(intent)
             finish()
             return
         }
 
-        val requestPermissions = intent?.getBooleanExtra("request_permissions", false) ?: false
-
         setContent {
-            App(requestPermissions = requestPermissions)
+            App(requestPermissions = requestPermissions, showSettings = showSettings)
         }
         
         // Initialize overlay after onboarding is complete

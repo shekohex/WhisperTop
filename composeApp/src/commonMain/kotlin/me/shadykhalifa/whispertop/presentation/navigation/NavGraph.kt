@@ -21,11 +21,16 @@ object Screen {
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
-    requestPermissions: Boolean = false
+    requestPermissions: Boolean = false,
+    showSettings: Boolean = false
 ) {
     NavHost(
         navController = navController,
-        startDestination = if (requestPermissions) Screen.Settings else Screen.Home
+        startDestination = when {
+            requestPermissions -> Screen.Settings
+            showSettings -> Screen.Settings
+            else -> Screen.Home
+        }
     ) {
         composable(Screen.Home) {
             HomeScreen(

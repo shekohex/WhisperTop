@@ -16,7 +16,7 @@ import org.koin.compose.koinInject
 
 @Composable
 @Preview
-fun App(requestPermissions: Boolean = false) {
+fun App(requestPermissions: Boolean = false, showSettings: Boolean = false) {
     val settingsViewModel: SettingsViewModel = koinInject()
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     
@@ -31,7 +31,8 @@ fun App(requestPermissions: Boolean = false) {
             val navController = rememberNavController()
             NavGraph(
                 navController = navController,
-                requestPermissions = requestPermissions
+                requestPermissions = requestPermissions,
+                showSettings = showSettings
             )
         }
     }
