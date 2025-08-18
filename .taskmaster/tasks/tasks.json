@@ -1395,7 +1395,7 @@
         "description": "Remove 100+ lines of business logic from AudioRecordingViewModel (lines 286-373) and delegate ALL business operations to TranscriptionWorkflowUseCase to comply with clean architecture principles.",
         "details": "CRITICAL ARCHITECTURAL VIOLATION: AudioRecordingViewModel contains extensive business logic that belongs in the domain layer. The startTranscription method (lines 286-373) directly handles: 1) Settings retrieval and validation 2) TranscriptionRequest creation 3) API calls via transcriptionUseCase 4) Text insertion logic 5) Error handling and classification 6) Toast notifications 7) Complex state management. SOLUTION: Replace all business logic with calls to TranscriptionWorkflowUseCase which already provides: startRecording(), stopRecording(), cancelRecording(), retryFromError(), workflowState observation. CHANGES: 1) Remove direct injections of transcriptionUseCase, settingsRepository, textInsertionService 2) Inject TranscriptionWorkflowUseCase instead 3) Replace startTranscription method with workflow.startRecording() call 4) Replace custom state management with WorkflowState observation 5) Map WorkflowState to AudioRecordingUiState 6) Remove all direct service interactions 7) Simplify all action methods to delegate to workflow use case 8) Update initialization to observe workflow state changes. The ViewModel must become a thin layer that ONLY manages UI state mapping and user action delegation.",
         "testStrategy": "Verify architectural compliance: 1) Confirm AudioRecordingViewModel contains NO direct business logic 2) Verify all transcription operations go through TranscriptionWorkflowUseCase 3) Test that all existing functionality works (record, transcribe, text insertion) 4) Verify state management properly maps WorkflowState to UI state 5) Test error handling flows through workflow use case 6) Confirm no direct service calls from ViewModel 7) Validate clean separation of concerns with unit tests 8) Test complete recording-to-transcription workflow on emulator 9) Verify proper cleanup and lifecycle management",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3,
           5,
@@ -1834,7 +1834,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-18T19:47:34.805Z",
+      "updated": "2025-08-18T19:58:32.077Z",
       "description": "Tasks for master context"
     }
   }
