@@ -1,8 +1,6 @@
 package me.shadykhalifa.whispertop.presentation
 
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,25 +9,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
+import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
+import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
-import me.shadykhalifa.whispertop.managers.AudioServiceManager
-import me.shadykhalifa.whispertop.managers.PermissionHandler
-import me.shadykhalifa.whispertop.service.AudioRecordingService
-import me.shadykhalifa.whispertop.utils.Result
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class AudioRecordingViewModel : ViewModel(), KoinComponent {
+class AudioRecordingViewModel(
+    private val serviceManagementUseCase: ServiceManagementUseCase,
+    private val permissionManagementUseCase: PermissionManagementUseCase,
+    private val transcriptionWorkflowUseCase: TranscriptionWorkflowUseCase,
+    private val userFeedbackUseCase: UserFeedbackUseCase
+) : ViewModel() {
     
     companion object {
         private const val TAG = "AudioRecordingViewModel"
     }
-    
-    private val audioServiceManager: AudioServiceManager by inject()
-    private val permissionHandler: PermissionHandler by inject()
-    private val transcriptionWorkflow: TranscriptionWorkflowUseCase by inject()
-    private val context: Context by inject()
     
     private val _uiState = MutableStateFlow(AudioRecordingUiState())
     val uiState: StateFlow<AudioRecordingUiState> = _uiState.asStateFlow()
@@ -46,12 +43,12 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     private fun observeServiceState() {
         viewModelScope.launch {
             combine(
-                audioServiceManager.connectionState,
-                audioServiceManager.recordingState,
-                permissionHandler.permissionState
+                serviceManagementUseCase.connectionState,
+                serviceManagementUseCase.recordingState,
+                permissionManagementUseCase.permissionState
             ) { connectionState, recordingState, permissionState ->
-                val isServiceReady = connectionState == AudioServiceManager.ServiceConnectionState.CONNECTED &&
-                        permissionState == PermissionHandler.PermissionState.GRANTED
+                val isServiceReady = connectionState == ServiceStateRepository.ServiceConnectionState.CONNECTED &&
+                        permissionState == PermissionRepository.PermissionState.GRANTED
                 
                 Log.d(TAG, "Service state update: connection=$connectionState, recording=$recordingState, permission=$permissionState, isReady=$isServiceReady")
                 
@@ -68,7 +65,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     private fun observeServiceEvents() {
         // Observe error events
         viewModelScope.launch {
-            audioServiceManager.errorEvents.collect { error ->
+            serviceManagementUseCase.errorEvents.collect { error ->
                 _uiState.value = _uiState.value.copy(
                     errorMessage = error,
                     isLoading = false
@@ -78,7 +75,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         
         // Observe recording completion events
         viewModelScope.launch {
-            audioServiceManager.recordingCompleteEvents.collect { audioFile ->
+            serviceManagementUseCase.recordingCompleteEvents.collect { audioFile ->
                 Log.d(TAG, "Recording completed: ${audioFile?.path}, size: ${audioFile?.let { java.io.File(it.path).length() }} bytes")
                 
                 _uiState.value = _uiState.value.copy(
@@ -104,9 +101,9 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         
         // Update recording duration
         viewModelScope.launch {
-            audioServiceManager.recordingState.collect { state ->
-                if (state == AudioRecordingService.RecordingState.RECORDING ||
-                    state == AudioRecordingService.RecordingState.PAUSED) {
+            serviceManagementUseCase.recordingState.collect { state ->
+                if (state == ServiceStateRepository.RecordingState.RECORDING ||
+                    state == ServiceStateRepository.RecordingState.PAUSED) {
                     startDurationTimer()
                 } else {
                     _recordingDuration.value = 0L
@@ -117,13 +114,13 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     
     private fun observeWorkflowState() {
         viewModelScope.launch {
-            transcriptionWorkflow.workflowState.collect { workflowState ->
+            transcriptionWorkflowUseCase.workflowState.collect { workflowState ->
                 _uiState.value = mapWorkflowStateToUiState(
                     workflowState, 
                     _uiState.value
                 )
                 
-                // Handle toast notifications based on state
+                // Handle feedback notifications based on state
                 when (workflowState) {
                     is WorkflowState.Success -> {
                         val previewText = if (workflowState.transcription.length > 47) {
@@ -137,7 +134,7 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
                         } else {
                             "Transcribed: $previewText (insertion failed)"
                         }
-                        showToast(message)
+                        userFeedbackUseCase.showFeedback(message)
                     }
                     is WorkflowState.Error -> {
                         val errorMsg = when {
@@ -151,14 +148,14 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
                                 "Authentication failed"
                             else -> "Transcription failed"
                         }
-                        showToast(errorMsg, isError = true)
+                        userFeedbackUseCase.showFeedback(errorMsg, isError = true)
                     }
                     is WorkflowState.Processing -> {
                         if (workflowState.progress == 0f) {
-                            showToast("Recording complete, transcribing...")
+                            userFeedbackUseCase.showFeedback("Recording complete, transcribing...")
                         }
                     }
-                    else -> { /* No toast for other states */ }
+                    else -> { /* No feedback for other states */ }
                 }
             }
         }
@@ -196,9 +193,9 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     
     private fun startDurationTimer() {
         viewModelScope.launch {
-            while (audioServiceManager.getCurrentRecordingState() == AudioRecordingService.RecordingState.RECORDING ||
-                   audioServiceManager.getCurrentRecordingState() == AudioRecordingService.RecordingState.PAUSED) {
-                _recordingDuration.value = audioServiceManager.getRecordingDuration()
+            while (serviceManagementUseCase.getCurrentRecordingState() == ServiceStateRepository.RecordingState.RECORDING ||
+                   serviceManagementUseCase.getCurrentRecordingState() == ServiceStateRepository.RecordingState.PAUSED) {
+                _recordingDuration.value = serviceManagementUseCase.getRecordingDuration()
                 kotlinx.coroutines.delay(100) // Update every 100ms
             }
         }
@@ -208,23 +205,23 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
         Log.d(TAG, "initializeService: starting service initialization")
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = audioServiceManager.bindService()) {
-            is AudioServiceManager.ServiceBindResult.SUCCESS -> {
+        when (val result = serviceManagementUseCase.bindService()) {
+            is ServiceStateRepository.ServiceBindResult.SUCCESS -> {
                 Log.d(TAG, "initializeService: service bound successfully")
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
-            is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
+            is ServiceStateRepository.ServiceBindResult.ALREADY_BOUND -> {
                 Log.d(TAG, "initializeService: service already bound")
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
-            is AudioServiceManager.ServiceBindResult.FAILED -> {
+            is ServiceStateRepository.ServiceBindResult.FAILED -> {
                 Log.w(TAG, "initializeService: failed to bind service")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Failed to bind to audio service"
                 )
             }
-            is AudioServiceManager.ServiceBindResult.ERROR -> {
+            is ServiceStateRepository.ServiceBindResult.ERROR -> {
                 Log.e(TAG, "initializeService: service binding error", result.exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -237,17 +234,17 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     suspend fun requestPermissions() {
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = permissionHandler.requestAllPermissions()) {
-            is PermissionHandler.PermissionResult.GRANTED -> {
+        when (val result = permissionManagementUseCase.requestAllPermissions()) {
+            is PermissionRepository.PermissionResult.GRANTED -> {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
-            is PermissionHandler.PermissionResult.DENIED -> {
+            is PermissionRepository.PermissionResult.DENIED -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Required permissions denied: ${result.deniedPermissions.joinToString()}"
                 )
             }
-            is PermissionHandler.PermissionResult.SHOW_RATIONALE -> {
+            is PermissionRepository.PermissionResult.SHOW_RATIONALE -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showPermissionRationale = true,
@@ -260,25 +257,25 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     fun startRecording() {
         Log.d(TAG, "Starting recording via workflow...")
         viewModelScope.launch {
-            transcriptionWorkflow.startRecording()
+            transcriptionWorkflowUseCase.startRecording()
         }
     }
     
     fun stopRecording() {
         Log.d(TAG, "Stopping recording via workflow...")
         viewModelScope.launch {
-            transcriptionWorkflow.stopRecording()
+            transcriptionWorkflowUseCase.stopRecording()
         }
     }
     
     fun cancelRecording() {
         Log.d(TAG, "Canceling recording via workflow...")
-        transcriptionWorkflow.cancelRecording()
+        transcriptionWorkflowUseCase.cancelRecording()
     }
     
     fun retryFromError() {
         Log.d(TAG, "Retrying from error via workflow...")
-        transcriptionWorkflow.retryFromError()
+        transcriptionWorkflowUseCase.retryFromError()
     }
     
     fun clearError() {
@@ -294,22 +291,17 @@ class AudioRecordingViewModel : ViewModel(), KoinComponent {
     
 
     
-    private fun showToast(message: String, isError: Boolean = false) {
-        val duration = if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
-        Toast.makeText(context, message, duration).show()
-    }
-    
     override fun onCleared() {
         super.onCleared()
-        audioServiceManager.cleanup()
-        transcriptionWorkflow.cleanup()
+        serviceManagementUseCase.cleanup()
+        transcriptionWorkflowUseCase.cleanup()
     }
 }
 
 data class AudioRecordingUiState(
-    val serviceConnectionState: AudioServiceManager.ServiceConnectionState = AudioServiceManager.ServiceConnectionState.DISCONNECTED,
-    val recordingState: AudioRecordingService.RecordingState = AudioRecordingService.RecordingState.IDLE,
-    val permissionState: PermissionHandler.PermissionState = PermissionHandler.PermissionState.UNKNOWN,
+    val serviceConnectionState: ServiceStateRepository.ServiceConnectionState = ServiceStateRepository.ServiceConnectionState.DISCONNECTED,
+    val recordingState: ServiceStateRepository.RecordingState = ServiceStateRepository.RecordingState.IDLE,
+    val permissionState: PermissionRepository.PermissionState = PermissionRepository.PermissionState.UNKNOWN,
     val isServiceReady: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

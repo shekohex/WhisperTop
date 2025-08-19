@@ -15,6 +15,9 @@ import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
+import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
+import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
+import me.shadykhalifa.whispertop.domain.repositories.UserFeedbackRepository
 import me.shadykhalifa.whispertop.domain.services.AudioCacheService
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
@@ -40,6 +43,9 @@ import me.shadykhalifa.whispertop.domain.usecases.TranscriptionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.LanguageDetectionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
@@ -95,6 +101,9 @@ val sharedModule = module {
     factoryOf(::TranscriptionUseCase)
     factoryOf(::LanguageDetectionUseCase)
     factoryOf(::TranscribeWithLanguageDetectionUseCase)
+    factoryOf(::ServiceManagementUseCase)
+    factoryOf(::PermissionManagementUseCase)
+    factoryOf(::UserFeedbackUseCase)
     singleOf(::TranscriptionWorkflowUseCase)
     
     // ViewModels

@@ -1,25 +1,21 @@
 package me.shadykhalifa.whispertop.presentation
 
-import android.content.Context
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
+import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
+import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
-import me.shadykhalifa.whispertop.managers.AudioServiceManager
-import me.shadykhalifa.whispertop.managers.PermissionHandler
-import me.shadykhalifa.whispertop.service.AudioRecordingService
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
-import org.koin.test.KoinTest
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
@@ -30,12 +26,12 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-class AudioRecordingViewModelTest : KoinTest {
+class AudioRecordingViewModelTest {
     
-    private lateinit var mockAudioServiceManager: AudioServiceManager
-    private lateinit var mockPermissionHandler: PermissionHandler
-    private lateinit var mockTranscriptionWorkflow: TranscriptionWorkflowUseCase
-    private lateinit var mockContext: Context
+    private lateinit var mockServiceManagementUseCase: ServiceManagementUseCase
+    private lateinit var mockPermissionManagementUseCase: PermissionManagementUseCase
+    private lateinit var mockTranscriptionWorkflowUseCase: TranscriptionWorkflowUseCase
+    private lateinit var mockUserFeedbackUseCase: UserFeedbackUseCase
     
     private val testDispatcher = StandardTestDispatcher()
     private val testScope = TestScope(testDispatcher)
@@ -44,48 +40,35 @@ class AudioRecordingViewModelTest : KoinTest {
     
     @Before
     fun setup() {
-        stopKoin()
-        
-        mockAudioServiceManager = mock()
-        mockPermissionHandler = mock()
-        mockTranscriptionWorkflow = mock()
-        mockContext = mock()
+        mockServiceManagementUseCase = mock()
+        mockPermissionManagementUseCase = mock()
+        mockTranscriptionWorkflowUseCase = mock()
+        mockUserFeedbackUseCase = mock()
         
         // Setup default mock behavior
-        whenever(mockAudioServiceManager.connectionState).thenReturn(
-            MutableStateFlow(AudioServiceManager.ServiceConnectionState.DISCONNECTED)
+        whenever(mockServiceManagementUseCase.connectionState).thenReturn(
+            MutableStateFlow(ServiceStateRepository.ServiceConnectionState.DISCONNECTED)
         )
-        whenever(mockAudioServiceManager.recordingState).thenReturn(
-            MutableStateFlow(AudioRecordingService.RecordingState.IDLE)
+        whenever(mockServiceManagementUseCase.recordingState).thenReturn(
+            MutableStateFlow(ServiceStateRepository.RecordingState.IDLE)
         )
-        whenever(mockAudioServiceManager.errorEvents).thenReturn(flowOf())
-        whenever(mockAudioServiceManager.recordingCompleteEvents).thenReturn(flowOf())
+        whenever(mockServiceManagementUseCase.errorEvents).thenReturn(flowOf())
+        whenever(mockServiceManagementUseCase.recordingCompleteEvents).thenReturn(flowOf())
         
-        whenever(mockPermissionHandler.permissionState).thenReturn(
-            MutableStateFlow(PermissionHandler.PermissionState.UNKNOWN)
+        whenever(mockPermissionManagementUseCase.permissionState).thenReturn(
+            MutableStateFlow(PermissionRepository.PermissionState.UNKNOWN)
         )
         
-        whenever(mockTranscriptionWorkflow.workflowState).thenReturn(
+        whenever(mockTranscriptionWorkflowUseCase.workflowState).thenReturn(
             MutableStateFlow(WorkflowState.Idle)
         )
         
-        startKoin {
-            modules(
-                module {
-                    single<AudioServiceManager> { mockAudioServiceManager }
-                    single<PermissionHandler> { mockPermissionHandler }
-                    single<TranscriptionWorkflowUseCase> { mockTranscriptionWorkflow }
-                    single<Context> { mockContext }
-                }
-            )
-        }
-        
-        viewModel = AudioRecordingViewModel()
-    }
-    
-    @After
-    fun tearDown() {
-        stopKoin()
+        viewModel = AudioRecordingViewModel(
+            serviceManagementUseCase = mockServiceManagementUseCase,
+            permissionManagementUseCase = mockPermissionManagementUseCase,
+            transcriptionWorkflowUseCase = mockTranscriptionWorkflowUseCase,
+            userFeedbackUseCase = mockUserFeedbackUseCase
+        )
     }
     
     @Test
@@ -97,9 +80,9 @@ class AudioRecordingViewModelTest : KoinTest {
     fun testInitialUiState() = testScope.runTest {
         val initialState = viewModel.uiState.value
         
-        assertEquals(AudioServiceManager.ServiceConnectionState.DISCONNECTED, initialState.serviceConnectionState)
-        assertEquals(AudioRecordingService.RecordingState.IDLE, initialState.recordingState)
-        assertEquals(PermissionHandler.PermissionState.UNKNOWN, initialState.permissionState)
+        assertEquals(ServiceStateRepository.ServiceConnectionState.DISCONNECTED, initialState.serviceConnectionState)
+        assertEquals(ServiceStateRepository.RecordingState.IDLE, initialState.recordingState)
+        assertEquals(PermissionRepository.PermissionState.UNKNOWN, initialState.permissionState)
         assertFalse(initialState.isServiceReady)
         assertFalse(initialState.isLoading)
     }
@@ -107,17 +90,23 @@ class AudioRecordingViewModelTest : KoinTest {
     @Test
     fun testServiceReadyWhenConnectedAndPermissionGranted() = testScope.runTest {
         // Simulate connected service and granted permissions
-        whenever(mockAudioServiceManager.connectionState).thenReturn(
-            MutableStateFlow(AudioServiceManager.ServiceConnectionState.CONNECTED)
+        whenever(mockServiceManagementUseCase.connectionState).thenReturn(
+            MutableStateFlow(ServiceStateRepository.ServiceConnectionState.CONNECTED)
         )
-        whenever(mockPermissionHandler.permissionState).thenReturn(
-            MutableStateFlow(PermissionHandler.PermissionState.GRANTED)
+        whenever(mockPermissionManagementUseCase.permissionState).thenReturn(
+            MutableStateFlow(PermissionRepository.PermissionState.GRANTED)
         )
         
-        // Need to recreate viewModel with new mock behavior
-        // In a real test setup, this would be handled by dependency injection
+        // Create new viewModel with updated mocks
+        val newViewModel = AudioRecordingViewModel(
+            serviceManagementUseCase = mockServiceManagementUseCase,
+            permissionManagementUseCase = mockPermissionManagementUseCase,
+            transcriptionWorkflowUseCase = mockTranscriptionWorkflowUseCase,
+            userFeedbackUseCase = mockUserFeedbackUseCase
+        )
         
-        assertTrue(true) // Placeholder - would test the actual state change
+        // The combined state should show service is ready
+        // This test would need coroutine timing to properly test the combined flow
     }
     
     @Test

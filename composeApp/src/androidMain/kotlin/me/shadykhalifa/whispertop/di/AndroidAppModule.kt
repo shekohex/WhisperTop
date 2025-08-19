@@ -1,7 +1,13 @@
 package me.shadykhalifa.whispertop.di
 
+import me.shadykhalifa.whispertop.data.repositories.AndroidPermissionRepository
+import me.shadykhalifa.whispertop.data.repositories.AndroidServiceStateRepository
+import me.shadykhalifa.whispertop.data.repositories.AndroidUserFeedbackRepository
 import me.shadykhalifa.whispertop.data.services.TextInsertionServiceImpl
 import me.shadykhalifa.whispertop.data.services.ToastServiceImpl
+import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
+import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
+import me.shadykhalifa.whispertop.domain.repositories.UserFeedbackRepository
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
 import me.shadykhalifa.whispertop.domain.services.ToastService
 import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
@@ -16,6 +22,10 @@ import me.shadykhalifa.whispertop.managers.PowerAwareApiManager
 import me.shadykhalifa.whispertop.managers.ServiceRecoveryManager
 import me.shadykhalifa.whispertop.managers.SystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.createApiManager
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
+import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
 import org.koin.core.module.dsl.bind
@@ -45,11 +55,23 @@ val androidAppModule = module {
         powerManager.createApiManager(scope)
     }
     
+    // Platform-specific repositories
+    singleOf(::AndroidServiceStateRepository) { bind<ServiceStateRepository>() }
+    singleOf(::AndroidPermissionRepository) { bind<PermissionRepository>() }
+    singleOf(::AndroidUserFeedbackRepository) { bind<UserFeedbackRepository>() }
+    
     // Platform-specific services
     singleOf(::TextInsertionServiceImpl) { bind<TextInsertionService>() }
     single<ToastService> { ToastServiceImpl(get()) }
     
     // ViewModels
-    viewModel { AudioRecordingViewModel() }
+    viewModel { 
+        AudioRecordingViewModel(
+            serviceManagementUseCase = get(),
+            permissionManagementUseCase = get(),
+            transcriptionWorkflowUseCase = get(),
+            userFeedbackUseCase = get()
+        )
+    }
     viewModel { OnboardingViewModel() }
 }
