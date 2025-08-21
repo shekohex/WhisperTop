@@ -28,12 +28,16 @@ WhisperTop provides seamless speech-to-text functionality through a system-wide 
 - **Custom Endpoints**: Support for OpenAI-compatible transcription services
 - **Transcription Customization**: Custom prompts and temperature control for improved accuracy
 - **Clickable Permission Cards**: Intuitive onboarding with interactive permission requests
+- **Transcription History**: Complete Room database infrastructure for storing and managing transcription history
+- **Usage Statistics**: Comprehensive tracking of transcription sessions, accuracy, and usage patterns
 
 ### Privacy & Security
 - All transcription requests sent directly to OpenAI using your API key
-- No audio files or transcriptions stored on device
+- No audio files stored on device (immediately deleted after transcription)
+- Transcription history stored locally using encrypted Room database
 - No third-party intermediaries or data sharing
 - Complete control over your data and API usage
+- Optional data retention controls and export functionality
 
 ## Installation
 
@@ -126,6 +130,7 @@ These advanced settings allow you to fine-tune the OpenAI Whisper API behavior f
 - **Language**: Kotlin 2.0 with K2 compiler
 - **UI Framework**: Jetpack Compose with Material 3
 - **Architecture**: Clean Architecture with Kotlin Multiplatform
+- **Database**: Room 2.7.0 with KSP annotation processing
 - **Minimum SDK**: 26 (Android 8.0)
 - **Target SDK**: 35 (Android 15)
 - **Build System**: Gradle with Android Gradle Plugin 8.12
@@ -178,6 +183,8 @@ Key components:
 - **AudioRecordingService**: Foreground service for microphone capture
 - **OverlayService**: System overlay management for floating UI
 - **WhisperTopAccessibilityService**: Text insertion via accessibility API
+- **Room Database**: Complete transcription history storage with repositories and DAOs
+- **Statistics Tracking**: User usage analytics and transcription metrics
 
 ## Roadmap
 
