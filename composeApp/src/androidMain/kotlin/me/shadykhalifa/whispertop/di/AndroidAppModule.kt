@@ -1,5 +1,6 @@
 package me.shadykhalifa.whispertop.di
 
+import me.shadykhalifa.whispertop.data.permissions.PermissionMonitor
 import me.shadykhalifa.whispertop.data.repositories.AndroidPermissionRepository
 import me.shadykhalifa.whispertop.data.repositories.AndroidServiceStateRepository
 import me.shadykhalifa.whispertop.data.repositories.AndroidUserFeedbackRepository
@@ -28,6 +29,7 @@ import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -60,6 +62,9 @@ val androidAppModule = module {
     singleOf(::AndroidPermissionRepository) { bind<PermissionRepository>() }
     singleOf(::AndroidUserFeedbackRepository) { bind<UserFeedbackRepository>() }
     
+    // Permission management
+    single { PermissionMonitor(get()) }
+    
     // Platform-specific services
     singleOf(::TextInsertionServiceImpl) { bind<TextInsertionService>() }
     single<ToastService> { ToastServiceImpl(get()) }
@@ -74,4 +79,11 @@ val androidAppModule = module {
         )
     }
     viewModel { OnboardingViewModel() }
+    viewModel { 
+        PermissionsViewModel(
+            context = get(),
+            permissionRepository = get(),
+            permissionMonitor = get()
+        )
+    }
 }
