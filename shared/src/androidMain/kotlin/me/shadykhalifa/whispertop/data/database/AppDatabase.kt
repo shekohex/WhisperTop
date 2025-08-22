@@ -18,7 +18,7 @@ import me.shadykhalifa.whispertop.data.database.entities.SessionMetricsEntity
         UserStatisticsEntity::class,
         SessionMetricsEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -70,6 +70,74 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX idx_session_start_time ON session_metrics(sessionStartTime)")
                 database.execSQL("CREATE INDEX idx_target_app ON session_metrics(targetAppPackage)")
                 database.execSQL("CREATE INDEX idx_transcription_success ON session_metrics(transcriptionSuccess)")
+            }
+        }
+        
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add performance-optimized indexes for statistics queries
+                
+                // Composite index for daily aggregation queries (most common pattern)
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_daily_stats 
+                    ON session_metrics(sessionStartTime, transcriptionSuccess, wordCount, characterCount, audioRecordingDuration)
+                """.trimIndent())
+                
+                // Index for error analysis and reporting
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_errors 
+                    ON session_metrics(errorType, sessionStartTime) 
+                    WHERE errorType IS NOT NULL
+                """.trimIndent())
+                
+                // Index for per-app usage analytics  
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_app_usage 
+                    ON session_metrics(targetAppPackage, sessionStartTime, transcriptionSuccess) 
+                    WHERE targetAppPackage IS NOT NULL
+                """.trimIndent())
+                
+                // Index for text search on transcriptions (for future search functionality)
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_text_search 
+                    ON session_metrics(transcriptionText) 
+                    WHERE transcriptionText IS NOT NULL AND LENGTH(transcriptionText) > 0
+                """.trimIndent())
+                
+                // Index for cleanup operations based on file size
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_cleanup 
+                    ON session_metrics(sessionStartTime, audioFileSize, LENGTH(transcriptionText))
+                """.trimIndent())
+                
+                // Index for productivity analytics (speaking rate and duration patterns)
+                database.execSQL("""
+                    CREATE INDEX idx_session_metrics_productivity 
+                    ON session_metrics(sessionStartTime, speakingRate, audioRecordingDuration) 
+                    WHERE speakingRate > 0
+                """.trimIndent())
+                
+                // Enhance transcription_history indexes if table exists
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS idx_transcription_history_timestamp 
+                    ON transcription_history(timestamp)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS idx_transcription_history_success 
+                    ON transcription_history(success, timestamp)
+                """.trimIndent())
+                
+                // Enhance user_statistics indexes if table exists
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS idx_user_statistics_date 
+                    ON user_statistics(date)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS idx_user_statistics_updated 
+                    ON user_statistics(lastUpdated)
+                """.trimIndent())
             }
         }
     }

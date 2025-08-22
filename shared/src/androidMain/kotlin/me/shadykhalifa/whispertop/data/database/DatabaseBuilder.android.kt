@@ -64,7 +64,7 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
             name = AppDatabase.DATABASE_NAME
         )
         .openHelperFactory(SupportOpenHelperFactory(databaseKey, hook, true)) // clearPassphrase=true for security
-        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
         
         // Apply database callbacks for optimization and monitoring
         builder.addCallback(object : androidx.room.RoomDatabase.Callback() {
