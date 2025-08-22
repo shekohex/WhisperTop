@@ -1,32 +1,40 @@
 package me.shadykhalifa.whispertop.data.repositories
 
+import android.content.Context
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistory
 import me.shadykhalifa.whispertop.utils.Result
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@RunWith(AndroidJUnit4::class)
 class TranscriptionHistoryRepositoryTest {
     
     private lateinit var database: AppDatabase
     private lateinit var repository: TranscriptionHistoryRepositoryImpl
 
-    @BeforeTest
+    @Before
     fun setUp() {
-        database = Room.inMemoryDatabaseBuilder<AppDatabase>()
-            .build()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            AppDatabase::class.java
+        ).build()
         repository = TranscriptionHistoryRepositoryImpl(database.transcriptionHistoryDao())
     }
 
-    @AfterTest
+    @After
     fun tearDown() {
         database.close()
     }

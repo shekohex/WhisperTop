@@ -18,7 +18,7 @@ fun ActionButton(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (text, icon, onClick, contentDesc) = when {
+    val buttonData = when {
         permissionState.isGranted -> null
         permissionState.requiresSettings -> {
             Tuple4(
@@ -39,7 +39,7 @@ fun ActionButton(
         }
     }
 
-    if (text != null && icon != null && onClick != null && contentDesc != null) {
+    buttonData?.let { (text, icon, onClick, contentDesc) ->
         OutlinedButton(
             onClick = onClick,
             modifier = modifier.semantics {
@@ -58,9 +58,3 @@ fun ActionButton(
     }
 }
 
-private data class Tuple4<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)

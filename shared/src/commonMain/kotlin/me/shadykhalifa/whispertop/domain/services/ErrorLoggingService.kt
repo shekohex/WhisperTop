@@ -1,5 +1,8 @@
 package me.shadykhalifa.whispertop.domain.services
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.runBlocking
 import me.shadykhalifa.whispertop.domain.models.ErrorCategory
 import me.shadykhalifa.whispertop.domain.models.ErrorClassifier
 import me.shadykhalifa.whispertop.domain.models.ErrorSeverity
@@ -38,6 +41,7 @@ class ErrorLoggingServiceImpl(
     
     private val errorLogs = mutableListOf<ErrorLogEntry>()
     private val maxLogEntries = 1000
+    private val errorLogsMutex = Mutex()
     
     override fun logError(
         error: Throwable, 
@@ -64,10 +68,12 @@ class ErrorLoggingServiceImpl(
             sessionId = sessionId
         )
         
-        synchronized(errorLogs) {
-            errorLogs.add(logEntry)
-            if (errorLogs.size > maxLogEntries) {
-                errorLogs.removeAt(0)
+        runBlocking {
+            errorLogsMutex.withLock {
+                errorLogs.add(logEntry)
+                if (errorLogs.size > maxLogEntries) {
+                    errorLogs.removeAt(0)
+                }
             }
         }
         
@@ -116,10 +122,12 @@ class ErrorLoggingServiceImpl(
             sessionId = sessionId
         )
         
-        synchronized(errorLogs) {
-            errorLogs.add(logEntry)
-            if (errorLogs.size > maxLogEntries) {
-                errorLogs.removeAt(0)
+        runBlocking {
+            errorLogsMutex.withLock {
+                errorLogs.add(logEntry)
+                if (errorLogs.size > maxLogEntries) {
+                    errorLogs.removeAt(0)
+                }
             }
         }
         
@@ -139,14 +147,18 @@ class ErrorLoggingServiceImpl(
     }
     
     override fun getRecentErrors(limit: Int): List<ErrorLogEntry> {
-        synchronized(errorLogs) {
-            return errorLogs.takeLast(limit)
+        return runBlocking {
+            errorLogsMutex.withLock {
+                errorLogs.takeLast(limit)
+            }
         }
     }
     
     override fun clearLogs() {
-        synchronized(errorLogs) {
-            errorLogs.clear()
+        runBlocking {
+            errorLogsMutex.withLock {
+                errorLogs.clear()
+            }
         }
     }
     

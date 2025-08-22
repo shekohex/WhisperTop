@@ -37,7 +37,7 @@ object ErrorClassifier {
             is TranscriptionError -> classifyTranscriptionError(error)
             is AudioRecordingError -> classifyAudioError(error)
             is OpenAIException -> classifyOpenAIError(error)
-            is SecurityException -> classifyPermissionError(error)
+            is PlatformSecurityException -> classifyPermissionError(error)
             else -> classifyGenericError(error)
         }
     }
@@ -243,7 +243,7 @@ object ErrorClassifier {
         }
     }
     
-    private fun classifyPermissionError(error: SecurityException): ErrorInfo {
+    private fun classifyPermissionError(error: PlatformSecurityException): ErrorInfo {
         return ErrorInfo(
             title = "Permission Required",
             message = "WhisperTop needs additional permissions to function properly.",
@@ -274,7 +274,7 @@ object ErrorClassifier {
             
             is TranscriptionError.PermissionDenied,
             is AudioRecordingError.PermissionDenied,
-            is SecurityException -> ErrorCategory.PERMISSION
+            is PlatformSecurityException -> ErrorCategory.PERMISSION
             
             is AudioRecordingError -> ErrorCategory.AUDIO
             

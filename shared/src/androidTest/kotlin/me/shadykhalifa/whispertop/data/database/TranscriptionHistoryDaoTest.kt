@@ -1,22 +1,41 @@
 package me.shadykhalifa.whispertop.data.database.dao
 
+import android.content.Context
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.data.database.AppDatabase
-import me.shadykhalifa.whispertop.data.models.TranscriptionHistoryEntity
-import kotlin.test.Test
+import me.shadykhalifa.whispertop.data.database.entities.TranscriptionHistoryEntity
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@RunWith(AndroidJUnit4::class)
 class TranscriptionHistoryDaoTest {
+    
+    private lateinit var database: AppDatabase
+    private lateinit var dao: me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
 
-    private fun createInMemoryDatabase(): AppDatabase {
-        return Room.inMemoryDatabaseBuilder(
-            klass = AppDatabase::class.java
+    @Before
+    fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            AppDatabase::class.java
         ).build()
+        dao = database.transcriptionHistoryDao()
+    }
+    
+    @After
+    fun tearDown() {
+        
     }
 
     private fun createTestEntity(
@@ -40,8 +59,8 @@ class TranscriptionHistoryDaoTest {
 
     @Test
     fun insertAndRetrieve_shouldWork() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -52,13 +71,13 @@ class TranscriptionHistoryDaoTest {
         assertEquals(testEntity.text, retrieved.text)
         assertEquals(testEntity.confidence, retrieved.confidence)
         
-        database.close()
+        
     }
 
     @Test
     fun insertAll_shouldInsertMultipleEntities() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("id1", "First transcription"),
             createTestEntity("id2", "Second transcription"),
@@ -70,13 +89,13 @@ class TranscriptionHistoryDaoTest {
 
         assertEquals(3L, count)
         
-        database.close()
+        
     }
 
     @Test
     fun update_shouldModifyExistingEntity() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -87,13 +106,13 @@ class TranscriptionHistoryDaoTest {
         assertNotNull(retrieved)
         assertEquals("Updated transcription", retrieved.text)
         
-        database.close()
+        
     }
 
     @Test
     fun delete_shouldRemoveEntity() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -102,13 +121,13 @@ class TranscriptionHistoryDaoTest {
         val retrieved = dao.getById(testEntity.id)
         assertNull(retrieved)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteById_shouldRemoveEntityById() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -117,13 +136,13 @@ class TranscriptionHistoryDaoTest {
         val retrieved = dao.getById(testEntity.id)
         assertNull(retrieved)
         
-        database.close()
+        
     }
 
     @Test
     fun getAllFlow_shouldReturnAllEntities() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("id1", "First", 1000L),
             createTestEntity("id2", "Second", 2000L),
@@ -139,13 +158,13 @@ class TranscriptionHistoryDaoTest {
         assertEquals("Second", retrieved[1].text)
         assertEquals("First", retrieved[2].text)
         
-        database.close()
+        
     }
 
     @Test
     fun getRecent_shouldReturnLimitedResults() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = (1..5).map { index ->
             createTestEntity("id$index", "Transcription $index", index.toLong())
         }
@@ -159,13 +178,13 @@ class TranscriptionHistoryDaoTest {
         assertEquals("Transcription 4", recent[1].text)
         assertEquals("Transcription 3", recent[2].text)
         
-        database.close()
+        
     }
 
     @Test
     fun getTotalDuration_shouldCalculateCorrectly() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("id1").copy(duration = 10.0f),
             createTestEntity("id2").copy(duration = 15.5f),
@@ -177,13 +196,13 @@ class TranscriptionHistoryDaoTest {
 
         assertEquals(25.5f, totalDuration)
         
-        database.close()
+        
     }
 
     @Test
     fun getAverageConfidence_shouldCalculateCorrectly() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("id1").copy(confidence = 0.8f),
             createTestEntity("id2").copy(confidence = 0.9f),
@@ -195,13 +214,13 @@ class TranscriptionHistoryDaoTest {
 
         assertEquals(0.85f, avgConfidence)
         
-        database.close()
+        
     }
 
     @Test
     fun getMostUsedLanguage_shouldReturnCorrectLanguage() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("id1").copy(language = "en"),
             createTestEntity("id2").copy(language = "en"),
@@ -215,13 +234,13 @@ class TranscriptionHistoryDaoTest {
 
         assertEquals("en", mostUsedLanguage)
         
-        database.close()
+        
     }
 
     @Test
     fun getDailyTranscriptionCount_shouldCountCorrectly() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val currentTime = System.currentTimeMillis()
         val startOfDay = currentTime - (currentTime % (24 * 60 * 60 * 1000))
         
@@ -236,13 +255,13 @@ class TranscriptionHistoryDaoTest {
 
         assertEquals(2L, dailyCount)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteAll_shouldRemoveAllEntities() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.transcriptionHistoryDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = (1..3).map { index ->
             createTestEntity("id$index", "Text $index")
         }
@@ -253,6 +272,6 @@ class TranscriptionHistoryDaoTest {
         dao.deleteAll()
         assertEquals(0L, dao.getCount())
         
-        database.close()
+        
     }
 }

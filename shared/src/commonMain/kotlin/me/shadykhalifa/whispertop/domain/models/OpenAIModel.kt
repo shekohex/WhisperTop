@@ -80,7 +80,7 @@ data class PricingInfo(
     val pricePerMinute: Double, // Price in USD per minute of audio
     val currency: String = "USD"
 ) {
-    fun formatPrice(): String = "$${"%.3f".format(pricePerMinute)}/$currency per minute"
+    fun formatPrice(): String = "$${(pricePerMinute * 1000).toInt() / 1000.0}/$currency per minute"
 }
 
 @Serializable

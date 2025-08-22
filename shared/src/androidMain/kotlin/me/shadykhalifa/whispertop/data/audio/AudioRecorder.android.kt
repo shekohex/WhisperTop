@@ -23,7 +23,7 @@ import kotlin.coroutines.resume
 /**
  * Simple MediaRecorder-based audio recorder for AAC/M4A files
  */
-actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
+class AudioRecorderImpl : AudioRecorder, KoinComponent {
     companion object {
         private const val TAG = "AudioRecorderImpl"
         private const val SAMPLE_RATE = 16000 // Optimal for Whisper
@@ -246,7 +246,7 @@ actual class AudioRecorderImpl : AudioRecorder, KoinComponent {
     }
 }
 
-actual class AudioFocusManagerImpl : AudioFocusManager, KoinComponent {
+class AudioFocusManagerImpl : AudioFocusManager, KoinComponent {
     private val context: Context by inject()
     
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager

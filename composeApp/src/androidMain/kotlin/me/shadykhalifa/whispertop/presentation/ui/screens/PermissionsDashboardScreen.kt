@@ -24,14 +24,14 @@ import me.shadykhalifa.whispertop.domain.models.AppPermission
 import me.shadykhalifa.whispertop.domain.models.PermissionState
 import me.shadykhalifa.whispertop.presentation.ui.components.permissions.*
 import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionsDashboardScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PermissionsViewModel = koinViewModel()
+    viewModel: PermissionsViewModel = koinInject()
 ) {
     val permissionStates by viewModel.permissionStates.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

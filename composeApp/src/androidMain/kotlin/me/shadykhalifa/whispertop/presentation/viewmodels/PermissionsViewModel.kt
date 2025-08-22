@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,14 +19,16 @@ import me.shadykhalifa.whispertop.domain.models.AppPermission
 import me.shadykhalifa.whispertop.domain.models.PermissionResult
 import me.shadykhalifa.whispertop.domain.models.PermissionState
 import me.shadykhalifa.whispertop.domain.models.*
+import androidx.lifecycle.ViewModel
 import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
-import me.shadykhalifa.whispertop.presentation.viewmodels.BaseViewModel
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class PermissionsViewModel(
     private val context: Context,
     private val permissionRepository: PermissionRepository,
     private val permissionMonitor: PermissionMonitor
-) : BaseViewModel() {
+) : ViewModel(), KoinComponent {
 
     companion object {
         private const val TAG = "PermissionsViewModel"
@@ -139,7 +142,14 @@ class PermissionsViewModel(
         permissionMonitor.stopMonitoring()
     }
 
-    suspend fun requestPermission(permission: AppPermission): PermissionResult {
+    fun requestPermission(permission: AppPermission) {
+        viewModelScope.launch {
+            val result = requestPermissionSuspend(permission)
+            _lastPermissionResult.value = result
+        }
+    }
+    
+    private suspend fun requestPermissionSuspend(permission: AppPermission): PermissionResult {
         val currentState = _permissionStates.value[permission]
         
         // Check if already granted
@@ -323,6 +333,11 @@ class PermissionsViewModel(
     fun clearLastResult() {
         _lastPermissionResult.value = null
     }
+    
+    private fun handleError(throwable: Throwable) {
+        // Log error or handle as appropriate for the app
+        // Could emit to an error state or show a toast
+    }
 
     fun getCriticalPermissions(): List<AppPermission> {
         return AppPermission.getCriticalPermissions()
@@ -339,12 +354,12 @@ class PermissionsViewModel(
     }
 
     fun requestAllCriticalPermissions() {
-        launchSafely {
+        viewModelScope.launch {
             val criticalPermissions = getCriticalPermissions()
             for (permission in criticalPermissions) {
                 val state = getPermissionState(permission)
                 if (state?.isGranted != true) {
-                    val result = requestPermission(permission)
+                    val result = requestPermissionSuspend(permission)
                     _lastPermissionResult.value = result
                     
                     // If we hit a rationale or settings requirement, stop and let user handle

@@ -6,7 +6,7 @@ import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
-import me.shadykhalifa.whispertop.data.models.TranscriptionHistoryEntity
+import me.shadykhalifa.whispertop.data.database.entities.TranscriptionHistoryEntity
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
 import me.shadykhalifa.whispertop.domain.models.TranscriptionStatistics
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
@@ -60,15 +60,9 @@ class TranscriptionHistoryRepositoryImpl(
         dao.deleteAll()
     }
 
-    override fun getAllTranscriptions(): Flow<PagingData<TranscriptionHistoryItem>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                enablePlaceholders = false
-            ),
-            pagingSourceFactory = { dao.getAllPaged() }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel() }
+    override fun getAllTranscriptions(): Flow<List<TranscriptionHistoryItem>> {
+        return dao.getAllFlow().map { entities ->
+            entities.map { it.toDomainModel() }
         }
     }
 
@@ -82,30 +76,22 @@ class TranscriptionHistoryRepositoryImpl(
         dao.getRecent(limit).map { it.toDomainModel() }
     }
 
-    override fun searchTranscriptions(query: String): Flow<PagingData<TranscriptionHistoryItem>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                enablePlaceholders = false
-            ),
-            pagingSourceFactory = { dao.searchByText(query) }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel() }
+    override fun searchTranscriptions(query: String): Flow<List<TranscriptionHistoryItem>> {
+        // Temporary implementation for testing
+        return dao.getAllFlow().map { entities ->
+            entities.filter { it.text.contains(query, ignoreCase = true) }
+                .map { it.toDomainModel() }
         }
     }
 
     override fun getTranscriptionsByDateRange(
         startTime: Long,
         endTime: Long
-    ): Flow<PagingData<TranscriptionHistoryItem>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                enablePlaceholders = false
-            ),
-            pagingSourceFactory = { dao.getByDateRange(startTime, endTime) }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel() }
+    ): Flow<List<TranscriptionHistoryItem>> {
+        // Temporary implementation for testing
+        return dao.getAllFlow().map { entities ->
+            entities.filter { it.timestamp >= startTime && it.timestamp <= endTime }
+                .map { it.toDomainModel() }
         }
     }
 
@@ -113,15 +99,14 @@ class TranscriptionHistoryRepositoryImpl(
         query: String,
         startTime: Long,
         endTime: Long
-    ): Flow<PagingData<TranscriptionHistoryItem>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                enablePlaceholders = false
-            ),
-            pagingSourceFactory = { dao.searchByTextAndDateRange(query, startTime, endTime) }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel() }
+    ): Flow<List<TranscriptionHistoryItem>> {
+        // Temporary implementation for testing
+        return dao.getAllFlow().map { entities ->
+            entities.filter { 
+                it.text.contains(query, ignoreCase = true) && 
+                it.timestamp >= startTime && 
+                it.timestamp <= endTime 
+            }.map { it.toDomainModel() }
         }
     }
 

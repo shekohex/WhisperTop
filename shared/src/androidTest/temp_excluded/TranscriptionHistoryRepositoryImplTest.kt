@@ -1,22 +1,41 @@
 package me.shadykhalifa.whispertop.data.repositories
 
+import android.content.Context
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.utils.Result
-import kotlin.test.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@RunWith(AndroidJUnit4::class)
 class TranscriptionHistoryRepositoryImplTest {
+    
+    private lateinit var database: AppDatabase
+    private lateinit var repository: TranscriptionHistoryRepositoryImpl
 
-    private fun createInMemoryDatabase(): AppDatabase {
-        return Room.inMemoryDatabaseBuilder(
-            klass = AppDatabase::class.java
+    @Before
+    fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            AppDatabase::class.java
         ).build()
+        repository = TranscriptionHistoryRepositoryImpl(database.transcriptionHistoryDao())
+    }
+    
+    @After
+    fun tearDown() {
+        
     }
 
     private fun createRepository(database: AppDatabase): TranscriptionHistoryRepositoryImpl {
@@ -25,8 +44,8 @@ class TranscriptionHistoryRepositoryImplTest {
 
     @Test
     fun saveTranscription_shouldReturnSuccessWithId() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         val result = repository.saveTranscription(
             text = "Test transcription",
@@ -42,13 +61,13 @@ class TranscriptionHistoryRepositoryImplTest {
         assertTrue(result is Result.Success)
         assertNotNull(result.data)
         
-        database.close()
+        
     }
 
     @Test
     fun getTranscription_shouldReturnCorrectItem() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         val saveResult = repository.saveTranscription(
             text = "Test transcription",
@@ -72,26 +91,26 @@ class TranscriptionHistoryRepositoryImplTest {
         assertEquals("Test transcription", transcription.text)
         assertEquals(5.0f, transcription.duration)
         
-        database.close()
+        
     }
 
     @Test
     fun getTranscription_withInvalidId_shouldReturnNull() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         val result = repository.getTranscription("invalid-id")
         
         assertTrue(result is Result.Success)
         assertNull(result.data)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteTranscription_shouldRemoveItem() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         val saveResult = repository.saveTranscription(
             text = "Test transcription",
@@ -114,13 +133,13 @@ class TranscriptionHistoryRepositoryImplTest {
         assertTrue(getResult is Result.Success)
         assertNull(getResult.data)
         
-        database.close()
+        
     }
 
     @Test
     fun getAllTranscriptionsFlow_shouldReturnAllItems() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         // Save multiple transcriptions
         val texts = listOf("First", "Second", "Third")
@@ -140,13 +159,13 @@ class TranscriptionHistoryRepositoryImplTest {
         val result = repository.getAllTranscriptionsFlow().first()
         assertEquals(3, result.size)
         
-        database.close()
+        
     }
 
     @Test
     fun getRecentTranscriptions_shouldRespectLimit() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         // Save 5 transcriptions
         repeat(5) { index ->
@@ -166,13 +185,13 @@ class TranscriptionHistoryRepositoryImplTest {
         assertTrue(result is Result.Success)
         assertEquals(3, result.data.size)
         
-        database.close()
+        
     }
 
     @Test
     fun getTranscriptionStatistics_shouldCalculateCorrectly() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         // Save transcriptions with known values
         repository.saveTranscription(
@@ -207,13 +226,13 @@ class TranscriptionHistoryRepositoryImplTest {
         assertEquals("en", stats.mostUsedLanguage)
         assertEquals("whisper-1", stats.mostUsedModel)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteAllTranscriptions_shouldRemoveAllItems() = runTest {
-        val database = createInMemoryDatabase()
-        val repository = createRepository(database)
+        // Use setUp database
+        // Use setUp repository
 
         // Save multiple transcriptions
         repeat(3) { index ->
@@ -236,6 +255,6 @@ class TranscriptionHistoryRepositoryImplTest {
         assertTrue(statsResult is Result.Success)
         assertEquals(0L, statsResult.data.totalCount)
         
-        database.close()
+        
     }
 }

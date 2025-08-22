@@ -8,7 +8,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import me.shadykhalifa.whispertop.data.models.TranscriptionHistoryEntity
+import me.shadykhalifa.whispertop.data.database.entities.TranscriptionHistoryEntity
 
 @Dao
 interface TranscriptionHistoryDao {

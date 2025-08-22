@@ -62,5 +62,3 @@ data class AudioConfiguration(
     override val bufferSizeMultiplier: Int = 4
 ) : AudioConfigurationProvider
 
-expect class AudioRecorderImpl() : AudioRecorder
-expect class AudioFocusManagerImpl() : AudioFocusManager

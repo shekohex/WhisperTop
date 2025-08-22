@@ -1,6 +1,9 @@
 package me.shadykhalifa.whispertop.domain.services
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import me.shadykhalifa.whispertop.domain.models.NetworkException
+import me.shadykhalifa.whispertop.domain.models.TimeoutException
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -58,9 +61,9 @@ object RetryPredicates {
             throwable.message?.contains("network", ignoreCase = true) == true -> true
             throwable.message?.contains("timeout", ignoreCase = true) == true -> true
             throwable.message?.contains("connection", ignoreCase = true) == true -> true
-            throwable is java.net.SocketTimeoutException -> true
-            throwable is java.net.UnknownHostException -> true
-            throwable is java.io.IOException -> true
+            throwable is CancellationException -> true
+            throwable is NetworkException -> true
+            throwable is Exception -> throwable.message?.contains("IOException", ignoreCase = true) == true
             else -> false
         }
     }

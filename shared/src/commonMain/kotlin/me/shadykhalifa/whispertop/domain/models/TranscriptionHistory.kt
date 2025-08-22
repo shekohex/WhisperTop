@@ -18,3 +18,19 @@ data class TranscriptionHistory(
     val createdAt: Long,
     val updatedAt: Long
 )
+
+interface TranscriptionHistoryData {
+    val id: String
+    val text: String
+    val timestamp: Long
+    val duration: Float?
+    val audioFilePath: String?
+    val confidence: Float?
+    val customPrompt: String?
+    val temperature: Float?
+    val language: String?
+    val model: String?
+    val wordCount: Int
+    val createdAt: Long
+    val updatedAt: Long
+}

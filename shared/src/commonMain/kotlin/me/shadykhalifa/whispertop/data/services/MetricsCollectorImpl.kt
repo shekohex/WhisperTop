@@ -249,10 +249,10 @@ class MetricsCollectorImpl(
         val errorCounts = mutableMapOf<String, Int>()
         sessionsInPeriod.forEach { session ->
             session.recordingMetrics?.errorType?.let { errorType ->
-                errorCounts[errorType] = errorCounts.getOrDefault(errorType, 0) + 1
+                errorCounts[errorType] = (errorCounts[errorType] ?: 0) + 1
             }
             session.transcriptionMetrics?.errorType?.let { errorType ->
-                errorCounts[errorType] = errorCounts.getOrDefault(errorType, 0) + 1
+                errorCounts[errorType] = (errorCounts[errorType] ?: 0) + 1
             }
         }
         

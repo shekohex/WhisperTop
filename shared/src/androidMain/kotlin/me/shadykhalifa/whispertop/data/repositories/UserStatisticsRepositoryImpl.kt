@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
 import me.shadykhalifa.whispertop.data.database.dao.UserStatisticsDao
-import me.shadykhalifa.whispertop.data.models.UserStatisticsEntity
+import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
 import me.shadykhalifa.whispertop.domain.models.UserStatistics
 import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
 import me.shadykhalifa.whispertop.utils.Result
@@ -82,6 +82,12 @@ class UserStatisticsRepositoryImpl(
     private fun UserStatisticsEntity.toDomainModel(): UserStatistics {
         return UserStatistics(
             id = id,
+            totalWords = totalWords,
+            totalSessions = totalSessions,
+            totalSpeakingTimeMs = totalSpeakingTimeMs,
+            averageWordsPerMinute = averageWordsPerMinute,
+            averageWordsPerSession = averageWordsPerSession,
+            userTypingWpm = userTypingWpm,
             totalTranscriptions = totalTranscriptions,
             totalDuration = totalDuration,
             averageAccuracy = averageAccuracy,
@@ -96,6 +102,12 @@ class UserStatisticsRepositoryImpl(
     private fun UserStatistics.toEntity(): UserStatisticsEntity {
         return UserStatisticsEntity(
             id = id,
+            totalWords = totalWords,
+            totalSessions = totalSessions,
+            totalSpeakingTimeMs = totalSpeakingTimeMs,
+            averageWordsPerMinute = averageWordsPerMinute,
+            averageWordsPerSession = averageWordsPerSession,
+            userTypingWpm = userTypingWpm,
             totalTranscriptions = totalTranscriptions,
             totalDuration = totalDuration,
             averageAccuracy = averageAccuracy,

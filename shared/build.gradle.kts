@@ -63,6 +63,18 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.androidx.room.testing)
         }
+        
+        androidInstrumentedTest.dependencies {
+            implementation(libs.junit)
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.testExt.junit)
+            implementation(libs.androidx.room.testing)
+            implementation(libs.koin.test)
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
 }
 
@@ -89,5 +101,7 @@ room {
 }
 
 dependencies {
-    add("kspAndroid", libs.androidx.room.compiler)
+    // Temporarily disabled due to KSP compatibility issues with Room 2.7.0-alpha08
+    // TODO: Re-enable when Room/KSP versions are compatible
+    // add("kspAndroid", libs.androidx.room.compiler)
 }

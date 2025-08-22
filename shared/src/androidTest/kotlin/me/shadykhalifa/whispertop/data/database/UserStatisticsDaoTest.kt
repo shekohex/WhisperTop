@@ -1,21 +1,40 @@
 package me.shadykhalifa.whispertop.data.database.dao
 
+import android.content.Context
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.data.database.AppDatabase
-import me.shadykhalifa.whispertop.data.models.UserStatisticsEntity
-import kotlin.test.Test
+import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
+@RunWith(AndroidJUnit4::class)
 class UserStatisticsDaoTest {
+    
+    private lateinit var database: AppDatabase
+    private lateinit var dao: me.shadykhalifa.whispertop.data.database.dao.UserStatisticsDao
 
-    private fun createInMemoryDatabase(): AppDatabase {
-        return Room.inMemoryDatabaseBuilder(
-            klass = AppDatabase::class.java
+    @Before
+    fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            AppDatabase::class.java
         ).build()
+        dao = database.userStatisticsDao()
+    }
+    
+    @After
+    fun tearDown() {
+        
     }
 
     private fun createTestEntity(
@@ -26,6 +45,12 @@ class UserStatisticsDaoTest {
         val currentTime = System.currentTimeMillis()
         return UserStatisticsEntity(
             id = id,
+            totalWords = 100L,
+            totalSessions = 5,
+            totalSpeakingTimeMs = 30000L,
+            averageWordsPerMinute = 150.0,
+            averageWordsPerSession = 20.0,
+            userTypingWpm = 40,
             totalTranscriptions = totalTranscriptions,
             totalDuration = totalDuration,
             averageAccuracy = 0.85f,
@@ -39,8 +64,8 @@ class UserStatisticsDaoTest {
 
     @Test
     fun insertAndRetrieve_shouldWork() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -51,13 +76,13 @@ class UserStatisticsDaoTest {
         assertEquals(testEntity.totalTranscriptions, retrieved.totalTranscriptions)
         assertEquals(testEntity.averageAccuracy, retrieved.averageAccuracy)
         
-        database.close()
+        
     }
 
     @Test
     fun update_shouldModifyExistingEntity() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -69,13 +94,13 @@ class UserStatisticsDaoTest {
         assertEquals(10L, retrieved.totalTranscriptions)
         assertEquals(150.5f, retrieved.totalDuration)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteById_shouldRemoveEntity() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -84,13 +109,13 @@ class UserStatisticsDaoTest {
         val retrieved = dao.getById(testEntity.id)
         assertNull(retrieved)
         
-        database.close()
+        
     }
 
     @Test
     fun getByIdFlow_shouldEmitUpdates() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -101,13 +126,13 @@ class UserStatisticsDaoTest {
         assertNotNull(initial)
         assertEquals(testEntity.id, initial.id)
         
-        database.close()
+        
     }
 
     @Test
     fun getAllFlow_shouldReturnAllEntities() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("user1"),
             createTestEntity("user2"),
@@ -119,13 +144,13 @@ class UserStatisticsDaoTest {
 
         assertEquals(3, retrieved.size)
         
-        database.close()
+        
     }
 
     @Test
     fun incrementTranscriptionStats_shouldUpdateCorrectly() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity(totalTranscriptions = 5L, totalDuration = 100f)
 
         dao.insert(testEntity)
@@ -144,13 +169,13 @@ class UserStatisticsDaoTest {
         assertEquals(10L, retrieved.dailyUsageCount)
         assertEquals(newUpdateTime, retrieved.updatedAt)
         
-        database.close()
+        
     }
 
     @Test
     fun updateDerivedStats_shouldUpdateDerivedFields() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val testEntity = createTestEntity()
 
         dao.insert(testEntity)
@@ -170,13 +195,13 @@ class UserStatisticsDaoTest {
         assertEquals("whisper-large", retrieved.mostUsedModel)
         assertEquals(newUpdateTime, retrieved.updatedAt)
         
-        database.close()
+        
     }
 
     @Test
     fun deleteAll_shouldRemoveAllEntities() = runTest {
-        val database = createInMemoryDatabase()
-        val dao = database.userStatisticsDao()
+        // Use setUp database
+        // Use setUp dao
         val entities = listOf(
             createTestEntity("user1"),
             createTestEntity("user2"),
@@ -189,6 +214,6 @@ class UserStatisticsDaoTest {
         dao.deleteAll()
         assertEquals(0, dao.getAll().size)
         
-        database.close()
+        
     }
 }

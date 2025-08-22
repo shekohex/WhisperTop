@@ -7,8 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
 import me.shadykhalifa.whispertop.data.database.dao.UserStatisticsDao
-import me.shadykhalifa.whispertop.data.models.TranscriptionHistoryEntity
-import me.shadykhalifa.whispertop.data.models.UserStatisticsEntity
+import me.shadykhalifa.whispertop.data.database.entities.TranscriptionHistoryEntity
+import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
 
 @Database(
     entities = [

@@ -22,7 +22,7 @@ class TranscriptionHistoryPagingSource(
                 },
                 anchorPosition = state.anchorPosition,
                 config = state.config,
-                leadingPlaceholderCount = state.leadingPlaceholderCount
+                leadingPlaceholderCount = 0 // Temporary fix for version compatibility
             )
         )
     }

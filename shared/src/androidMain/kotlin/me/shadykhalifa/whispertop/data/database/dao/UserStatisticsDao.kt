@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import me.shadykhalifa.whispertop.data.models.UserStatisticsEntity
+import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
 
 @Dao
 interface UserStatisticsDao {

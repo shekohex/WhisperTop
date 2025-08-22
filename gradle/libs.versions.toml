@@ -11,6 +11,7 @@ androidx-lifecycle = "2.9.1"
 androidx-navigation = "2.8.5"
 androidx-security = "1.1.0-alpha06"
 androidx-work = "2.9.0"
+androidx-test = "1.6.1"
 androidx-testExt = "1.2.1"
 androidx-datastore = "1.1.1"
 androidx-room = "2.7.0-alpha08"
@@ -34,6 +35,8 @@ kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }

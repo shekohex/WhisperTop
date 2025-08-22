@@ -1,6 +1,5 @@
 package me.shadykhalifa.whispertop.domain.repositories
 
-import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
 import me.shadykhalifa.whispertop.domain.models.TranscriptionStatistics
@@ -27,24 +26,24 @@ interface TranscriptionHistoryRepository {
     
     suspend fun deleteAllTranscriptions(): Result<Unit>
     
-    fun getAllTranscriptions(): Flow<PagingData<TranscriptionHistoryItem>>
+    fun getAllTranscriptions(): Flow<List<TranscriptionHistoryItem>>
     
     fun getAllTranscriptionsFlow(): Flow<List<TranscriptionHistoryItem>>
     
     suspend fun getRecentTranscriptions(limit: Int): Result<List<TranscriptionHistoryItem>>
     
-    fun searchTranscriptions(query: String): Flow<PagingData<TranscriptionHistoryItem>>
+    fun searchTranscriptions(query: String): Flow<List<TranscriptionHistoryItem>>
     
     fun getTranscriptionsByDateRange(
         startTime: Long,
         endTime: Long
-    ): Flow<PagingData<TranscriptionHistoryItem>>
+    ): Flow<List<TranscriptionHistoryItem>>
     
     fun searchTranscriptionsByTextAndDateRange(
         query: String,
         startTime: Long,
         endTime: Long
-    ): Flow<PagingData<TranscriptionHistoryItem>>
+    ): Flow<List<TranscriptionHistoryItem>>
     
     suspend fun getTranscriptionStatistics(): Result<TranscriptionStatistics>
 }

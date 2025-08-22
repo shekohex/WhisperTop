@@ -657,10 +657,10 @@ class SettingsViewModel(
         
         return ByteArray(44 + dataSize).apply {
             // WAV header
-            "RIFF".toByteArray().copyInto(this, 0)
+            "RIFF".encodeToByteArray().copyInto(this, 0)
             putInt(4, fileSize)
-            "WAVE".toByteArray().copyInto(this, 8)
-            "fmt ".toByteArray().copyInto(this, 12)
+            "WAVE".encodeToByteArray().copyInto(this, 8)
+            "fmt ".encodeToByteArray().copyInto(this, 12)
             putInt(16, 16) // fmt chunk size
             putShort(20, 1) // PCM format
             putShort(22, numChannels.toShort())
@@ -668,7 +668,7 @@ class SettingsViewModel(
             putInt(28, sampleRate * numChannels * (bitsPerSample / 8))
             putShort(32, (numChannels * (bitsPerSample / 8)).toShort())
             putShort(34, bitsPerSample.toShort())
-            "data".toByteArray().copyInto(this, 36)
+            "data".encodeToByteArray().copyInto(this, 36)
             putInt(40, dataSize)
             // Data section is already zero-filled (silence)
         }

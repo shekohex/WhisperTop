@@ -29,16 +29,16 @@ val AppPermission.settingsAction: String
     }
 
 fun AppPermission.Companion.getCriticalPermissions(): List<AppPermission> = 
-    values().filter { it.isCritical }
+    AppPermission.entries.filter { it.isCritical }
 
 fun AppPermission.Companion.getOptionalPermissions(): List<AppPermission> = 
-    values().filter { !it.isCritical }
+    AppPermission.entries.filter { !it.isCritical }
 
 fun AppPermission.Companion.getPermissionsForApiLevel(apiLevel: Int): List<AppPermission> = 
-    values().filter { it.minSdkVersion <= apiLevel }
+    AppPermission.entries.filter { it.minSdkVersion <= apiLevel }
 
 fun AppPermission.Companion.fromManifestPermission(manifestPermission: String): AppPermission? = 
-    values().find { it.manifestPermission == manifestPermission }
+    AppPermission.entries.find { it.manifestPermission == manifestPermission }
 
 @kotlinx.serialization.Serializable
 data class PermissionState(
