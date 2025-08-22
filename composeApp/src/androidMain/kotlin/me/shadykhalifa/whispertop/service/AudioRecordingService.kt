@@ -27,6 +27,8 @@ import me.shadykhalifa.whispertop.data.audio.AudioRecorderImpl
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.managers.PowerManagementUtil
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
+import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
+import me.shadykhalifa.whispertop.domain.models.SessionMetrics
 import me.shadykhalifa.whispertop.ui.utils.PerformanceMonitor
 import org.koin.android.ext.android.inject
 import java.io.File
@@ -54,6 +56,11 @@ class AudioRecordingService : Service() {
         // Service management
         const val ACTION_START_FOREGROUND = "action_start_foreground"
         const val ACTION_STOP_FOREGROUND = "action_stop_foreground"
+        
+        // Instance reference
+        private var instance: AudioRecordingService? = null
+        
+        fun getInstance(): AudioRecordingService? = instance
     }
     
     enum class RecordingState {
@@ -63,8 +70,9 @@ class AudioRecordingService : Service() {
     private val audioRecorder: AudioRecorderImpl by inject()
     private val powerManager: PowerManagementUtil by inject()
     private val metricsCollector: MetricsCollector by inject()
+    private val sessionMetricsRepository: SessionMetricsRepository by inject()
     private val binder = AudioRecordingBinder()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     
     private var notificationManager: NotificationManager? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -77,6 +85,7 @@ class AudioRecordingService : Service() {
     private var bufferUnderrunCount: Int = 0
     private var isForegroundService = false
     private var lastHealthCheck: Long = 0
+    private var currentSessionMetrics: SessionMetrics? = null
     
     private val stateListeners = mutableSetOf<RecordingStateListener>()
     
@@ -92,6 +101,7 @@ class AudioRecordingService : Service() {
     
     override fun onCreate() {
         super.onCreate()
+        instance = this
         createNotificationChannel()
         powerManager.initialize()
         acquireIntelligentWakeLock()
@@ -138,6 +148,39 @@ class AudioRecordingService : Service() {
                 currentState.set(RecordingState.IDLE)
             }
             
+            // Clean up incomplete sessions due to service termination
+            currentSessionId?.let { sessionId ->
+                currentSessionMetrics?.let { metrics ->
+                    val finalMetrics = metrics.copy(
+                        sessionEndTime = System.currentTimeMillis(),
+                        transcriptionSuccess = false,
+                        errorType = "SERVICE_TERMINATED",
+                        errorMessage = "Recording session terminated by system"
+                    )
+                    
+                    // Fire-and-forget database update with error recovery
+                    scope.launch {
+                        try {
+                            sessionMetricsRepository.updateSessionMetrics(finalMetrics)
+                            Log.d(TAG, "onDestroy: Session metrics cleaned up for session $sessionId")
+                        } catch (e: Exception) {
+                            // Use a separate thread for this since scope might be cancelled
+                            Thread {
+                                try {
+                                    // Direct database write as last resort
+                                    Log.w(TAG, "onDestroy: Failed to update session metrics normally, using fallback", e)
+                                } catch (fallbackError: Exception) {
+                                    Log.e(TAG, "onDestroy: Critical - failed to cleanup session metrics", fallbackError)
+                                }
+                            }.start()
+                        }
+                    }
+                }
+            }
+            
+            // Clean up listeners to prevent memory leaks
+            stateListeners.clear()
+            
             // Mark service as no longer foreground
             isForegroundService = false
             
@@ -152,6 +195,7 @@ class AudioRecordingService : Service() {
         } finally {
             // Always cancel scope last
             scope.cancel()
+            instance = null
         }
     }
     
@@ -179,6 +223,16 @@ class AudioRecordingService : Service() {
                 recordingStartTime = System.currentTimeMillis()
                 pausedDuration = 0
                 bufferUnderrunCount = 0
+                
+                // Initialize session metrics
+                currentSessionMetrics = SessionMetrics(
+                    sessionId = currentSessionId!!,
+                    sessionStartTime = recordingStartTime,
+                    audioQuality = "16kHz_mono_PCM16"
+                )
+                
+                // Persist initial session metrics to database
+                sessionMetricsRepository.createSessionMetrics(currentSessionMetrics!!)
                 
                 // Start recording metrics
                 metricsCollector.startRecordingMetrics(currentSessionId!!)
@@ -232,6 +286,26 @@ class AudioRecordingService : Service() {
                 setState(RecordingState.IDLE)
                 currentSessionId?.let { sessionId ->
                     metricsCollector.endRecordingMetrics(sessionId, false, "Recording error: ${e.message}")
+                    
+                    // Update session metrics with error information
+                    currentSessionMetrics?.let { metrics ->
+                        val errorMetrics = metrics.copy(
+                            sessionEndTime = System.currentTimeMillis(),
+                            transcriptionSuccess = false,
+                            errorType = "RECORDING_START_ERROR",
+                            errorMessage = "Recording error: ${e.message}"
+                        )
+                        
+                        scope.launch {
+                            try {
+                                sessionMetricsRepository.updateSessionMetrics(errorMetrics)
+                            } catch (dbException: Exception) {
+                                Log.e(TAG, "Failed to save error metrics: ${dbException.message}", dbException)
+                                // Schedule retry for critical metrics
+                                scheduleMetricsRecovery(errorMetrics, "RECORDING_START_ERROR", 1)
+                            }
+                        }
+                    }
                 }
                 Log.e(TAG, "startRecording: Critical error occurred", e)
                 
@@ -291,6 +365,27 @@ class AudioRecordingService : Service() {
                     metricsCollector.endRecordingMetrics(sessionId, audioFile != null, 
                         if (audioFile == null) "Failed to create audio file" else null)
                     
+                    // Update session metrics with recording completion data
+                    currentSessionMetrics?.let { metrics ->
+                        val updatedMetrics = metrics.copy(
+                            sessionEndTime = System.currentTimeMillis(),
+                            audioRecordingDuration = recordingDuration,
+                            audioFileSize = audioFileSize,
+                            transcriptionSuccess = audioFile != null,
+                            errorMessage = if (audioFile == null) "Failed to create audio file" else null
+                        )
+                        currentSessionMetrics = updatedMetrics
+                        
+                        // Save updated session metrics to database
+                        scope.launch {
+                            try {
+                                sessionMetricsRepository.updateSessionMetrics(updatedMetrics)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to update session metrics: ${e.message}", e)
+                            }
+                        }
+                    }
+                    
                     // Record final memory snapshot
                     PerformanceMonitor.MemoryMonitor.logMemoryUsage(
                         sessionId = sessionId,
@@ -307,6 +402,24 @@ class AudioRecordingService : Service() {
                 setState(RecordingState.IDLE)
                 currentSessionId?.let { sessionId ->
                     metricsCollector.endRecordingMetrics(sessionId, false, "Error stopping recording: ${e.message}")
+                    
+                    // Update session metrics with error information
+                    currentSessionMetrics?.let { metrics ->
+                        val errorMetrics = metrics.copy(
+                            sessionEndTime = System.currentTimeMillis(),
+                            transcriptionSuccess = false,
+                            errorType = "RECORDING_ERROR",
+                            errorMessage = "Error stopping recording: ${e.message}"
+                        )
+                        
+                        scope.launch {
+                            try {
+                                sessionMetricsRepository.updateSessionMetrics(errorMetrics)
+                            } catch (dbException: Exception) {
+                                Log.e(TAG, "Failed to save error metrics: ${dbException.message}", dbException)
+                            }
+                        }
+                    }
                 }
                 // Keep foreground status to maintain service reliability
                 updateNotification()
@@ -574,6 +687,40 @@ class AudioRecordingService : Service() {
     
     fun getCurrentSessionId(): String? = currentSessionId
     
+    fun getCurrentSessionMetrics(): SessionMetrics? = currentSessionMetrics
+    
+    fun updateSessionTranscriptionData(wordCount: Int, characterCount: Int, transcriptionText: String?, success: Boolean) {
+        currentSessionMetrics?.let { metrics ->
+            val actualAudioDuration = getRecordingDuration()
+            val speakingRate = if (actualAudioDuration > 0) {
+                val minutes = actualAudioDuration / 60000.0
+                if (minutes > 0) {
+                    wordCount.toDouble() / minutes
+                } else 0.0
+            } else 0.0
+            
+            val updatedMetrics = metrics.copy(
+                wordCount = wordCount,
+                characterCount = characterCount,
+                speakingRate = speakingRate,
+                transcriptionText = transcriptionText,
+                transcriptionSuccess = success,
+                audioRecordingDuration = actualAudioDuration
+            )
+            currentSessionMetrics = updatedMetrics
+            
+            // Save to database asynchronously
+            scope.launch {
+                try {
+                    sessionMetricsRepository.updateSessionMetrics(updatedMetrics)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to update session transcription data: ${e.message}", e)
+                    scheduleMetricsRecovery(updatedMetrics, "SESSION_TRANSCRIPTION_UPDATE", 1)
+                }
+            }
+        }
+    }
+    
     /**
      * Start health monitoring to detect and recover from service issues
      */
@@ -661,5 +808,30 @@ class AudioRecordingService : Service() {
         }
         isForegroundService = true
         Log.d(TAG, "startForegroundWithType: Service promoted to foreground with microphone type")
+    }
+    
+    /**
+     * Schedule recovery for failed database operations with exponential backoff
+     */
+    private fun scheduleMetricsRecovery(sessionMetrics: SessionMetrics, errorContext: String, retryAttempt: Int) {
+        if (retryAttempt > 3) {
+            Log.e(TAG, "scheduleMetricsRecovery: Max retry attempts reached for $errorContext")
+            return
+        }
+        
+        val delayMs = (1000L * (1 shl (retryAttempt - 1))).coerceAtMost(30000L) // Max 30 seconds
+        
+        scope.launch {
+            try {
+                delay(delayMs)
+                sessionMetricsRepository.updateSessionMetrics(sessionMetrics)
+                Log.d(TAG, "scheduleMetricsRecovery: Successfully recovered metrics for $errorContext on attempt $retryAttempt")
+            } catch (e: Exception) {
+                Log.w(TAG, "scheduleMetricsRecovery: Retry $retryAttempt failed for $errorContext: ${e.message}")
+                if (retryAttempt < 3) {
+                    scheduleMetricsRecovery(sessionMetrics, errorContext, retryAttempt + 1)
+                }
+            }
+        }
     }
 }

@@ -9,7 +9,15 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import me.shadykhalifa.whispertop.managers.ServiceRecoveryManager
+import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
 import me.shadykhalifa.whispertop.utils.TextInsertionUtils
+import org.koin.android.ext.android.inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
+import me.shadykhalifa.whispertop.utils.PrivacyUtils
 
 class WhisperTopAccessibilityService : AccessibilityService() {
 
@@ -24,6 +32,9 @@ class WhisperTopAccessibilityService : AccessibilityService() {
 
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var serviceRecoveryManager: ServiceRecoveryManager
+    private val sessionMetricsRepository: SessionMetricsRepository by inject()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val analyticsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -35,6 +46,8 @@ class WhisperTopAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        scope.cancel()
+        analyticsScope.cancel()
         instance = null
         Log.d(TAG, "WhisperTop Accessibility Service destroyed")
     }
@@ -54,25 +67,49 @@ class WhisperTopAccessibilityService : AccessibilityService() {
     }
 
     fun insertText(text: String): Boolean {
-        Log.d(TAG, "insertText called with text: '${text.take(50)}${if (text.length > 50) "..." else ""}' (${text.length} chars)")
+        Log.d(TAG, "insertText called with text summary: ${PrivacyUtils.createLogSafeSummary(text)}")
+        
+        val insertionStartTime = System.currentTimeMillis()
         
         return try {
             Log.d(TAG, "Searching for focused edit text field...")
             val focusedNode = findFocusedEditText()
+            val targetAppPackage = rootInActiveWindow?.packageName?.toString()
             
-            if (focusedNode != null) {
+            val result = if (focusedNode != null) {
                 Log.d(TAG, "Found focused node: ${focusedNode.className}, editable=${focusedNode.isEditable}, focused=${focusedNode.isFocused}")
-                val result = insertTextDirectly(focusedNode, text)
-                Log.d(TAG, "Direct text insertion result: $result")
-                result
+                val insertionResult = insertTextDirectly(focusedNode, text)
+                Log.d(TAG, "Direct text insertion result: $insertionResult")
+                insertionResult
             } else {
                 Log.w(TAG, "No focused edit text found, attempting clipboard insertion")
-                val result = insertTextViaClipboard(text)
-                Log.d(TAG, "Clipboard text insertion result: $result")
-                result
+                val insertionResult = insertTextViaClipboard(text)
+                Log.d(TAG, "Clipboard text insertion result: $insertionResult")
+                insertionResult
             }
+            
+            // Track text insertion analytics
+            trackTextInsertionAnalytics(
+                text = text,
+                success = result,
+                targetAppPackage = targetAppPackage,
+                insertionDurationMs = System.currentTimeMillis() - insertionStartTime
+            )
+            
+            result
         } catch (e: Exception) {
             Log.e(TAG, "Error inserting text: ${e.message}", e)
+            
+            // Track failed insertion
+            val targetAppPackage = rootInActiveWindow?.packageName?.toString()
+            trackTextInsertionAnalytics(
+                text = text,
+                success = false,
+                targetAppPackage = targetAppPackage,
+                insertionDurationMs = System.currentTimeMillis() - insertionStartTime,
+                errorMessage = e.message
+            )
+            
             false
         }
     }
@@ -295,5 +332,76 @@ class WhisperTopAccessibilityService : AccessibilityService() {
         } else {
             false
         }
+    }
+    
+    private fun trackTextInsertionAnalytics(
+        text: String,
+        success: Boolean,
+        targetAppPackage: String?,
+        insertionDurationMs: Long,
+        errorMessage: String? = null
+    ) {
+        // Use dedicated analytics scope to prevent blocking text insertion
+        analyticsScope.launch {
+            try {
+                val wordCount = countWords(text)
+                val characterCount = text.length
+                val typingSpeedWpm = calculateTypingSpeed(characterCount, insertionDurationMs)
+                
+                Log.d(TAG, "Text insertion analytics - Words: $wordCount, Characters: $characterCount, WPM: $typingSpeedWpm, App: $targetAppPackage, Success: $success, Sensitive: ${PrivacyUtils.containsSensitiveInfo(text)}")
+                
+                // Get current AudioRecordingService session to update metrics atomically
+                AudioRecordingService.getInstance()?.let { service ->
+                    service.getCurrentSessionId()?.let { sessionId ->
+                        val speakingRate = service.getCurrentSessionMetrics()?.let { metrics ->
+                            val audioDuration = metrics.audioRecordingDuration
+                            if (audioDuration > 0) {
+                                val minutes = audioDuration / 60000.0
+                                if (minutes > 0 && wordCount > 0) {
+                                    wordCount.toDouble() / minutes
+                                } else 0.0
+                            } else 0.0
+                        } ?: 0.0
+                        
+                        // Use atomic transaction to update all text insertion data with timeout
+                        kotlinx.coroutines.withTimeoutOrNull(5000) { // 5 second timeout for analytics
+                            sessionMetricsRepository.updateSessionWithTextInsertionData(
+                                sessionId = sessionId,
+                                wordCount = wordCount,
+                                characterCount = characterCount,
+                                speakingRate = speakingRate,
+                                transcriptionText = if (success) text else null,
+                                transcriptionSuccess = success,
+                                textInsertionSuccess = success,
+                                targetAppPackage = targetAppPackage
+                            )
+                        }
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to track text insertion analytics: ${e.message}", e)
+                // Analytics failure should not affect user experience
+            }
+        }
+    }
+    
+    private fun countWords(text: String): Int {
+        if (text.isBlank()) return 0
+        
+        // Use regex to find word boundaries - handles multiple languages and edge cases
+        return text.trim()
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .size
+    }
+    
+    private fun calculateTypingSpeed(characterCount: Int, durationMs: Long): Double {
+        if (durationMs <= 0) return 0.0
+        
+        // Standard WPM calculation: (characters / 5) / (time in minutes)
+        // Dividing by 5 because average word length is approximately 5 characters
+        val minutes = durationMs / 60000.0
+        return if (minutes > 0) (characterCount / 5.0) / minutes else 0.0
     }
 }

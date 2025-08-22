@@ -77,6 +77,8 @@ interface TranscriptionHistoryRepository {
     // Enhanced deletion methods  
     suspend fun deleteTranscriptions(ids: List<String>): Result<Int>
     
+    suspend fun deleteOlderThan(timestamp: Long): Result<Int>
+    
     // Export methods
     suspend fun exportTranscriptions(
         format: ExportFormat,

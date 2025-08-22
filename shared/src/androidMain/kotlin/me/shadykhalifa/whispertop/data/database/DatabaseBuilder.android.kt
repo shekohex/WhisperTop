@@ -17,6 +17,13 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
             // Enable WAL mode for better performance
             db.execSQL("PRAGMA journal_mode=WAL")
             db.execSQL("PRAGMA synchronous=NORMAL")
+            // Performance optimizations
+            db.execSQL("PRAGMA cache_size=10000") // 10MB cache
+            db.execSQL("PRAGMA temp_store=MEMORY")
+            db.execSQL("PRAGMA mmap_size=268435456") // 256MB memory mapping
+            db.execSQL("PRAGMA page_size=4096")
+            // Connection pooling settings
+            db.execSQL("PRAGMA busy_timeout=30000") // 30 second busy timeout
         }
     })
     .fallbackToDestructiveMigration() // Only for development

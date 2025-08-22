@@ -1855,7 +1855,7 @@
         "description": "Modify AudioRecordingService, WhisperTopAccessibilityService, and transcription workflow to capture session metrics, save transcription history, and implement background statistics aggregation.",
         "details": "COMPREHENSIVE SERVICE INTEGRATION FOR STATISTICS TRACKING:\n\n1. **AudioRecordingService Statistics Integration:**\n   - Add session timing capture: sessionStartTime, sessionEndTime, audioRecordingDuration\n   - Implement SessionMetrics data class to track recording metadata (audio quality, file size, duration)\n   - Add statistics hooks to service lifecycle methods (onStartRecording, onStopRecording)\n   - Ensure atomic database writes using Room transactions\n   - Handle service lifecycle properly to prevent data loss during unexpected termination\n\n2. **WhisperTopAccessibilityService Word Counting:**\n   - Implement word count calculation after successful text insertion using regex-based word boundary detection\n   - Add character count and typing efficiency metrics\n   - Track successful vs failed text insertions for reliability metrics\n   - Calculate typing speed metrics (WPM based on insertion duration)\n   - Store per-app usage statistics for detailed analytics\n\n3. **Enhanced Transcription Workflow Database Integration:**\n   - Modify TranscriptionWorkflowUseCase to persist TranscriptionHistoryEntity after successful API response\n   - Add speaking rate calculation: words per minute = (wordCount / audioDurationSeconds) * 60\n   - Implement error tracking for failed transcriptions with categorized error types\n   - Add API response time tracking and token usage metrics\n   - Handle network failures gracefully with proper retry logic and offline queue\n\n4. **Background Statistics Aggregation System:**\n   - Implement DailyStatsAggregatorWorker using AndroidX WorkManager for periodic aggregation\n   - Create StatisticsCalculatorUseCase for complex metrics: average session duration, productivity trends, peak usage times\n   - Add database triggers for real-time statistics updates using Room @Query with SUM/AVG functions\n   - Implement data retention policies (configurable 30/90/365 days) with automatic cleanup jobs\n   - Handle timezone changes and daylight savings for accurate daily aggregation\n\n5. **Analytics Events Integration:**\n   - Add Firebase Analytics/Crashlytics events for feature usage patterns: 'recording_started', 'transcription_completed', 'text_inserted'\n   - Track user engagement metrics: session frequency, feature adoption rates, error rates by device type\n   - Implement privacy-compliant analytics with user consent management\n   - Add performance monitoring for service response times and memory usage\n   - Create custom analytics dashboard for debugging and optimization\n\n6. **Performance and Reliability Optimizations:**\n   - Use Room database transactions for atomic multi-table operations\n   - Implement proper service binding lifecycle to prevent memory leaks\n   - Add background thread processing for statistics calculations to avoid UI blocking\n   - Implement database connection pooling and query optimization with proper indexes\n   - Add circuit breaker pattern for external API calls and database operations\n   - Handle low storage scenarios with graceful degradation and cleanup strategies",
         "testStrategy": "COMPREHENSIVE TESTING STRATEGY:\n\n1. **Service Integration Testing:**\n   - Unit tests for SessionMetrics data capture in AudioRecordingService using MockK and TestCoroutineDispatcher\n   - Integration tests for service lifecycle statistics tracking across app backgrounding/foregrounding scenarios\n   - Verify atomic database operations during service termination and crash recovery\n   - Test service binding stability under memory pressure and device rotation\n\n2. **Database Operation Testing:**\n   - Room database transaction testing with rollback scenarios for failed operations\n   - Concurrency testing for simultaneous read/write operations from multiple services\n   - Migration testing for schema changes and data integrity verification\n   - Performance testing with large datasets (1000+ transcription records)\n   - Test database cleanup and retention policy enforcement\n\n3. **Statistics Accuracy Verification:**\n   - Verify word count accuracy against known text samples using multiple counting algorithms\n   - Test speaking rate calculations with controlled audio samples of known duration and word counts\n   - Validate daily aggregation accuracy by comparing real-time vs batch-calculated metrics\n   - Cross-validate analytics events with actual user actions using test automation\n\n4. **Background Processing Testing:**\n   - Test WorkManager job execution under different battery optimization settings and doze mode\n   - Verify statistics aggregation continues correctly across device reboots and app updates\n   - Test job scheduling persistence and retry logic for failed background operations\n   - Performance testing for background operations to ensure minimal battery and CPU impact\n\n5. **Error Scenario and Edge Case Testing:**\n   - Test behavior when database is full or corrupted using Room database testing utilities\n   - Verify graceful degradation when analytics services are unavailable\n   - Test statistics tracking during rapid start/stop recording cycles and service interruptions\n   - Validate proper cleanup and resource release during unexpected service termination\n   - Test timezone changes and device clock modifications for accurate time-based statistics",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           11,
           46,
@@ -1865,7 +1865,73 @@
           8
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Enhance AudioRecordingService with Session Timing and Database Integration",
+            "description": "Modify AudioRecordingService to capture comprehensive session metrics including sessionStartTime, sessionEndTime, audioRecordingDuration, and integrate with Room database for atomic statistics persistence.",
+            "dependencies": [],
+            "details": "Add SessionMetrics data class to track recording metadata (audio quality, file size, duration). Implement database writes using Room transactions in service lifecycle methods (onStartRecording, onStopRecording). Ensure atomic database writes and handle service lifecycle properly to prevent data loss during unexpected termination. Integrate with existing MetricsCollector interface and extend current session tracking with database persistence. Add error handling for database operations and implement proper cleanup in service destruction.",
+            "status": "done",
+            "testStrategy": "Unit tests for SessionMetrics data capture using MockK and TestCoroutineDispatcher. Integration tests for service lifecycle statistics tracking across app backgrounding/foregrounding scenarios. Database transaction tests using Room testing utilities."
+          },
+          {
+            "id": 2,
+            "title": "Implement Word Counting and Usage Analytics in WhisperTopAccessibilityService",
+            "description": "Add comprehensive text analysis capabilities to WhisperTopAccessibilityService including word count calculation, character counting, typing efficiency metrics, and per-app usage statistics.",
+            "dependencies": [
+              "58.1"
+            ],
+            "details": "Implement word count calculation after successful text insertion using regex-based word boundary detection (\\b\\w+\\b pattern). Add character count and typing efficiency metrics calculation. Track successful vs failed text insertions for reliability metrics. Calculate typing speed metrics (WPM based on insertion duration). Store per-app usage statistics using packageName from AccessibilityNodeInfo for detailed analytics. Integrate with existing database entities and ensure thread-safe operations.",
+            "status": "done",
+            "testStrategy": "Unit tests for word counting algorithms with various text patterns. Integration tests for accessibility service text insertion tracking. Mock AccessibilityNodeInfo testing for package name extraction and statistics calculation."
+          },
+          {
+            "id": 3,
+            "title": "Integrate TranscriptionWorkflowUseCase with Database Persistence",
+            "description": "Modify TranscriptionWorkflowUseCase to persist TranscriptionHistoryEntity after successful API response, add speaking rate calculation, and implement comprehensive error tracking with categorized error types.",
+            "dependencies": [
+              "58.1",
+              "58.2"
+            ],
+            "details": "Update handleTranscriptionSuccess method to persist TranscriptionHistoryEntity with all metadata fields. Add speaking rate calculation: words per minute = (wordCount / audioDurationSeconds) * 60. Implement error tracking for failed transcriptions with categorized error types (network, API, audio processing). Add API response time tracking and token usage metrics. Handle network failures gracefully with proper retry logic and offline queue. Integrate with existing Result types and error handling patterns in the codebase.",
+            "status": "done",
+            "testStrategy": "Unit tests for TranscriptionHistoryEntity persistence with mock repository. Integration tests for complete workflow including database operations. Error scenario testing with network failures and API errors."
+          },
+          {
+            "id": 4,
+            "title": "Create Background Statistics Aggregation System with WorkManager",
+            "description": "Implement DailyStatsAggregatorWorker using AndroidX WorkManager for periodic aggregation, create StatisticsCalculatorUseCase for complex metrics computation, and add database triggers for real-time statistics updates.",
+            "dependencies": [
+              "58.3"
+            ],
+            "details": "Implement DailyStatsAggregatorWorker using AndroidX WorkManager with periodic work requests (daily schedule). Create StatisticsCalculatorUseCase for complex metrics: average session duration, productivity trends, peak usage times. Add database triggers for real-time statistics updates using Room @Query with SUM/AVG functions. Implement data retention policies (configurable 30/90/365 days) with automatic cleanup jobs. Handle timezone changes and daylight savings for accurate daily aggregation. Use WorkManager constraints for device idle and charging states.",
+            "status": "pending",
+            "testStrategy": "Unit tests for StatisticsCalculatorUseCase with test data. WorkManager testing using TestListenableWorkerBuilder. Database trigger verification and retention policy testing with time manipulation."
+          },
+          {
+            "id": 5,
+            "title": "Add Analytics Events Integration and Performance Monitoring",
+            "description": "Integrate Firebase Analytics/Crashlytics events for feature usage patterns, track user engagement metrics, implement privacy-compliant analytics with user consent management.",
+            "dependencies": [
+              "58.4"
+            ],
+            "details": "Add Firebase Analytics/Crashlytics events for feature usage patterns: 'recording_started', 'transcription_completed', 'text_inserted'. Track user engagement metrics: session frequency, feature adoption rates, error rates by device type. Implement privacy-compliant analytics with user consent management following GDPR/CCPA guidelines. Add performance monitoring for service response times and memory usage. Create custom analytics dashboard for debugging and optimization. Ensure analytics events are batched and sent efficiently to minimize battery impact.",
+            "status": "pending",
+            "testStrategy": "Unit tests for analytics event tracking with mock Firebase instances. Privacy compliance testing for user consent flows. Performance monitoring validation with memory and timing measurements."
+          },
+          {
+            "id": 6,
+            "title": "Implement Performance and Reliability Optimizations",
+            "description": "Add comprehensive performance optimizations including Room database transactions, proper service binding lifecycle, background thread processing, database connection pooling, and circuit breaker patterns for external APIs.",
+            "dependencies": [
+              "58.5"
+            ],
+            "details": "Use Room database transactions for atomic multi-table operations with @Transaction annotations. Implement proper service binding lifecycle to prevent memory leaks using weak references and proper cleanup. Add background thread processing for statistics calculations using Dispatchers.IO to avoid UI blocking. Implement database connection pooling and query optimization with proper indexes on timestamp and text search fields. Add circuit breaker pattern for external API calls and database operations with configurable failure thresholds. Handle low storage scenarios with graceful degradation and cleanup strategies. Implement exponential backoff for failed operations.",
+            "status": "pending",
+            "testStrategy": "Performance testing for database operations with large datasets. Memory leak detection using LeakCanary. Circuit breaker testing with simulated API failures. Storage cleanup verification under low storage conditions."
+          }
+        ]
       },
       {
         "id": 59,
@@ -1984,7 +2050,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-22T17:39:55.492Z",
+      "updated": "2025-08-22T20:14:33.878Z",
       "description": "Tasks for master context"
     }
   }

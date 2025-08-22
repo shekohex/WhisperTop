@@ -228,4 +228,7 @@ interface TranscriptionHistoryDao {
         AND (:endTime IS NULL OR timestamp <= :endTime)
     """)
     suspend fun getExportCount(startTime: Long?, endTime: Long?): Long
+    
+    @Query("DELETE FROM transcription_history WHERE timestamp < :timestamp")
+    suspend fun deleteOlderThan(timestamp: Long): Int
 }

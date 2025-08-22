@@ -354,4 +354,8 @@ class TranscriptionHistoryRepositoryImpl(
             field
         }
     }
+
+    override suspend fun deleteOlderThan(timestamp: Long): Result<Int> = execute {
+        dao.deleteOlderThan(timestamp)
+    }
 }

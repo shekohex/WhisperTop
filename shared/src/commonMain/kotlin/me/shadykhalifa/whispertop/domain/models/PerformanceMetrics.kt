@@ -144,6 +144,125 @@ data class PerformanceThresholds(
 )
 
 @Serializable
+data class SessionMetrics(
+    val sessionId: String,
+    val sessionStartTime: Long,
+    val sessionEndTime: Long? = null,
+    val audioRecordingDuration: Long = 0,
+    val audioFileSize: Long = 0,
+    val audioQuality: String? = null,
+    val wordCount: Int = 0,
+    val characterCount: Int = 0,
+    val speakingRate: Double = 0.0,
+    val transcriptionText: String? = null,
+    val transcriptionSuccess: Boolean = false,
+    val textInsertionSuccess: Boolean = false,
+    val targetAppPackage: String? = null,
+    val errorType: String? = null,
+    val errorMessage: String? = null
+) {
+    companion object {
+        const val MAX_WORD_COUNT = 10000  // Max words per session
+        const val MAX_CHARACTER_COUNT = 50000  // Max characters per session
+        const val MAX_SPEAKING_RATE = 1000.0  // Max WPM (extremely fast speakers ~400 WPM)
+        const val MIN_SPEAKING_RATE = 0.1  // Min WPM (very slow or pause-heavy speech)
+        const val MAX_AUDIO_DURATION_MS = 600_000L  // 10 minutes max recording
+        const val MAX_AUDIO_FILE_SIZE = 50_000_000L  // 50MB max file size
+        const val MAX_TRANSCRIPTION_LENGTH = 20_000  // Max transcription text length
+    }
+    
+    fun getSessionDuration(): Long = sessionEndTime?.let { it - sessionStartTime } ?: 0
+    
+    fun getWordsPerMinute(): Double = if (audioRecordingDuration > 0) {
+        (wordCount.toDouble() / (audioRecordingDuration / 60000.0))
+    } else 0.0
+    
+    fun getCharactersPerSecond(): Double = if (audioRecordingDuration > 0) {
+        (characterCount.toDouble() / (audioRecordingDuration / 1000.0))
+    } else 0.0
+    
+    fun validate(): ValidationResult {
+        val errors = mutableListOf<String>()
+        
+        // Validate word count
+        if (wordCount < 0) {
+            errors.add("Word count cannot be negative")
+        } else if (wordCount > MAX_WORD_COUNT) {
+            errors.add("Word count exceeds maximum limit of $MAX_WORD_COUNT")
+        }
+        
+        // Validate character count
+        if (characterCount < 0) {
+            errors.add("Character count cannot be negative")
+        } else if (characterCount > MAX_CHARACTER_COUNT) {
+            errors.add("Character count exceeds maximum limit of $MAX_CHARACTER_COUNT")
+        }
+        
+        // Validate speaking rate
+        if (speakingRate < 0) {
+            errors.add("Speaking rate cannot be negative")
+        } else if (speakingRate > MAX_SPEAKING_RATE) {
+            errors.add("Speaking rate exceeds maximum limit of $MAX_SPEAKING_RATE WPM")
+        }
+        
+        // Validate audio duration
+        if (audioRecordingDuration < 0) {
+            errors.add("Audio recording duration cannot be negative")
+        } else if (audioRecordingDuration > MAX_AUDIO_DURATION_MS) {
+            errors.add("Audio recording duration exceeds maximum limit of ${MAX_AUDIO_DURATION_MS / 60000} minutes")
+        }
+        
+        // Validate file size
+        if (audioFileSize < 0) {
+            errors.add("Audio file size cannot be negative")
+        } else if (audioFileSize > MAX_AUDIO_FILE_SIZE) {
+            errors.add("Audio file size exceeds maximum limit of ${MAX_AUDIO_FILE_SIZE / 1_000_000}MB")
+        }
+        
+        // Validate transcription text length
+        transcriptionText?.let { text ->
+            if (text.length > MAX_TRANSCRIPTION_LENGTH) {
+                errors.add("Transcription text length exceeds maximum limit of $MAX_TRANSCRIPTION_LENGTH characters")
+            }
+        }
+        
+        // Validate session timing
+        sessionEndTime?.let { endTime ->
+            if (endTime < sessionStartTime) {
+                errors.add("Session end time cannot be before start time")
+            }
+        }
+        
+        // Validate word/character consistency
+        if (wordCount > 0 && characterCount == 0) {
+            errors.add("Character count should be greater than 0 when word count is positive")
+        }
+        
+        return if (errors.isEmpty()) {
+            ValidationResult.Valid
+        } else {
+            ValidationResult.Invalid(errors)
+        }
+    }
+    
+    fun sanitized(): SessionMetrics {
+        return copy(
+            wordCount = wordCount.coerceIn(0, MAX_WORD_COUNT),
+            characterCount = characterCount.coerceIn(0, MAX_CHARACTER_COUNT),
+            speakingRate = speakingRate.coerceIn(MIN_SPEAKING_RATE, MAX_SPEAKING_RATE),
+            audioRecordingDuration = audioRecordingDuration.coerceIn(0, MAX_AUDIO_DURATION_MS),
+            audioFileSize = audioFileSize.coerceIn(0, MAX_AUDIO_FILE_SIZE),
+            transcriptionText = transcriptionText?.take(MAX_TRANSCRIPTION_LENGTH)
+        )
+    }
+}
+
+sealed class ValidationResult {
+    object Valid : ValidationResult()
+    data class Invalid(val errors: List<String>) : ValidationResult()
+}
+
+@Serializable
 data class MetricsAggregation(
     val periodStart: Long,
     val periodEnd: Long,

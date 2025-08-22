@@ -20,6 +20,7 @@ import me.shadykhalifa.whispertop.presentation.activities.PermissionOnboardingAc
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import me.shadykhalifa.whispertop.workers.DataCleanupWorker
 
 class MainActivity : ComponentActivity() {
     
@@ -50,6 +51,9 @@ class MainActivity : ComponentActivity() {
         
         // Initialize overlay after onboarding is complete
         initializeOverlay()
+        
+        // Schedule periodic data cleanup
+        DataCleanupWorker.schedulePeriodicCleanup(this)
     }
     
     override fun onResume() {

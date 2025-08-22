@@ -6,10 +6,13 @@ import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.data.database.createDatabaseBuilder
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
 import me.shadykhalifa.whispertop.data.database.dao.UserStatisticsDao
+import me.shadykhalifa.whispertop.data.database.dao.SessionMetricsDao
 import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
 import me.shadykhalifa.whispertop.data.repositories.UserStatisticsRepositoryImpl
+import me.shadykhalifa.whispertop.data.repositories.SessionMetricsRepositoryImpl
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
 import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
+import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSource
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSourceImpl
 import me.shadykhalifa.whispertop.data.repositories.AudioRecorder
@@ -31,10 +34,15 @@ val androidModule = module {
     single<AppDatabase> { createDatabaseBuilder(get()) }
     single<TranscriptionHistoryDao> { get<AppDatabase>().transcriptionHistoryDao() }
     single<UserStatisticsDao> { get<AppDatabase>().userStatisticsDao() }
+    single<SessionMetricsDao> { get<AppDatabase>().sessionMetricsDao() }
     
     // Room-based repositories
     single<TranscriptionHistoryRepository> { TranscriptionHistoryRepositoryImpl(get()) }
     single<UserStatisticsRepository> { UserStatisticsRepositoryImpl(get(), get()) }
+    single<SessionMetricsRepository> { SessionMetricsRepositoryImpl(get()) }
+    single<me.shadykhalifa.whispertop.domain.services.DataRetentionService> { 
+        me.shadykhalifa.whispertop.domain.services.DataRetentionServiceImpl(get(), get()) 
+    }
 }
 
 fun providePlatformModule(context: Context) = module {

@@ -37,7 +37,13 @@ data class AppSettings(
     val enableMetricsCollection: Boolean = true,
     val metricsRetentionDays: Int = 30,
     val enableMetricsExport: Boolean = true,
-    val autoCleanupMetrics: Boolean = true
+    val autoCleanupMetrics: Boolean = true,
+    // Privacy settings
+    val enableTranscriptionStorage: Boolean = true,
+    val enableAppUsageTracking: Boolean = false,
+    val hashTranscriptionText: Boolean = false,
+    val maxTranscriptionRetentionDays: Int = 30,
+    val autoDeleteTranscriptions: Boolean = true
 ) {
     /**
      * Determines if the current baseUrl is an OpenAI endpoint

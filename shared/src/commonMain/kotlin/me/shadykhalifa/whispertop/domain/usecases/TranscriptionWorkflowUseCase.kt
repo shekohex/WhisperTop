@@ -13,6 +13,8 @@ import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.TranscriptionError
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
+import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
+import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
 import me.shadykhalifa.whispertop.domain.services.TextInsertionService
 import me.shadykhalifa.whispertop.domain.services.ToastService
 import me.shadykhalifa.whispertop.domain.services.RetryService
@@ -20,8 +22,12 @@ import me.shadykhalifa.whispertop.domain.services.ErrorLoggingService
 import me.shadykhalifa.whispertop.domain.services.ConnectionStatusService
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.domain.models.ErrorClassifier
+import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
+import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.services.RetryPredicates
 import me.shadykhalifa.whispertop.utils.Result
+import kotlinx.datetime.Clock
+import java.util.UUID
 
 private fun Boolean?.orFalse(): Boolean = this ?: false
 
@@ -37,6 +43,8 @@ sealed class WorkflowState {
 class TranscriptionWorkflowUseCase(
     private val recordingManager: RecordingManager,
     private val transcriptionRepository: TranscriptionRepository,
+    private val transcriptionHistoryRepository: TranscriptionHistoryRepository,
+    private val sessionMetricsRepository: SessionMetricsRepository,
     private val settingsRepository: SettingsRepository,
     private val textInsertionService: TextInsertionService,
     private val toastService: ToastService,
@@ -180,6 +188,17 @@ class TranscriptionWorkflowUseCase(
         
         _workflowState.value = WorkflowState.InsertingText
         
+        // Persist transcription history to database
+        val transcriptionHistoryId = try {
+            persistTranscriptionHistory(transcription)
+        } catch (e: Exception) {
+            errorLoggingService.logWarning("Failed to persist transcription history", mapOf(
+                "error" to (e.message ?: "Unknown error"),
+                "transcription_length" to transcription.length.toString()
+            ))
+            null
+        }
+        
         try {
             val textInserted = retryService.withRetry(
                 maxRetries = 2,
@@ -220,6 +239,82 @@ class TranscriptionWorkflowUseCase(
             
             _workflowState.value = WorkflowState.Error(error, errorInfo.isRetryable)
         }
+    }
+    
+    private suspend fun persistTranscriptionHistory(transcription: String): String? {
+        // Get current recording session info if available
+        val currentRecordingState = recordingState.value
+        val settings = settingsRepository.getSettings()
+        
+        // Calculate audio metrics
+        val audioFile = when (currentRecordingState) {
+            is RecordingState.Success -> currentRecordingState.audioFile
+            else -> null
+        }
+        
+        val audioDurationMs = audioFile?.duration ?: 0L
+        val audioDurationSeconds = audioDurationMs / 1000f
+        val wordCount = countWords(transcription)
+        val speakingRate = calculateSpeakingRate(wordCount, audioDurationSeconds)
+        
+        val transcriptionHistoryItem = TranscriptionHistoryItem(
+            id = UUID.randomUUID().toString(),
+            text = transcription,
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            duration = audioDurationSeconds,
+            audioFilePath = audioFile?.path,
+            confidence = null, // OpenAI doesn't provide confidence scores
+            customPrompt = settings.customPrompt?.takeIf { it.isNotBlank() },
+            temperature = settings.temperature,
+            language = settings.language?.takeIf { it.isNotBlank() },
+            model = settings.selectedModel
+        )
+        
+        return when (val result = transcriptionHistoryRepository.saveTranscription(
+            text = transcriptionHistoryItem.text,
+            duration = transcriptionHistoryItem.duration,
+            audioFilePath = transcriptionHistoryItem.audioFilePath,
+            confidence = transcriptionHistoryItem.confidence,
+            customPrompt = transcriptionHistoryItem.customPrompt,
+            temperature = transcriptionHistoryItem.temperature,
+            language = transcriptionHistoryItem.language,
+            model = transcriptionHistoryItem.model
+        )) {
+            is Result.Success -> {
+                // Log success for analytics
+                errorLoggingService.logWarning("Transcription history saved successfully", mapOf(
+                    "transcription_id" to result.data,
+                    "word_count" to wordCount.toString(),
+                    "speaking_rate" to speakingRate.toString(),
+                    "audio_duration" to audioDurationSeconds.toString()
+                ))
+                result.data
+            }
+            is Result.Error -> {
+                errorLoggingService.logError(result.exception, mapOf(
+                    "context" to "persistTranscriptionHistory",
+                    "transcription_length" to transcription.length.toString()
+                ))
+                throw result.exception
+            }
+            is Result.Loading -> {
+                // This shouldn't happen for database operations, but handle it gracefully
+                errorLoggingService.logWarning("Unexpected loading state in persistTranscriptionHistory", mapOf(
+                    "context" to "persistTranscriptionHistory"
+                ))
+                null
+            }
+        }
+    }
+    
+    private fun countWords(text: String): Int {
+        if (text.isBlank()) return 0
+        return text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.size
+    }
+    
+    private fun calculateSpeakingRate(wordCount: Int, audioDurationSeconds: Float): Double {
+        if (audioDurationSeconds <= 0) return 0.0
+        return (wordCount.toDouble() / (audioDurationSeconds / 60.0))
     }
     
     fun cleanup() {
