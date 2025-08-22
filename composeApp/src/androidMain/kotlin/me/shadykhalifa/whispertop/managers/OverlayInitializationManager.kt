@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import me.shadykhalifa.whispertop.domain.models.RecordingState
+import me.shadykhalifa.whispertop.presentation.models.RecordingStatus
 import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.service.AudioRecordingService
@@ -272,31 +272,31 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
      * Handle mic button click - toggle recording state
      */
     private suspend fun handleMicButtonClick() {
-        val currentState = audioRecordingViewModel.uiState.value.recordingState
+        val currentState = audioRecordingViewModel.uiState.value.status
         val uiState = audioRecordingViewModel.uiState.value
         
-        Log.d(TAG, "handleMicButtonClick: currentState=$currentState, isServiceReady=${uiState.isServiceReady}, connection=${uiState.serviceConnectionState}, permission=${uiState.permissionState}")
+        Log.d(TAG, "handleMicButtonClick: currentState=$currentState")
         
         when (currentState) {
-            RecordingState.Idle -> {
+            RecordingStatus.Idle -> {
                 Log.d(TAG, "Starting recording from mic button")
                 audioRecordingViewModel.startRecording()
             }
-            is RecordingState.Recording -> {
+            RecordingStatus.Recording -> {
                 Log.d(TAG, "Stopping recording from mic button")
                 audioRecordingViewModel.stopRecording()
             }
-            is RecordingState.Processing -> {
+            RecordingStatus.Processing -> {
                 Log.d(TAG, "Recording is processing, ignoring click")
-                // Do nothing - processing in progress
             }
-            is RecordingState.Success -> {
+            RecordingStatus.InsertingText -> {
+                Log.d(TAG, "Inserting text, ignoring click")
+            }
+            RecordingStatus.Success -> {
                 Log.d(TAG, "Recording successful, ignoring click")
-                // Do nothing - recording completed
             }
-            is RecordingState.Error -> {
+            RecordingStatus.Error -> {
                 Log.d(TAG, "Recording error, ignoring click")
-                // Do nothing - error state
             }
         }
     }
@@ -307,16 +307,17 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
     private fun setupStateSync() {
         scope.launch {
             audioRecordingViewModel.uiState.collect { uiState ->
-                val buttonState = when (uiState.recordingState) {
-                    RecordingState.Idle -> MicButtonState.IDLE
-                    is RecordingState.Recording -> MicButtonState.RECORDING
-                    is RecordingState.Processing -> MicButtonState.PROCESSING
-                    is RecordingState.Success -> MicButtonState.IDLE
-                    is RecordingState.Error -> MicButtonState.IDLE
+                val buttonState = when (uiState.status) {
+                    RecordingStatus.Idle -> MicButtonState.IDLE
+                    RecordingStatus.Recording -> MicButtonState.RECORDING
+                    RecordingStatus.Processing -> MicButtonState.PROCESSING
+                    RecordingStatus.InsertingText -> MicButtonState.PROCESSING
+                    RecordingStatus.Success -> MicButtonState.IDLE
+                    RecordingStatus.Error -> MicButtonState.IDLE
                 }
                 
                 micButtonOverlay?.setState(buttonState)
-                Log.d(TAG, "Updated mic button state to: $buttonState (from recording state: ${uiState.recordingState})")
+                Log.d(TAG, "Updated mic button state to: $buttonState (from recording status: ${uiState.status})")
             }
         }
     }

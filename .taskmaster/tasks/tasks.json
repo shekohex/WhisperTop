@@ -1510,7 +1510,7 @@
               "41.2"
             ],
             "details": "Modify AudioRecordingUiState data class in AudioRecordingViewModel.kt: 1) Replace 'lastRecording: AudioFile?' with 'lastRecording: AudioFilePresentationModel?'. 2) Replace 'recordingState: RecordingState' with 'status: RecordingStatus'. 3) Replace 'transcriptionResult: String?' with 'transcription: TranscriptionDisplayModel?'. 4) Remove serviceConnectionState, permissionState fields (move to service management). 5) Keep only UI-relevant fields: status, isLoading, errorMessage, lastRecording, transcription, showPermissionRationale, rationalePermissions. 6) Update all usages throughout ViewModel.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test AudioRecordingUiState creation with new presentation models, verify no compilation errors after field changes, test state copying with new fields, and validate UI component compatibility with updated state structure."
           },
           {
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-22T23:05:21.003Z",
+      "updated": "2025-08-22T23:21:19.153Z",
       "description": "Tasks for master context"
     }
   }

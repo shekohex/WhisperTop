@@ -24,6 +24,7 @@ import me.shadykhalifa.whispertop.presentation.models.AudioFilePresentationModel
 import me.shadykhalifa.whispertop.presentation.models.RecordingStatus
 import me.shadykhalifa.whispertop.presentation.models.TranscriptionDisplayModel
 import me.shadykhalifa.whispertop.presentation.models.toAudioFilePresentationModel
+import me.shadykhalifa.whispertop.presentation.models.toRecordingStatus
 import me.shadykhalifa.whispertop.presentation.models.toUiState
 import me.shadykhalifa.whispertop.utils.Result
 
@@ -65,10 +66,8 @@ class AudioRecordingViewModel(
                 Log.d(TAG, "Service state update: connection=$connectionState, recording=$recordingState, permission=$permissionState, isReady=$isServiceReady")
                 
                 _uiState.value = _uiState.value.copy(
-                    serviceConnectionState = connectionState,
-                    recordingState = recordingState,
-                    permissionState = permissionState,
-                    isServiceReady = isServiceReady
+                    status = recordingState.toRecordingStatus(),
+                    isLoading = isServiceReady && recordingState == ServiceStateRepository.RecordingState.RECORDING
                 )
             }.collect { }
         }
@@ -91,17 +90,15 @@ class AudioRecordingViewModel(
                 Log.d(TAG, "Recording completed: ${audioFile?.path}, size: ${audioFile?.let { java.io.File(it.path).length() }} bytes")
                 
                 _uiState.value = _uiState.value.copy(
-                    lastRecording = audioFile,
-                    lastRecordingPresentation = audioFile.toAudioFilePresentationModel(),
-                    isLoading = true // Keep loading while transcribing
+                    lastRecording = audioFile.toAudioFilePresentationModel(),
+                    isLoading = true
                 )
                 
                 // Recording completion is now handled by the workflow
                 audioFile?.let { file ->
                     Log.d(TAG, "Recording completed: ${file.path}, workflow will handle transcription")
                     _uiState.value = _uiState.value.copy(
-                        lastRecording = file,
-                        lastRecordingPresentation = file.toAudioFilePresentationModel()
+                        lastRecording = file.toAudioFilePresentationModel()
                     )
                 } ?: run {
                     Log.w(TAG, "Recording completed but no audio file received")
@@ -113,7 +110,6 @@ class AudioRecordingViewModel(
             }
         }
         
-        // Update recording duration
         viewModelScope.launch {
             serviceManagementUseCase.recordingState.collect { state ->
                 if (state == ServiceStateRepository.RecordingState.RECORDING ||
@@ -314,18 +310,11 @@ class AudioRecordingViewModel(
 }
 
 data class AudioRecordingUiState(
-    val serviceConnectionState: ServiceConnectionState = ServiceConnectionState.DISCONNECTED,
-    val recordingState: RecordingState = RecordingState.Idle,
-    val permissionState: Boolean = false,
-    val isServiceReady: Boolean = false,
-    val recordingStatus: RecordingStatus = RecordingStatus.Idle,
+    val status: RecordingStatus = RecordingStatus.Idle,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val lastRecording: AudioFile? = null,
-    val lastRecordingPresentation: AudioFilePresentationModel? = null,
-    val transcriptionResult: String? = null,
-    val transcriptionDisplayModel: TranscriptionDisplayModel? = null,
-    val transcriptionLanguage: String? = null,
+    val lastRecording: AudioFilePresentationModel? = null,
+    val transcription: TranscriptionDisplayModel? = null,
     val showPermissionRationale: Boolean = false,
     val rationalePermissions: List<String> = emptyList()
 )

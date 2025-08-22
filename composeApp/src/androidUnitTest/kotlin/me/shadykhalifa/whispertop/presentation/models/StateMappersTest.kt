@@ -151,10 +151,10 @@ class StateMappersTest {
         val workflowState = WorkflowState.Idle
         val result = workflowState.toUiState(currentUiState)
         
-        assertEquals(RecordingStatus.Idle, result.recordingStatus)
+        assertEquals(RecordingStatus.Idle, result.status)
         assertFalse(result.isLoading)
         assertNull(result.errorMessage)
-        assertNull(result.transcriptionDisplayModel)
+        assertNull(result.transcription)
     }
 
     @Test
@@ -163,7 +163,7 @@ class StateMappersTest {
         val workflowState = WorkflowState.Processing(0.5f)
         val result = workflowState.toUiState(currentUiState)
         
-        assertEquals(RecordingStatus.Processing, result.recordingStatus)
+        assertEquals(RecordingStatus.Processing, result.status)
         assertTrue(result.isLoading)
         assertNull(result.errorMessage)
     }
@@ -174,7 +174,7 @@ class StateMappersTest {
         val workflowState = WorkflowState.InsertingText
         val result = workflowState.toUiState(currentUiState)
         
-        assertEquals(RecordingStatus.InsertingText, result.recordingStatus)
+        assertEquals(RecordingStatus.InsertingText, result.status)
         assertTrue(result.isLoading)
         assertNull(result.errorMessage)
     }
@@ -186,13 +186,12 @@ class StateMappersTest {
         val workflowState = WorkflowState.Success(transcription, true)
         val result = workflowState.toUiState(currentUiState)
         
-        assertEquals(RecordingStatus.Success, result.recordingStatus)
+        assertEquals(RecordingStatus.Success, result.status)
         assertFalse(result.isLoading)
         assertNull(result.errorMessage)
-        assertEquals(transcription, result.transcriptionResult)
-        assertNotNull(result.transcriptionDisplayModel)
-        assertEquals(transcription, result.transcriptionDisplayModel!!.fullText)
-        assertEquals(TextInsertionStatus.Completed, result.transcriptionDisplayModel!!.insertionStatus)
+        assertNotNull(result.transcription)
+        assertEquals(transcription, result.transcription!!.fullText)
+        assertEquals(TextInsertionStatus.Completed, result.transcription!!.insertionStatus)
     }
 
     @Test
@@ -202,7 +201,7 @@ class StateMappersTest {
         val workflowState = WorkflowState.Error(error, true)
         val result = workflowState.toUiState(currentUiState)
         
-        assertEquals(RecordingStatus.Error, result.recordingStatus)
+        assertEquals(RecordingStatus.Error, result.status)
         assertFalse(result.isLoading)
         assertNotNull(result.errorMessage)
         assertTrue(result.errorMessage!!.contains("API key", ignoreCase = true))
@@ -211,9 +210,6 @@ class StateMappersTest {
     @Test
     fun `WorkflowState transformation preserves other UiState properties`() {
         val currentUiState = createTestUiState().copy(
-            serviceConnectionState = ServiceConnectionState.CONNECTED,
-            permissionState = true,
-            isServiceReady = true,
             showPermissionRationale = true,
             rationalePermissions = listOf("RECORD_AUDIO")
         )
@@ -221,31 +217,19 @@ class StateMappersTest {
         val workflowState = WorkflowState.Recording
         val result = workflowState.toUiState(currentUiState)
         
-        // Verify preserved properties
-        assertEquals(ServiceConnectionState.CONNECTED, result.serviceConnectionState)
-        assertTrue(result.permissionState)
-        assertTrue(result.isServiceReady)
         assertTrue(result.showPermissionRationale)
         assertEquals(listOf("RECORD_AUDIO"), result.rationalePermissions)
         
-        // Verify transformed properties
-        assertEquals(RecordingStatus.Recording, result.recordingStatus)
+        assertEquals(RecordingStatus.Recording, result.status)
         assertFalse(result.isLoading)
     }
 
     private fun createTestUiState() = AudioRecordingUiState(
-        serviceConnectionState = ServiceConnectionState.DISCONNECTED,
-        recordingState = RecordingState.Idle,
-        permissionState = false,
-        isServiceReady = false,
-        recordingStatus = RecordingStatus.Idle,
+        status = RecordingStatus.Idle,
         isLoading = false,
         errorMessage = null,
         lastRecording = null,
-        lastRecordingPresentation = null,
-        transcriptionResult = null,
-        transcriptionDisplayModel = null,
-        transcriptionLanguage = null,
+        transcription = null,
         showPermissionRationale = false,
         rationalePermissions = emptyList()
     )

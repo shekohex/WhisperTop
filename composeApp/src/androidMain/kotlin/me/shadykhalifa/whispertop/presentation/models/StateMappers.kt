@@ -5,8 +5,28 @@ import me.shadykhalifa.whispertop.domain.models.ErrorClassifier
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.ServiceConnectionState
 import me.shadykhalifa.whispertop.domain.models.TranscriptionError
+import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
 import me.shadykhalifa.whispertop.presentation.AudioRecordingUiState
+
+fun RecordingState.toRecordingStatus(): RecordingStatus {
+    return when (this) {
+        RecordingState.Idle -> RecordingStatus.Idle
+        is RecordingState.Recording -> RecordingStatus.Recording
+        is RecordingState.Processing -> RecordingStatus.Processing
+        is RecordingState.Success -> RecordingStatus.Success
+        is RecordingState.Error -> RecordingStatus.Error
+    }
+}
+
+fun ServiceStateRepository.RecordingState.toRecordingStatus(): RecordingStatus {
+    return when (this) {
+        ServiceStateRepository.RecordingState.IDLE -> RecordingStatus.Idle
+        ServiceStateRepository.RecordingState.RECORDING -> RecordingStatus.Recording
+        ServiceStateRepository.RecordingState.PAUSED -> RecordingStatus.Processing
+        ServiceStateRepository.RecordingState.PROCESSING -> RecordingStatus.Processing
+    }
+}
 
 fun WorkflowState.toRecordingStatus(): RecordingStatus {
     return when (this) {
@@ -46,9 +66,8 @@ fun WorkflowState.toUiState(currentUiState: AudioRecordingUiState): AudioRecordi
     } else null
     
     return currentUiState.copy(
-        recordingStatus = recordingStatus,
-        transcriptionResult = transcriptionResult?.fullText,
-        transcriptionDisplayModel = transcriptionResult,
+        status = recordingStatus,
+        transcription = transcriptionResult,
         isLoading = isLoading,
         errorMessage = errorMessage
     )
