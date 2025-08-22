@@ -38,6 +38,7 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.androidx.paging.common)
         }
         
         androidMain.dependencies {
@@ -50,6 +51,7 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.room.ktx)
             implementation(libs.androidx.room.paging)
+            implementation(libs.androidx.paging.runtime)
         }
         
         iosMain.dependencies {

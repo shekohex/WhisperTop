@@ -102,9 +102,7 @@ val sharedModule = module {
     singleOf(::SettingsRepositoryImpl) { bind<SettingsRepository>() }
     singleOf(::AudioRepositoryImpl) { bind<AudioRepository>() }
     singleOf(::TranscriptionRepositoryImpl) { bind<TranscriptionRepository>() }
-    // TODO: These repository implementations need to be created
-    // singleOf(::TranscriptionHistoryRepositoryImpl) { bind<TranscriptionHistoryRepository>() }
-    // singleOf(::UserStatisticsRepositoryImpl) { bind<UserStatisticsRepository>() }
+    // Database repositories will be registered in Android module after database components
     
     // CoroutineScope for managers
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }

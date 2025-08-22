@@ -100,4 +100,132 @@ interface TranscriptionHistoryDao {
     
     @Query("SELECT COUNT(*) FROM transcription_history WHERE timestamp >= :startOfDay")
     suspend fun getDailyTranscriptionCount(startOfDay: Long): Long
+    
+    // Flow-based queries for efficient filtering (not paged)
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE text LIKE '%' || :query || '%' 
+        ORDER BY timestamp DESC
+        LIMIT 1000
+    """)
+    fun searchByTextFlow(query: String): Flow<List<TranscriptionHistoryEntity>>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE timestamp BETWEEN :startTime AND :endTime 
+        ORDER BY timestamp DESC
+        LIMIT 1000
+    """)
+    fun getByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<TranscriptionHistoryEntity>>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE text LIKE '%' || :query || '%' 
+        AND timestamp BETWEEN :startTime AND :endTime 
+        ORDER BY timestamp DESC
+        LIMIT 1000
+    """)
+    fun searchByTextAndDateRangeFlow(
+        query: String,
+        startTime: Long,
+        endTime: Long
+    ): Flow<List<TranscriptionHistoryEntity>>
+    
+    // Enhanced paging queries with sorting
+    @Query("""
+        SELECT * FROM transcription_history 
+        ORDER BY 
+        CASE WHEN :sortBy = 'timestamp_desc' THEN timestamp END DESC,
+        CASE WHEN :sortBy = 'timestamp_asc' THEN timestamp END ASC,
+        CASE WHEN :sortBy = 'duration_desc' THEN duration END DESC,
+        CASE WHEN :sortBy = 'duration_asc' THEN duration END ASC,
+        CASE WHEN :sortBy = 'wordCount_desc' THEN wordCount END DESC,
+        CASE WHEN :sortBy = 'wordCount_asc' THEN wordCount END ASC,
+        CASE WHEN :sortBy = 'confidence_desc' THEN confidence END DESC,
+        CASE WHEN :sortBy = 'confidence_asc' THEN confidence END ASC
+    """)
+    fun getAllPagedWithSort(sortBy: String): PagingSource<Int, TranscriptionHistoryEntity>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE text LIKE '%' || :query || '%' 
+        ORDER BY 
+        CASE WHEN :sortBy = 'timestamp_desc' THEN timestamp END DESC,
+        CASE WHEN :sortBy = 'timestamp_asc' THEN timestamp END ASC,
+        CASE WHEN :sortBy = 'duration_desc' THEN duration END DESC,
+        CASE WHEN :sortBy = 'duration_asc' THEN duration END ASC,
+        CASE WHEN :sortBy = 'wordCount_desc' THEN wordCount END DESC,
+        CASE WHEN :sortBy = 'wordCount_asc' THEN wordCount END ASC,
+        CASE WHEN :sortBy = 'confidence_desc' THEN confidence END DESC,
+        CASE WHEN :sortBy = 'confidence_asc' THEN confidence END ASC
+    """)
+    fun searchByTextWithSort(query: String, sortBy: String): PagingSource<Int, TranscriptionHistoryEntity>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE (:startTime IS NULL OR timestamp >= :startTime) 
+        AND (:endTime IS NULL OR timestamp <= :endTime)
+        ORDER BY 
+        CASE WHEN :sortBy = 'timestamp_desc' THEN timestamp END DESC,
+        CASE WHEN :sortBy = 'timestamp_asc' THEN timestamp END ASC,
+        CASE WHEN :sortBy = 'duration_desc' THEN duration END DESC,
+        CASE WHEN :sortBy = 'duration_asc' THEN duration END ASC,
+        CASE WHEN :sortBy = 'wordCount_desc' THEN wordCount END DESC,
+        CASE WHEN :sortBy = 'wordCount_asc' THEN wordCount END ASC,
+        CASE WHEN :sortBy = 'confidence_desc' THEN confidence END DESC,
+        CASE WHEN :sortBy = 'confidence_asc' THEN confidence END ASC
+    """)
+    fun getByDateRangeWithSort(
+        startTime: Long?, 
+        endTime: Long?, 
+        sortBy: String
+    ): PagingSource<Int, TranscriptionHistoryEntity>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE (:query = '' OR text LIKE '%' || :query || '%') 
+        AND (:startTime IS NULL OR timestamp >= :startTime) 
+        AND (:endTime IS NULL OR timestamp <= :endTime)
+        ORDER BY 
+        CASE WHEN :sortBy = 'timestamp_desc' THEN timestamp END DESC,
+        CASE WHEN :sortBy = 'timestamp_asc' THEN timestamp END ASC,
+        CASE WHEN :sortBy = 'duration_desc' THEN duration END DESC,
+        CASE WHEN :sortBy = 'duration_asc' THEN duration END ASC,
+        CASE WHEN :sortBy = 'wordCount_desc' THEN wordCount END DESC,
+        CASE WHEN :sortBy = 'wordCount_asc' THEN wordCount END ASC,
+        CASE WHEN :sortBy = 'confidence_desc' THEN confidence END DESC,
+        CASE WHEN :sortBy = 'confidence_asc' THEN confidence END ASC
+    """)
+    fun searchWithFiltersAndSort(
+        query: String,
+        startTime: Long?,
+        endTime: Long?,
+        sortBy: String
+    ): PagingSource<Int, TranscriptionHistoryEntity>
+    
+    // Bulk deletion
+    @Query("DELETE FROM transcription_history WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>): Int
+    
+    // Export queries - chunked for memory efficiency
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE (:startTime IS NULL OR timestamp >= :startTime) 
+        AND (:endTime IS NULL OR timestamp <= :endTime)
+        ORDER BY timestamp DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getForExportChunk(
+        startTime: Long?, 
+        endTime: Long?, 
+        limit: Int, 
+        offset: Int
+    ): List<TranscriptionHistoryEntity>
+    
+    @Query("""
+        SELECT COUNT(*) FROM transcription_history 
+        WHERE (:startTime IS NULL OR timestamp >= :startTime) 
+        AND (:endTime IS NULL OR timestamp <= :endTime)
+    """)
+    suspend fun getExportCount(startTime: Long?, endTime: Long?): Long
 }

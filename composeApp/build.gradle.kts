@@ -61,6 +61,9 @@ kotlin {
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
+            implementation(libs.androidx.paging.compose)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.room.ktx)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -88,6 +91,7 @@ kotlin {
             implementation(libs.mockito.core)
             implementation(libs.mockito.kotlin)
             implementation(libs.koin.test)
+            implementation(libs.turbine)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.compose.ui.test.junit4)
         }

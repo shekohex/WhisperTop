@@ -30,6 +30,11 @@ import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.HistoryViewModel
+import me.shadykhalifa.whispertop.data.database.AppDatabase
+import me.shadykhalifa.whispertop.data.database.createDatabaseBuilder
+import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
+import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -69,6 +74,14 @@ val androidAppModule = module {
     singleOf(::TextInsertionServiceImpl) { bind<TextInsertionService>() }
     single<ToastService> { ToastServiceImpl(get()) }
     
+    // Database
+    single<AppDatabase> { createDatabaseBuilder(get()) }
+    single { get<AppDatabase>().transcriptionHistoryDao() }
+    single { get<AppDatabase>().userStatisticsDao() }
+    
+    // Database repositories  
+    singleOf(::TranscriptionHistoryRepositoryImpl) { bind<TranscriptionHistoryRepository>() }
+    
     // ViewModels
     viewModel { 
         AudioRecordingViewModel(
@@ -84,6 +97,11 @@ val androidAppModule = module {
             context = get(),
             permissionRepository = get(),
             permissionMonitor = get()
+        )
+    }
+    viewModel { 
+        HistoryViewModel(
+            transcriptionHistoryRepository = get()
         )
     }
 }
