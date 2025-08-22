@@ -1,26 +1,16 @@
 package me.shadykhalifa.whispertop.presentation.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import me.shadykhalifa.whispertop.presentation.ui.screens.SettingsScreen
-
-object Screen {
-    const val Home = "home"
-    const val Settings = "settings"
-    const val Permissions = "permissions"
-}
+import me.shadykhalifa.whispertop.presentation.ui.screens.PermissionsDashboardScreen
+import me.shadykhalifa.whispertop.presentation.ui.screens.AndroidHomeScreen
 
 @Composable
-fun NavGraph(
+fun AndroidNavGraph(
     navController: NavHostController = rememberNavController(),
     requestPermissions: Boolean = false,
     showSettings: Boolean = false
@@ -28,13 +18,13 @@ fun NavGraph(
     NavHost(
         navController = navController,
         startDestination = when {
-            requestPermissions -> Screen.Settings
+            requestPermissions -> Screen.Permissions
             showSettings -> Screen.Settings
             else -> Screen.Home
         }
     ) {
         composable(Screen.Home) {
-            HomeScreen(
+            AndroidHomeScreen(
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings)
                 },
@@ -58,42 +48,6 @@ fun NavGraph(
                     navController.popBackStack()
                 }
             )
-        }
-    }
-}
-
-@Composable
-fun HomeScreen(
-    onNavigateToSettings: () -> Unit,
-    onNavigateToPermissions: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "WhisperTop",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Button(
-            onClick = onNavigateToSettings
-        ) {
-            Text("Settings")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedButton(
-            onClick = onNavigateToPermissions
-        ) {
-            Text("Permissions")
         }
     }
 }

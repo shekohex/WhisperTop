@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import me.shadykhalifa.whispertop.presentation.navigation.NavGraph
+import me.shadykhalifa.whispertop.presentation.navigation.AndroidNavGraph
 import me.shadykhalifa.whispertop.presentation.ui.theme.WhisperTopTheme
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -29,7 +29,7 @@ fun App(requestPermissions: Boolean = false, showSettings: Boolean = false) {
             color = MaterialTheme.colorScheme.background
         ) {
             val navController = rememberNavController()
-            NavGraph(
+            AndroidNavGraph(
                 navController = navController,
                 requestPermissions = requestPermissions,
                 showSettings = showSettings
