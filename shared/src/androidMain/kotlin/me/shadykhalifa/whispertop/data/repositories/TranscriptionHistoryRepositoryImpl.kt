@@ -358,4 +358,12 @@ class TranscriptionHistoryRepositoryImpl(
     override suspend fun deleteOlderThan(timestamp: Long): Result<Int> = execute {
         dao.deleteOlderThan(timestamp)
     }
+    
+    override suspend fun getTranscriptionsOlderThan(cutoffTime: Long): Result<List<TranscriptionHistoryItem>> = execute {
+        dao.getByTimestampBefore(cutoffTime).map { it.toDomainModel() }
+    }
+    
+    override suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int> = execute {
+        dao.deleteOlderThan(cutoffTime)
+    }
 }

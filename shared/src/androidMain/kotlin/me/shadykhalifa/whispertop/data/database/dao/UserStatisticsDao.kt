@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
@@ -65,4 +66,14 @@ interface UserStatisticsDao {
         model: String?,
         updatedAt: Long
     )
+    
+    @Transaction
+    suspend fun insertOrUpdate(statistics: UserStatisticsEntity) {
+        val existing = getById(statistics.id)
+        if (existing != null) {
+            update(statistics.copy(createdAt = existing.createdAt))
+        } else {
+            insert(statistics)
+        }
+    }
 }

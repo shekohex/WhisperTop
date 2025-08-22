@@ -80,7 +80,7 @@ class DataCleanupWorker(
     
     private val dataRetentionService: DataRetentionService by inject()
     
-    override suspend fun doWork(): Result<androidx.work.ListenableWorker.Result> {
+    override suspend fun doWork(): androidx.work.ListenableWorker.Result {
         return try {
             Log.d(TAG, "Starting data cleanup work")
             
@@ -126,21 +126,21 @@ class DataCleanupWorker(
                         KEY_BYTES_FREED to report.bytesFreed
                     )
                     
-                    Result.Success(androidx.work.ListenableWorker.Result.success(outputData))
+                    androidx.work.ListenableWorker.Result.success(outputData)
                 }
                 is me.shadykhalifa.whispertop.utils.Result.Error -> {
                     Log.e(TAG, "Data cleanup failed: ${cleanupResult.exception.message}", cleanupResult.exception)
-                    Result.Success(androidx.work.ListenableWorker.Result.failure())
+                    androidx.work.ListenableWorker.Result.failure()
                 }
                 else -> {
                     Log.w(TAG, "Unexpected cleanup result type")
-                    Result.Success(androidx.work.ListenableWorker.Result.failure())
+                    androidx.work.ListenableWorker.Result.failure()
                 }
             }
             
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error during data cleanup", e)
-            Result.Success(androidx.work.ListenableWorker.Result.failure())
+            androidx.work.ListenableWorker.Result.failure()
         }
     }
 }

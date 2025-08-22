@@ -53,6 +53,8 @@ import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
+import me.shadykhalifa.whispertop.domain.usecases.StatisticsCalculatorUseCase
+import me.shadykhalifa.whispertop.domain.usecases.StatisticsCalculatorUseCaseImpl
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
@@ -124,6 +126,7 @@ val sharedModule = module {
     factoryOf(::ServiceBindingUseCase)
     factoryOf(::UserFeedbackUseCase)
     singleOf(::TranscriptionWorkflowUseCase)
+    single<StatisticsCalculatorUseCase> { StatisticsCalculatorUseCaseImpl(get(), get(), get()) }
     
     // ViewModels
     singleOf(::RecordingViewModel)

@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.data.repositories
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.LocalDate
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
 import me.shadykhalifa.whispertop.data.database.dao.UserStatisticsDao
 import me.shadykhalifa.whispertop.data.database.entities.UserStatisticsEntity
@@ -73,6 +74,42 @@ class UserStatisticsRepositoryImpl(
 
     override suspend fun deleteUserStatistics(userId: String): Result<Unit> = execute {
         userStatisticsDao.deleteById(userId)
+    }
+
+    override suspend fun updateDailyAggregatedStats(
+        date: LocalDate,
+        totalSessions: Int,
+        totalWords: Long,
+        totalSpeakingTime: Long,
+        averageSessionDuration: Double,
+        peakUsageHour: Int
+    ): Result<Unit> = execute {
+        val currentTime = System.currentTimeMillis()
+        val userId = "user_stats" // Default user ID for single-user app
+        
+        // Get current statistics or create new ones
+        val currentStats = userStatisticsDao.getById(userId) ?: UserStatisticsEntity(
+            id = userId,
+            createdAt = currentTime,
+            updatedAt = currentTime
+        )
+        
+        // Update with aggregated daily data
+        val updatedStats = currentStats.copy(
+            totalSessions = currentStats.totalSessions + totalSessions,
+            totalWords = currentStats.totalWords + totalWords,
+            totalSpeakingTimeMs = currentStats.totalSpeakingTimeMs + totalSpeakingTime,
+            totalTranscriptions = currentStats.totalTranscriptions + totalSessions.toLong(),
+            averageWordsPerMinute = if (totalSpeakingTime > 0) {
+                (totalWords.toDouble() / totalSpeakingTime) * 60000 // Convert to words per minute
+            } else currentStats.averageWordsPerMinute,
+            averageWordsPerSession = if (totalSessions > 0) {
+                totalWords.toDouble() / totalSessions
+            } else currentStats.averageWordsPerSession,
+            updatedAt = currentTime
+        )
+        
+        userStatisticsDao.insertOrUpdate(updatedStats)
     }
 
     override suspend fun deleteAllStatistics(): Result<Unit> = execute {

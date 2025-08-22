@@ -1,6 +1,7 @@
 package me.shadykhalifa.whispertop.domain.repositories
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 import me.shadykhalifa.whispertop.domain.models.UserStatistics
 import me.shadykhalifa.whispertop.utils.Result
 
@@ -21,6 +22,15 @@ interface UserStatisticsRepository {
     ): Result<Unit>
     
     suspend fun updateDerivedStatistics(userId: String): Result<Unit>
+    
+    suspend fun updateDailyAggregatedStats(
+        date: LocalDate,
+        totalSessions: Int,
+        totalWords: Long,
+        totalSpeakingTime: Long,
+        averageSessionDuration: Double,
+        peakUsageHour: Int
+    ): Result<Unit>
     
     suspend fun deleteUserStatistics(userId: String): Result<Unit>
     

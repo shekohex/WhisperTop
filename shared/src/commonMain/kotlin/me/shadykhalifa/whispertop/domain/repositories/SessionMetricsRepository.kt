@@ -15,6 +15,8 @@ interface SessionMetricsRepository {
     suspend fun getSessionStatistics(): Result<SessionStatistics>
     suspend fun deleteOldSessions(olderThan: Long): Result<Int>
     suspend fun deleteAllSessions(): Result<Unit>
+    suspend fun getSessionsOlderThan(cutoffTime: Long): Result<List<SessionMetrics>>
+    suspend fun deleteSessionsOlderThan(cutoffTime: Long): Result<Int>
     suspend fun updateSessionWithTextInsertionData(
         sessionId: String,
         wordCount: Int,
@@ -25,6 +27,15 @@ interface SessionMetricsRepository {
         textInsertionSuccess: Boolean,
         targetAppPackage: String?
     ): Result<Unit>
+    fun getAllSessionsFlow(): Flow<List<SessionMetrics>>
+    fun getSessionsByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<SessionMetrics>>
+    suspend fun getSessionsByDateRangePaginated(
+        startTime: Long, 
+        endTime: Long, 
+        limit: Int, 
+        offset: Int
+    ): Result<List<SessionMetrics>>
+    suspend fun getSessionCountByDateRange(startTime: Long, endTime: Long): Result<Int>
 }
 
 data class SessionStatistics(

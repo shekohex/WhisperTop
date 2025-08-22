@@ -79,6 +79,10 @@ interface TranscriptionHistoryRepository {
     
     suspend fun deleteOlderThan(timestamp: Long): Result<Int>
     
+    suspend fun getTranscriptionsOlderThan(cutoffTime: Long): Result<List<TranscriptionHistoryItem>>
+    
+    suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int>
+    
     // Export methods
     suspend fun exportTranscriptions(
         format: ExportFormat,

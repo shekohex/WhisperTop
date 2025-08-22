@@ -19,6 +19,7 @@ import me.shadykhalifa.whispertop.data.repositories.AudioRecorder
 import me.shadykhalifa.whispertop.data.repositories.FileReader
 import me.shadykhalifa.whispertop.data.security.SecurePreferencesRepositoryImpl
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
+import me.shadykhalifa.whispertop.data.local.DatabaseKeyManager
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
@@ -29,6 +30,9 @@ val androidModule = module {
     single<AudioRecorderImpl> { AudioRecorderImpl() }
     single<FileReader> { FileReader() }
     single<SecurePreferencesRepository> { SecurePreferencesRepositoryImpl(get()) }
+    
+    // Database encryption
+    single<DatabaseKeyManager> { DatabaseKeyManager.getInstance(get()) }
     
     // Database
     single<AppDatabase> { createDatabaseBuilder(get()) }

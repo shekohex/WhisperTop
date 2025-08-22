@@ -53,6 +53,8 @@ kotlin {
             implementation(libs.androidx.room.ktx)
             implementation(libs.androidx.room.paging)
             implementation(libs.androidx.paging.runtime)
+            implementation(libs.sqlcipher.android)
+            implementation(libs.androidx.sqlite)
         }
         
         iosMain.dependencies {

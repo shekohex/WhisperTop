@@ -4,6 +4,31 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import me.shadykhalifa.whispertop.data.database.entities.SessionMetricsEntity
 
+data class DailyAggregatedStats(
+    val totalSessions: Int,
+    val successfulSessions: Int,
+    val totalWords: Long,
+    val totalCharacters: Long,
+    val totalSpeakingTime: Long,
+    val averageRecordingDuration: Double?,
+    val averageSpeakingRate: Double?
+)
+
+data class HourlyUsage(
+    val hour: Int,
+    val sessionCount: Int
+)
+
+data class AppUsage(
+    val targetAppPackage: String,
+    val count: Int
+)
+
+data class ErrorBreakdown(
+    val errorType: String,
+    val count: Int
+)
+
 @Dao
 interface SessionMetricsDao {
     
@@ -30,6 +55,9 @@ interface SessionMetricsDao {
     
     @Query("SELECT * FROM session_metrics WHERE sessionStartTime >= :startTime AND sessionStartTime <= :endTime ORDER BY sessionStartTime DESC")
     suspend fun getByDateRange(startTime: Long, endTime: Long): List<SessionMetricsEntity>
+    
+    @Query("SELECT * FROM session_metrics WHERE sessionStartTime >= :startTime AND sessionStartTime <= :endTime ORDER BY sessionStartTime DESC LIMIT :limit OFFSET :offset")
+    suspend fun getByDateRangePaginated(startTime: Long, endTime: Long, limit: Int, offset: Int): List<SessionMetricsEntity>
     
     @Query("SELECT * FROM session_metrics WHERE targetAppPackage = :packageName ORDER BY sessionStartTime DESC")
     suspend fun getByTargetApp(packageName: String): List<SessionMetricsEntity>
@@ -75,6 +103,68 @@ interface SessionMetricsDao {
     
     @Query("DELETE FROM session_metrics WHERE LENGTH(transcriptionText) > :sizeThreshold")
     suspend fun deleteLargeTranscriptions(sizeThreshold: Int): Int
+    
+    @Query("SELECT * FROM session_metrics WHERE sessionStartTime < :cutoffTime ORDER BY sessionStartTime DESC")
+    suspend fun getSessionsOlderThan(cutoffTime: Long): List<SessionMetricsEntity>
+    
+    @Query("DELETE FROM session_metrics WHERE sessionStartTime < :cutoffTime")
+    suspend fun deleteSessionsOlderThan(cutoffTime: Long): Int
+    
+    // Enhanced aggregation queries for statistics calculation - optimized for idx_daily_stats_covering
+    @Query("""
+        SELECT 
+            COUNT(*) as totalSessions,
+            SUM(CASE WHEN transcriptionSuccess = 1 THEN 1 ELSE 0 END) as successfulSessions,
+            SUM(wordCount) as totalWords,
+            SUM(characterCount) as totalCharacters,
+            SUM(audioRecordingDuration) as totalSpeakingTime,
+            AVG(audioRecordingDuration) as averageRecordingDuration,
+            AVG(CASE WHEN speakingRate > 0 THEN speakingRate ELSE NULL END) as averageSpeakingRate
+        FROM session_metrics 
+        WHERE sessionStartTime >= :startTime AND sessionStartTime < :endTime
+    """)
+    suspend fun getDailyAggregatedStats(startTime: Long, endTime: Long): DailyAggregatedStats?
+    
+    @Query("""
+        SELECT 
+            strftime('%H', datetime(sessionStartTime/1000, 'unixepoch', 'localtime')) as hour,
+            COUNT(*) as sessionCount
+        FROM session_metrics 
+        WHERE sessionStartTime >= :startTime AND sessionStartTime < :endTime
+        GROUP BY hour
+        ORDER BY sessionCount DESC
+        LIMIT 1
+    """)
+    suspend fun getPeakUsageHour(startTime: Long, endTime: Long): HourlyUsage?
+    
+    @Query("""
+        SELECT targetAppPackage, COUNT(*) as count 
+        FROM session_metrics 
+        WHERE sessionStartTime >= :startTime AND sessionStartTime < :endTime 
+        AND targetAppPackage IS NOT NULL 
+        GROUP BY targetAppPackage 
+        ORDER BY count DESC 
+        LIMIT 1
+    """)
+    suspend fun getMostUsedAppInPeriod(startTime: Long, endTime: Long): AppUsage?
+    
+    @Query("""
+        SELECT errorType, COUNT(*) as count 
+        FROM session_metrics 
+        WHERE sessionStartTime >= :startTime AND sessionStartTime < :endTime 
+        AND errorType IS NOT NULL 
+        GROUP BY errorType 
+        ORDER BY count DESC
+    """)
+    suspend fun getErrorBreakdownInPeriod(startTime: Long, endTime: Long): List<ErrorBreakdown>
+    
+    @Query("""
+        SELECT COUNT(DISTINCT targetAppPackage) 
+        FROM session_metrics 
+        WHERE sessionStartTime >= :startTime AND sessionStartTime < :endTime 
+        AND targetAppPackage IS NOT NULL
+    """)
+    suspend fun getUniqueAppsUsedInPeriod(startTime: Long, endTime: Long): Int
     
     @Transaction
     suspend fun insertOrUpdate(sessionMetrics: SessionMetricsEntity) {

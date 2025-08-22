@@ -63,6 +63,10 @@ object RetryPredicates {
             throwable.message?.contains("connection", ignoreCase = true) == true -> true
             throwable is CancellationException -> true
             throwable is NetworkException -> true
+            throwable::class.simpleName?.contains("IOException", ignoreCase = true) == true -> true
+            throwable::class.simpleName?.contains("SocketTimeoutException", ignoreCase = true) == true -> true
+            throwable::class.simpleName?.contains("UnknownHostException", ignoreCase = true) == true -> true
+            throwable::class.simpleName?.contains("ConnectException", ignoreCase = true) == true -> true
             throwable is Exception -> throwable.message?.contains("IOException", ignoreCase = true) == true
             else -> false
         }

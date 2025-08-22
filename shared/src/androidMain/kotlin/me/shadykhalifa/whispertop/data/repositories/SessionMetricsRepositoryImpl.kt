@@ -9,20 +9,25 @@ import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SessionStatistics
 import me.shadykhalifa.whispertop.utils.Result
 import me.shadykhalifa.whispertop.utils.PrivacyUtils
-import me.shadykhalifa.whispertop.utils.EncryptionUtils
+
 import me.shadykhalifa.whispertop.utils.CircuitBreaker
 import me.shadykhalifa.whispertop.utils.CircuitBreakerOpenException
+import me.shadykhalifa.whispertop.utils.PrivacyComplianceManager
+import me.shadykhalifa.whispertop.utils.PrivacySettings
 
 class SessionMetricsRepositoryImpl(
     private val sessionMetricsDao: SessionMetricsDao
 ) : BaseRepository(), SessionMetricsRepository {
     
-    // TODO: Inject settings repository to get privacy preferences
-    // For now, using conservative privacy defaults
-    private val enableTranscriptionStorage = true
-    private val hashTranscriptionText = false
-    private val enableAppUsageTracking = false
-    private val encryptSensitiveData = true // Enable field-level encryption for sensitive data
+    // Privacy settings - in production these would come from user preferences
+    private val privacySettings = PrivacySettings(
+        enableDataCollection = true,
+        enableAnalytics = false,
+        enableTranscriptionStorage = true,
+        enableAppUsageTracking = false,
+        dataRetentionDays = 90,
+        anonymizeAfterDays = 30
+    )
     
     // Circuit breaker for database operations
     private val circuitBreaker = CircuitBreaker(
@@ -127,22 +132,9 @@ class SessionMetricsRepositoryImpl(
     }
 
     private fun SessionMetricsEntity.toDomainModel(): SessionMetrics {
-        // Decrypt sensitive fields if they were encrypted
-        val decryptedTranscriptionText = transcriptionText?.let { text ->
-            if (encryptSensitiveData && EncryptionUtils.isObfuscated(text)) {
-                EncryptionUtils.deobfuscateText(text)
-            } else {
-                text
-            }
-        }
-        
-        val decryptedTargetAppPackage = targetAppPackage?.let { pkg ->
-            if (encryptSensitiveData && EncryptionUtils.isObfuscated(pkg)) {
-                EncryptionUtils.deobfuscateText(pkg)
-            } else {
-                pkg
-            }
-        }
+        // No need for manual decryption - SQLCipher handles database encryption transparently
+        val decryptedTranscriptionText = transcriptionText
+        val decryptedTargetAppPackage = targetAppPackage
         
         return SessionMetrics(
             sessionId = sessionId,
@@ -166,27 +158,54 @@ class SessionMetricsRepositoryImpl(
     private fun SessionMetrics.toEntity(): SessionMetricsEntity {
         val currentTime = System.currentTimeMillis()
         
-        // Apply privacy controls to sensitive data
+        // Apply privacy compliance transformations
         val privacySafeTranscriptionText = transcriptionText?.let { text ->
             when {
-                !enableTranscriptionStorage -> null
-                hashTranscriptionText -> PrivacyUtils.anonymizeTranscription(text, preserveMetrics = true)
-                PrivacyUtils.containsSensitiveInfo(text) -> {
-                    val sanitized = PrivacyUtils.sanitizeText(text)
-                    if (encryptSensitiveData) EncryptionUtils.obfuscateText(sanitized) else sanitized
+                !privacySettings.enableTranscriptionStorage -> {
+                    // Create audit record for data processing decision
+                    PrivacyComplianceManager.createDataProcessingRecord(
+                        operation = "transcription_storage_denied",
+                        dataTypes = listOf("transcription_text"),
+                        purposeId = PrivacyComplianceManager.CORE_FUNCTIONALITY.id
+                    )
+                    null
                 }
-                text.length > SessionMetrics.MAX_TRANSCRIPTION_LENGTH -> {
-                    val truncated = PrivacyUtils.truncateForStorage(text, SessionMetrics.MAX_TRANSCRIPTION_LENGTH)
-                    if (encryptSensitiveData) EncryptionUtils.obfuscateText(truncated) else truncated
+                else -> {
+                    // Apply privacy transformations based on data age and settings
+                    val dataAge = sessionStartTime
+                    val transformedText = PrivacyComplianceManager.applyPrivacyTransformations(
+                        data = text,
+                        settings = privacySettings,
+                        dataAge = dataAge
+                    )
+                    
+                    // Additional truncation if needed
+                    if (transformedText.length > SessionMetrics.MAX_TRANSCRIPTION_LENGTH) {
+                        transformedText.take(SessionMetrics.MAX_TRANSCRIPTION_LENGTH) + "..."
+                    } else {
+                        transformedText
+                    }
                 }
-                encryptSensitiveData -> EncryptionUtils.obfuscateText(text)
-                else -> text
             }
         }
         
-        val privacySafeAppPackage = if (enableAppUsageTracking) {
-            if (encryptSensitiveData) EncryptionUtils.obfuscateText(targetAppPackage) else targetAppPackage
-        } else null
+        val privacySafeAppPackage = if (privacySettings.enableAppUsageTracking) {
+            targetAppPackage?.let { pkg ->
+                PrivacyComplianceManager.applyPrivacyTransformations(
+                    data = pkg,
+                    settings = privacySettings,
+                    dataAge = sessionStartTime
+                )
+            }
+        } else {
+            // Create audit record for app tracking opt-out
+            PrivacyComplianceManager.createDataProcessingRecord(
+                operation = "app_tracking_denied",
+                dataTypes = listOf("app_package"),
+                purposeId = PrivacyComplianceManager.PERSONALIZATION.id
+            )
+            null
+        }
         
         return SessionMetricsEntity(
             sessionId = sessionId,
@@ -207,5 +226,48 @@ class SessionMetricsRepositoryImpl(
             createdAt = currentTime,
             updatedAt = currentTime
         )
+    }
+    
+    override suspend fun getSessionsOlderThan(cutoffTime: Long): Result<List<SessionMetrics>> = execute {
+        sessionMetricsDao.getSessionsOlderThan(cutoffTime).map { it.toDomainModel() }
+    }
+    
+    override suspend fun deleteSessionsOlderThan(cutoffTime: Long): Result<Int> = execute {
+        sessionMetricsDao.deleteSessionsOlderThan(cutoffTime)
+    }
+    
+    override fun getAllSessionsFlow(): Flow<List<SessionMetrics>> {
+        return sessionMetricsDao.getAllFlow().map { entities ->
+            entities.map { it.toDomainModel() }
+        }
+    }
+    
+    override fun getSessionsByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<SessionMetrics>> {
+        // Since Room doesn't support parameterized flows easily, we'll use a simple approach
+        return kotlinx.coroutines.flow.flow {
+            while (true) {
+                try {
+                    val sessions = sessionMetricsDao.getByDateRange(startTime, endTime)
+                    emit(sessions.map { it.toDomainModel() })
+                } catch (e: Exception) {
+                    emit(emptyList())
+                }
+                kotlinx.coroutines.delay(5000) // Update every 5 seconds
+            }
+        }
+    }
+    
+    override suspend fun getSessionsByDateRangePaginated(
+        startTime: Long, 
+        endTime: Long, 
+        limit: Int, 
+        offset: Int
+    ): Result<List<SessionMetrics>> = execute {
+        sessionMetricsDao.getByDateRangePaginated(startTime, endTime, limit, offset)
+            .map { it.toDomainModel() }
+    }
+    
+    override suspend fun getSessionCountByDateRange(startTime: Long, endTime: Long): Result<Int> = execute {
+        sessionMetricsDao.getByDateRange(startTime, endTime).size
     }
 }

@@ -11,7 +11,15 @@ import kotlinx.serialization.Serializable
     indices = [
         Index(value = ["sessionStartTime"], name = "idx_session_start_time"),
         Index(value = ["targetAppPackage"], name = "idx_target_app"),
-        Index(value = ["transcriptionSuccess"], name = "idx_transcription_success")
+        Index(value = ["transcriptionSuccess"], name = "idx_transcription_success"),
+        Index(value = ["errorType"], name = "idx_error_type"),
+        // Composite indexes for performance optimization
+        Index(value = ["sessionStartTime", "transcriptionSuccess"], name = "idx_session_time_success"),
+        Index(value = ["sessionStartTime", "targetAppPackage"], name = "idx_session_time_app"),
+        Index(value = ["sessionStartTime", "errorType"], name = "idx_session_time_error"),
+        Index(value = ["transcriptionSuccess", "targetAppPackage"], name = "idx_success_app"),
+        // Covering index for daily statistics queries
+        Index(value = ["sessionStartTime", "transcriptionSuccess", "wordCount", "audioRecordingDuration"], name = "idx_daily_stats_covering")
     ]
 )
 @Serializable

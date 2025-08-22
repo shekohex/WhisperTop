@@ -231,4 +231,7 @@ interface TranscriptionHistoryDao {
     
     @Query("DELETE FROM transcription_history WHERE timestamp < :timestamp")
     suspend fun deleteOlderThan(timestamp: Long): Int
+    
+    @Query("SELECT * FROM transcription_history WHERE timestamp < :timestamp ORDER BY timestamp DESC")
+    suspend fun getByTimestampBefore(timestamp: Long): List<TranscriptionHistoryEntity>
 }
