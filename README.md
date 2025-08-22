@@ -251,23 +251,23 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 **WhisperTop** - Making voice input available everywhere on Android.
 <!-- TASKMASTER_EXPORT_START -->
-> 🎯 **Taskmaster Export** - 2025-08-22 22:41:49 UTC
+> 🎯 **Taskmaster Export** - 2025-08-22 23:12:00 UTC
 > 📋 Export: with subtasks • Status filter: none
 > 🔗 Powered by [Task Master](https://task-master.dev?utm_source=github-readme&utm_medium=readme-export&utm_campaign=whispertop&utm_content=task-export-link)
 
 | Project Dashboard |  |
 | :-                |:-|
-| Task Progress     | ███████████████░░░░░ 74% |
-| Done | 48 |
+| Task Progress     | ███████████████░░░░░ 75% |
+| Done | 49 |
 | In Progress | 1 |
-| Pending | 16 |
+| Pending | 15 |
 | Deferred | 0 |
 | Cancelled | 0 |
 |-|-|
-| Subtask Progress | ████████████████████ 99% |
-| Completed | 103 |
+| Subtask Progress | ███████████████████░ 97% |
+| Completed | 106 |
 | In Progress | 0 |
-| Pending | 0 |
+| Pending | 3 |
 
 
 | ID | Title | Status | Priority | Dependencies | Complexity |
@@ -397,7 +397,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 | 38 | Create Service Management Use Cases - ServiceInitializationUseCase, PermissionManagementUseCase, and ServiceBindingUseCase | ✓&nbsp;done | high | 5, 7, 8, 10, 11 | N/A |
 | 39 | Eliminate Toast Logic from AudioRecordingViewModel | ✓&nbsp;done | high | 37, 8, 6 | N/A |
 | 40 | Refactor AudioServiceManager to Proper Abstraction with Clean Architecture Compliance | ○&nbsp;pending | medium | 5, 18, 32 | N/A |
-| 41 | Refactor ViewModel State Management - Separate UI State from Domain State | ○&nbsp;pending | medium | 3, 10 | N/A |
+| 41 | Refactor ViewModel State Management - Separate UI State from Domain State | ►&nbsp;in-progress | medium | 3, 10 | N/A |
+| 41.1 | Create Clean Presentation Models for UI State Separation | ✓&nbsp;done | -            | None | N/A |
+| 41.2 | Implement State Mapping Layer with WorkflowState Extensions | ✓&nbsp;done | -            | 41.1 | N/A |
+| 41.3 | Refactor AudioRecordingUiState to Use Presentation Models | ○&nbsp;pending | -            | 41.1, 41.2 | N/A |
+| 41.4 | Simplify AudioRecordingViewModel by Removing Infrastructure Dependencies | ○&nbsp;pending | -            | 41.2, 41.3 | N/A |
+| 41.5 | Create ServiceManagementUseCase and Enhance TranscriptionWorkflowUseCase | ○&nbsp;pending | -            | 41.4 | N/A |
 | 42 | Implement Proper Error Handling Abstraction with ErrorMapper | ○&nbsp;pending | medium | 10, 13, 23 | N/A |
 | 43 | Remove KoinComponent from AudioRecordingViewModel and Implement Constructor Injection | ✓&nbsp;done | high | 5, 37 | N/A |
 | 44 | Create DurationTrackerUseCase to Eliminate Coroutine Management from ViewModel | ○&nbsp;pending | medium | 10, 39, 6 | N/A |
@@ -427,12 +432,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 | 55 | Build Permissions Dashboard UI Screen | ✓&nbsp;done | high | 54, 12 | N/A |
 | 56 | Implement WPM Configuration and Onboarding Flow | ○&nbsp;pending | medium | 13, 16, 48 | N/A |
 | 57 | Update navigation architecture with bottom navigation | ○&nbsp;pending | medium | 3, 16 | N/A |
-| 58 | Integrate Statistics Tracking with Existing Recording Services | ►&nbsp;in-progress | high | 11, 46, 47, 5, 7, 8 | N/A |
+| 58 | Integrate Statistics Tracking with Existing Recording Services | ✓&nbsp;done | high | 11, 46, 47, 5, 7, 8 | N/A |
 | 58.1 | Enhance AudioRecordingService with Session Timing and Database Integration | ✓&nbsp;done | -            | None | N/A |
 | 58.2 | Implement Word Counting and Usage Analytics in WhisperTopAccessibilityService | ✓&nbsp;done | -            | 58.1 | N/A |
 | 58.3 | Integrate TranscriptionWorkflowUseCase with Database Persistence | ✓&nbsp;done | -            | 58.1, 58.2 | N/A |
 | 58.4 | Create Background Statistics Aggregation System with WorkManager | ✓&nbsp;done | -            | 58.3 | N/A |
-| 58.5 | Add Analytics Events Integration and Performance Monitoring | x&nbsp;deferred | -            | 58.4 | N/A |
+| 58.5 | Add Analytics Events Integration and Performance Monitoring | ✓&nbsp;done | -            | 58.4 | N/A |
 | 58.6 | Implement Performance and Reliability Optimizations | ✓&nbsp;done | -            | 58.5 | N/A |
 | 59 | Implement data export and retention policies | ○&nbsp;pending | medium | 10, 13, 42, 48 | N/A |
 | 60 | Implement Performance Optimization and Caching Layer | ○&nbsp;pending | medium | 48, 10, 42, 13 | N/A |
@@ -444,6 +449,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 > 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
 <!-- TASKMASTER_EXPORT_END -->
+
 
 
 
