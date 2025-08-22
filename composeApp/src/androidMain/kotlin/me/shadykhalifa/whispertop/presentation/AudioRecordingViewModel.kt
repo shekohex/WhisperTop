@@ -20,6 +20,11 @@ import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
+import me.shadykhalifa.whispertop.presentation.models.AudioFilePresentationModel
+import me.shadykhalifa.whispertop.presentation.models.RecordingStatus
+import me.shadykhalifa.whispertop.presentation.models.TranscriptionDisplayModel
+import me.shadykhalifa.whispertop.presentation.models.toAudioFilePresentationModel
+import me.shadykhalifa.whispertop.presentation.models.toUiState
 import me.shadykhalifa.whispertop.utils.Result
 
 class AudioRecordingViewModel(
@@ -87,6 +92,7 @@ class AudioRecordingViewModel(
                 
                 _uiState.value = _uiState.value.copy(
                     lastRecording = audioFile,
+                    lastRecordingPresentation = audioFile.toAudioFilePresentationModel(),
                     isLoading = true // Keep loading while transcribing
                 )
                 
@@ -94,7 +100,8 @@ class AudioRecordingViewModel(
                 audioFile?.let { file ->
                     Log.d(TAG, "Recording completed: ${file.path}, workflow will handle transcription")
                     _uiState.value = _uiState.value.copy(
-                        lastRecording = file
+                        lastRecording = file,
+                        lastRecordingPresentation = file.toAudioFilePresentationModel()
                     )
                 } ?: run {
                     Log.w(TAG, "Recording completed but no audio file received")
@@ -122,10 +129,7 @@ class AudioRecordingViewModel(
     private fun observeWorkflowState() {
         viewModelScope.launch {
             transcriptionWorkflowUseCase.workflowState.collect { workflowState ->
-                _uiState.value = mapWorkflowStateToUiState(
-                    workflowState, 
-                    _uiState.value
-                )
+                _uiState.value = workflowState.toUiState(_uiState.value)
                 
                 // Handle feedback notifications based on state
                 when (workflowState) {
@@ -167,36 +171,7 @@ class AudioRecordingViewModel(
             }
         }
     }
-    
-    private fun mapWorkflowStateToUiState(
-        workflowState: WorkflowState,
-        currentUiState: AudioRecordingUiState
-    ): AudioRecordingUiState {
-        return when (workflowState) {
-            is WorkflowState.Idle -> currentUiState.copy(
-                isLoading = false,
-                errorMessage = null
-            )
-            is WorkflowState.Recording -> currentUiState.copy(
-                isLoading = false
-            )
-            is WorkflowState.Processing -> currentUiState.copy(
-                isLoading = true
-            )
-            is WorkflowState.InsertingText -> currentUiState.copy(
-                isLoading = true
-            )
-            is WorkflowState.Success -> currentUiState.copy(
-                isLoading = false,
-                transcriptionResult = workflowState.transcription,
-                errorMessage = null
-            )
-            is WorkflowState.Error -> currentUiState.copy(
-                isLoading = false,
-                errorMessage = workflowState.error.message
-            )
-        }
-    }
+
     
     private fun startDurationTimer() {
         viewModelScope.launch {
@@ -343,10 +318,13 @@ data class AudioRecordingUiState(
     val recordingState: RecordingState = RecordingState.Idle,
     val permissionState: Boolean = false,
     val isServiceReady: Boolean = false,
+    val recordingStatus: RecordingStatus = RecordingStatus.Idle,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val lastRecording: AudioFile? = null,
+    val lastRecordingPresentation: AudioFilePresentationModel? = null,
     val transcriptionResult: String? = null,
+    val transcriptionDisplayModel: TranscriptionDisplayModel? = null,
     val transcriptionLanguage: String? = null,
     val showPermissionRationale: Boolean = false,
     val rationalePermissions: List<String> = emptyList()

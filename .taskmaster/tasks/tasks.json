@@ -1474,13 +1474,69 @@
         "description": "Clean up AudioRecordingUiState by separating domain concerns from UI concerns, implementing proper WorkflowState to UiState transformations, and reducing ViewModel infrastructure dependencies.",
         "details": "PHASE 1 - Create Clean Presentation Models: Create AudioFilePresentationModel with UI-formatted data (duration string, file size text, validity status) to replace direct AudioFile usage. Create TranscriptionDisplayModel with preview text truncation and insertion status for UI display. Define clean RecordingStatus enum (Idle, Recording, Processing, InsertingText, Success, Error) for pure UI state representation. PHASE 2 - Implement State Mapping Layer: Create WorkflowState.toUiState() extension function to transform domain WorkflowState to clean AudioRecordingUiState. Implement domain model to presentation model mappers (AudioFile → AudioFilePresentationModel, TranscriptionResult → TranscriptionDisplayModel). Add error message transformation from domain errors to user-friendly display messages. PHASE 3 - Refactor AudioRecordingViewModel: Remove 5 infrastructure dependencies (AudioServiceManager, PermissionHandler, SettingsRepository, TextInsertionService, Context), keep only TranscriptionWorkflowUseCase. Replace complex state combination logic (lines 386-398) with single workflowState.collect transformation. Move all business logic (100+ lines) from ViewModel to appropriate domain use cases. Reduce ViewModel from 398 lines to approximately 100 lines focusing purely on UI state management. PHASE 4 - Create Missing Domain Use Cases: Implement ServiceManagementUseCase to handle service binding, connection state, and permission management abstractly. Update TranscriptionWorkflowUseCase to be the single source of truth for workflow state, ensuring it properly orchestrates the complete recording-to-transcription-to-insertion workflow. Create proper domain events for state transitions instead of direct UI state manipulation.",
         "testStrategy": "Unit test new presentation model mappers with various domain model inputs including edge cases (null values, empty strings, large files). Test WorkflowState.toUiState() transformation function with all possible workflow states ensuring UI state correctness. Mock TranscriptionWorkflowUseCase in ViewModel tests to verify clean state observation and UI state updates. Integration test complete workflow to ensure domain-to-UI state transformation maintains existing functionality. Test ViewModel with various WorkflowState sequences to verify UI state consistency. Verify no business logic remains in ViewModel through code review and testing. Test that UI components still receive correct state for rendering after refactoring.",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           3,
           10
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Clean Presentation Models for UI State Separation",
+            "description": "Create AudioFilePresentationModel with UI-formatted data (duration string, file size text, validity status), TranscriptionDisplayModel with preview text truncation and insertion status, and RecordingStatus enum (Idle, Recording, Processing, InsertingText, Success, Error) for pure UI state representation.",
+            "dependencies": [],
+            "details": "Create new files in composeApp/src/androidMain/kotlin/me/shadykhalifa/whispertop/presentation/models/: 1) AudioFilePresentationModel.kt with formatted strings for duration (e.g., '2:34'), file size (e.g., '1.2 MB'), and validity boolean. 2) TranscriptionDisplayModel.kt with truncated preview text (max 47 chars + '...'), full text, insertion status, and error message. 3) RecordingStatus.kt enum replacing direct RecordingState usage in UI layer. Include extension functions AudioFile.toPresentationModel() and String.toDisplayModel() for conversion from domain models.",
+            "status": "done",
+            "testStrategy": "Unit test presentation model creation, formatting logic (duration seconds to MM:SS, bytes to readable size), text truncation with edge cases (empty, exactly 47 chars, unicode), and conversion extension functions with null/empty inputs."
+          },
+          {
+            "id": 2,
+            "title": "Implement State Mapping Layer with WorkflowState Extensions",
+            "description": "Create WorkflowState.toUiState() extension function to transform domain WorkflowState to clean AudioRecordingUiState, implement domain model to presentation model mappers, and add error message transformation from domain errors to user-friendly display messages.",
+            "dependencies": [
+              "41.1"
+            ],
+            "details": "Create StateMappers.kt in presentation layer with: 1) WorkflowState.toUiState(currentState) extension handling all WorkflowState variants (Idle, Recording, Processing, InsertingText, Success, Error) and mapping to appropriate RecordingStatus. 2) TranscriptionError.toDisplayMessage() for user-friendly error messages. 3) Centralize state transformation logic from mapWorkflowStateToUiState() method. 4) Handle edge cases like null audioFile, empty transcription, network errors. Use existing error classification from ErrorClassifier to determine user messages.",
+            "status": "done",
+            "testStrategy": "Unit test all WorkflowState variants to UiState transformations, error message mapping with different error types (network, API key, rate limit), and state preservation during transitions. Mock WorkflowState objects and verify correct RecordingStatus and presentation model mappings."
+          },
+          {
+            "id": 3,
+            "title": "Refactor AudioRecordingUiState to Use Presentation Models",
+            "description": "Update AudioRecordingUiState to replace raw domain models (AudioFile, RecordingState) with presentation models (AudioFilePresentationModel, RecordingStatus), remove infrastructure-specific fields, and create clean UI-focused state structure.",
+            "dependencies": [
+              "41.1",
+              "41.2"
+            ],
+            "details": "Modify AudioRecordingUiState data class in AudioRecordingViewModel.kt: 1) Replace 'lastRecording: AudioFile?' with 'lastRecording: AudioFilePresentationModel?'. 2) Replace 'recordingState: RecordingState' with 'status: RecordingStatus'. 3) Replace 'transcriptionResult: String?' with 'transcription: TranscriptionDisplayModel?'. 4) Remove serviceConnectionState, permissionState fields (move to service management). 5) Keep only UI-relevant fields: status, isLoading, errorMessage, lastRecording, transcription, showPermissionRationale, rationalePermissions. 6) Update all usages throughout ViewModel.",
+            "status": "pending",
+            "testStrategy": "Unit test AudioRecordingUiState creation with new presentation models, verify no compilation errors after field changes, test state copying with new fields, and validate UI component compatibility with updated state structure."
+          },
+          {
+            "id": 4,
+            "title": "Simplify AudioRecordingViewModel by Removing Infrastructure Dependencies",
+            "description": "Remove infrastructure dependencies (ServiceManagementUseCase, ServiceInitializationUseCase, PermissionManagementUseCase, ServiceBindingUseCase) from AudioRecordingViewModel, replace complex state combination logic with single workflowState.collect transformation, and move business logic to appropriate domain use cases.",
+            "dependencies": [
+              "41.2",
+              "41.3"
+            ],
+            "details": "Refactor AudioRecordingViewModel.kt: 1) Remove constructor parameters: serviceManagementUseCase, serviceInitializationUseCase, permissionManagementUseCase, serviceBindingUseCase (keep transcriptionWorkflowUseCase, userFeedbackUseCase). 2) Remove observeServiceState() and observeServiceEvents() methods (100+ lines). 3) Replace complex state observation with single transcriptionWorkflowUseCase.workflowState.collect using StateMappers.toUiState(). 4) Remove initializeService(), requestPermissions(), ensureServiceReady() methods. 5) Keep only UI actions: startRecording(), stopRecording(), cancelRecording(), retryFromError(), clearError(). 6) Reduce ViewModel from 339 to ~100 lines. Target architecture: ViewModel -> WorkflowUseCase -> Domain Services.",
+            "status": "pending",
+            "testStrategy": "Unit test ViewModel with mocked TranscriptionWorkflowUseCase, verify state transformations work correctly, test UI action methods delegate to workflow use case, confirm removed infrastructure methods no longer exist, and verify ViewModel line count reduction while maintaining functionality."
+          },
+          {
+            "id": 5,
+            "title": "Create ServiceManagementUseCase and Enhance TranscriptionWorkflowUseCase",
+            "description": "Create ServiceManagementUseCase to handle service binding, connection state, and permission management abstractly, and update TranscriptionWorkflowUseCase to be the single source of truth for workflow state ensuring it orchestrates the complete recording-to-transcription-to-insertion workflow.",
+            "dependencies": [
+              "41.4"
+            ],
+            "details": "Create ServiceManagementUseCase.kt in domain/usecases/: 1) Abstract interface with methods: bindServices(), checkPermissions(), getServiceReadiness(), cleanup(). 2) Handle service connection state, permission state, and binding coordination. 3) Update TranscriptionWorkflowUseCase to include service management state in WorkflowState (add ServiceReady, PermissionDenied states). 4) Ensure TranscriptionWorkflowUseCase.workflowState emits all necessary state transitions for UI including service/permission status. 5) Move service binding logic from removed ViewModel methods to ServiceManagementUseCase. 6) Update Koin DI configuration to inject ServiceManagementUseCase into TranscriptionWorkflowUseCase.",
+            "status": "pending",
+            "testStrategy": "Unit test ServiceManagementUseCase interface methods with mocked dependencies, test TranscriptionWorkflowUseCase integration with service management, verify WorkflowState emissions include service/permission states, test error handling and retry scenarios, and validate complete workflow from service binding to text insertion works via single use case."
+          }
+        ]
       },
       {
         "id": 42,
@@ -1855,7 +1911,7 @@
         "description": "Modify AudioRecordingService, WhisperTopAccessibilityService, and transcription workflow to capture session metrics, save transcription history, and implement background statistics aggregation.",
         "details": "COMPREHENSIVE SERVICE INTEGRATION FOR STATISTICS TRACKING:\n\n1. **AudioRecordingService Statistics Integration:**\n   - Add session timing capture: sessionStartTime, sessionEndTime, audioRecordingDuration\n   - Implement SessionMetrics data class to track recording metadata (audio quality, file size, duration)\n   - Add statistics hooks to service lifecycle methods (onStartRecording, onStopRecording)\n   - Ensure atomic database writes using Room transactions\n   - Handle service lifecycle properly to prevent data loss during unexpected termination\n\n2. **WhisperTopAccessibilityService Word Counting:**\n   - Implement word count calculation after successful text insertion using regex-based word boundary detection\n   - Add character count and typing efficiency metrics\n   - Track successful vs failed text insertions for reliability metrics\n   - Calculate typing speed metrics (WPM based on insertion duration)\n   - Store per-app usage statistics for detailed analytics\n\n3. **Enhanced Transcription Workflow Database Integration:**\n   - Modify TranscriptionWorkflowUseCase to persist TranscriptionHistoryEntity after successful API response\n   - Add speaking rate calculation: words per minute = (wordCount / audioDurationSeconds) * 60\n   - Implement error tracking for failed transcriptions with categorized error types\n   - Add API response time tracking and token usage metrics\n   - Handle network failures gracefully with proper retry logic and offline queue\n\n4. **Background Statistics Aggregation System:**\n   - Implement DailyStatsAggregatorWorker using AndroidX WorkManager for periodic aggregation\n   - Create StatisticsCalculatorUseCase for complex metrics: average session duration, productivity trends, peak usage times\n   - Add database triggers for real-time statistics updates using Room @Query with SUM/AVG functions\n   - Implement data retention policies (configurable 30/90/365 days) with automatic cleanup jobs\n   - Handle timezone changes and daylight savings for accurate daily aggregation\n\n5. **Analytics Events Integration:**\n   - Add Firebase Analytics/Crashlytics events for feature usage patterns: 'recording_started', 'transcription_completed', 'text_inserted'\n   - Track user engagement metrics: session frequency, feature adoption rates, error rates by device type\n   - Implement privacy-compliant analytics with user consent management\n   - Add performance monitoring for service response times and memory usage\n   - Create custom analytics dashboard for debugging and optimization\n\n6. **Performance and Reliability Optimizations:**\n   - Use Room database transactions for atomic multi-table operations\n   - Implement proper service binding lifecycle to prevent memory leaks\n   - Add background thread processing for statistics calculations to avoid UI blocking\n   - Implement database connection pooling and query optimization with proper indexes\n   - Add circuit breaker pattern for external API calls and database operations\n   - Handle low storage scenarios with graceful degradation and cleanup strategies",
         "testStrategy": "COMPREHENSIVE TESTING STRATEGY:\n\n1. **Service Integration Testing:**\n   - Unit tests for SessionMetrics data capture in AudioRecordingService using MockK and TestCoroutineDispatcher\n   - Integration tests for service lifecycle statistics tracking across app backgrounding/foregrounding scenarios\n   - Verify atomic database operations during service termination and crash recovery\n   - Test service binding stability under memory pressure and device rotation\n\n2. **Database Operation Testing:**\n   - Room database transaction testing with rollback scenarios for failed operations\n   - Concurrency testing for simultaneous read/write operations from multiple services\n   - Migration testing for schema changes and data integrity verification\n   - Performance testing with large datasets (1000+ transcription records)\n   - Test database cleanup and retention policy enforcement\n\n3. **Statistics Accuracy Verification:**\n   - Verify word count accuracy against known text samples using multiple counting algorithms\n   - Test speaking rate calculations with controlled audio samples of known duration and word counts\n   - Validate daily aggregation accuracy by comparing real-time vs batch-calculated metrics\n   - Cross-validate analytics events with actual user actions using test automation\n\n4. **Background Processing Testing:**\n   - Test WorkManager job execution under different battery optimization settings and doze mode\n   - Verify statistics aggregation continues correctly across device reboots and app updates\n   - Test job scheduling persistence and retry logic for failed background operations\n   - Performance testing for background operations to ensure minimal battery and CPU impact\n\n5. **Error Scenario and Edge Case Testing:**\n   - Test behavior when database is full or corrupted using Room database testing utilities\n   - Verify graceful degradation when analytics services are unavailable\n   - Test statistics tracking during rapid start/stop recording cycles and service interruptions\n   - Validate proper cleanup and resource release during unexpected service termination\n   - Test timezone changes and device clock modifications for accurate time-based statistics",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           11,
           46,
@@ -1917,7 +1973,7 @@
               "58.4"
             ],
             "details": "Add Firebase Analytics/Crashlytics events for feature usage patterns: 'recording_started', 'transcription_completed', 'text_inserted'. Track user engagement metrics: session frequency, feature adoption rates, error rates by device type. Implement privacy-compliant analytics with user consent management following GDPR/CCPA guidelines. Add performance monitoring for service response times and memory usage. Create custom analytics dashboard for debugging and optimization. Ensure analytics events are batched and sent efficiently to minimize battery impact.",
-            "status": "deferred",
+            "status": "done",
             "testStrategy": "Unit tests for analytics event tracking with mock Firebase instances. Privacy compliance testing for user consent flows. Performance monitoring validation with memory and timing measurements."
           },
           {
@@ -2050,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-22T22:39:43.469Z",
+      "updated": "2025-08-22T23:05:21.003Z",
       "description": "Tasks for master context"
     }
   }
