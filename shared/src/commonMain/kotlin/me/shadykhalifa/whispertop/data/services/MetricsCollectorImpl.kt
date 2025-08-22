@@ -8,6 +8,8 @@ import me.shadykhalifa.whispertop.domain.models.*
 import me.shadykhalifa.whispertop.domain.services.LoggingManager
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
 import me.shadykhalifa.whispertop.domain.services.MetricsExportFormat
+import me.shadykhalifa.whispertop.utils.MemoryUtils
+import me.shadykhalifa.whispertop.utils.TimeUtils
 class MetricsCollectorImpl(
     private val loggingManager: LoggingManager
 ) : MetricsCollector {
@@ -23,7 +25,7 @@ class MetricsCollectorImpl(
     override suspend fun startSession(sessionId: String): PerformanceSession = mutex.withLock {
         val session = PerformanceSession(
             sessionId = sessionId,
-            startTime = System.currentTimeMillis()
+            startTime = TimeUtils.currentTimeMillis()
         )
         sessions[sessionId] = session
         
@@ -36,7 +38,7 @@ class MetricsCollectorImpl(
     }
     
     override suspend fun endSession(sessionId: String): PerformanceSession? = mutex.withLock {
-        val session = sessions[sessionId]?.copy(endTime = System.currentTimeMillis())
+        val session = sessions[sessionId]?.copy(endTime = TimeUtils.currentTimeMillis())
         if (session != null) {
             sessions[sessionId] = session
             
@@ -49,7 +51,7 @@ class MetricsCollectorImpl(
     }
     
     override suspend fun startRecordingMetrics(sessionId: String): RecordingMetrics = mutex.withLock {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = TimeUtils.currentTimeMillis()
         val deviceInfo = getDeviceInfo()
         
         val recordingMetrics = RecordingMetrics(
@@ -88,7 +90,7 @@ class MetricsCollectorImpl(
         val session = sessions[sessionId]
         val currentMetrics = session?.recordingMetrics
         if (currentMetrics != null) {
-            val endTime = System.currentTimeMillis()
+            val endTime = TimeUtils.currentTimeMillis()
             val duration = endTime - currentMetrics.startTime
             
             val finalMetrics = currentMetrics.copy(
@@ -112,7 +114,7 @@ class MetricsCollectorImpl(
     }
     
     override suspend fun startTranscriptionMetrics(sessionId: String): TranscriptionMetrics = mutex.withLock {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = TimeUtils.currentTimeMillis()
         
         val transcriptionMetrics = TranscriptionMetrics(
             sessionId = sessionId,
@@ -149,7 +151,7 @@ class MetricsCollectorImpl(
         val session = sessions[sessionId]
         val currentMetrics = session?.transcriptionMetrics
         if (currentMetrics != null) {
-            val endTime = System.currentTimeMillis()
+            val endTime = TimeUtils.currentTimeMillis()
             val duration = endTime - currentMetrics.requestStartTime
             
             val finalMetrics = currentMetrics.copy(
@@ -177,7 +179,7 @@ class MetricsCollectorImpl(
         if (session != null) {
             val memory = getCurrentMemoryInfo()
             val snapshot = MemorySnapshot(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 usedMemory = memory.usedMemory,
                 freeMemory = memory.freeMemory,
                 totalMemory = memory.totalMemory,
@@ -313,7 +315,7 @@ class MetricsCollectorImpl(
         // Check for long recording sessions
         if (metrics.duration > 300_000) { // 5 minutes
             recordPerformanceWarning(sessionId, PerformanceWarning(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 type = WarningType.LONG_RECORDING_SESSION,
                 message = "Recording session exceeded 5 minutes: ${metrics.duration / 1000}s",
                 severity = WarningSeverity.WARNING,
@@ -325,7 +327,7 @@ class MetricsCollectorImpl(
         // Check for buffer underruns
         if (metrics.bufferUnderrunCount > 0) {
             recordPerformanceWarning(sessionId, PerformanceWarning(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 type = WarningType.BUFFER_UNDERRUN,
                 message = "Audio buffer underruns detected: ${metrics.bufferUnderrunCount}",
                 severity = if (metrics.bufferUnderrunCount > 5) WarningSeverity.CRITICAL else WarningSeverity.WARNING,
@@ -339,7 +341,7 @@ class MetricsCollectorImpl(
         // Check for slow transcription
         if (metrics.apiCallDuration > 10_000) { // 10 seconds
             recordPerformanceWarning(sessionId, PerformanceWarning(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 type = WarningType.SLOW_TRANSCRIPTION,
                 message = "Transcription took longer than expected: ${metrics.apiCallDuration}ms",
                 severity = WarningSeverity.WARNING,
@@ -351,7 +353,7 @@ class MetricsCollectorImpl(
         // Check for high retry count
         if (metrics.retryCount > 2) {
             recordPerformanceWarning(sessionId, PerformanceWarning(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 type = WarningType.API_ERROR_RATE,
                 message = "High API retry count: ${metrics.retryCount}",
                 severity = WarningSeverity.WARNING,
@@ -363,7 +365,7 @@ class MetricsCollectorImpl(
         // Check for network latency
         if (metrics.connectionTimeMs > 5000) { // 5 seconds
             recordPerformanceWarning(sessionId, PerformanceWarning(
-                timestamp = System.currentTimeMillis(),
+                timestamp = TimeUtils.currentTimeMillis(),
                 type = WarningType.NETWORK_LATENCY,
                 message = "High network latency detected: ${metrics.connectionTimeMs}ms",
                 severity = WarningSeverity.WARNING,
@@ -386,15 +388,15 @@ class MetricsCollectorImpl(
     }
     
     private fun getCurrentMemoryInfo(): MemoryUsageInfo {
-        val runtime = Runtime.getRuntime()
-        val totalMemory = runtime.totalMemory()
-        val freeMemory = runtime.freeMemory()
-        val usedMemory = totalMemory - freeMemory
+        val usedMemory = MemoryUtils.getUsedMemoryBytes()
+        val totalMemory = MemoryUtils.getTotalMemoryBytes()
+        val maxMemory = MemoryUtils.getMaxMemoryBytes()
+        val freeMemory = totalMemory - usedMemory
         
         return MemoryUsageInfo(
             usedMemory = usedMemory,
             freeMemory = freeMemory,
-            totalMemory = runtime.maxMemory()
+            totalMemory = maxMemory
         )
     }
     

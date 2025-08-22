@@ -1650,7 +1650,7 @@
         "description": "Implement comprehensive data models for user statistics tracking including session data, usage metrics, daily trends, and permissions with proper serialization support.",
         "details": "Create TranscriptionSession data class with fields: id (UUID), timestamp (Instant), audioLengthMs (Long), wordCount (Int), characterCount (Int), transcribedText (String), implement Parcelable and add @Serializable annotation. Create UserStatistics data class with totalWords (Long), totalSessions (Int), totalSpeakingTimeMs (Long), averageWordsPerMinute (Double), averageWordsPerSession (Double), userTypingWpm (Int), implement Parcelable and JSON serialization. Create DailyUsage data class with date (LocalDate), sessionsCount (Int), wordsTranscribed (Long), totalTimeMs (Long) for trend visualization. Create AppPermission enum with RECORD_AUDIO, SYSTEM_ALERT_WINDOW, ACCESSIBILITY_SERVICE values, each with displayName and description properties. Create repository interfaces: StatisticsRepository, SessionRepository, PermissionRepository following clean architecture principles in domain layer. Place data classes in shared/domain/models package, repository interfaces in shared/domain/repositories package. Add kotlinx.serialization dependencies and configure proper JSON serialization with custom serializers for Instant and LocalDate types.",
         "testStrategy": "Create unit tests for data class serialization/deserialization with JSON, verify Parcelable implementation works correctly across process boundaries. Test enum display names and descriptions are properly localized. Create mock repository implementations to verify interface contracts. Test edge cases like empty statistics, null handling, and large numeric values. Verify data classes follow immutability principles and implement proper equals/hashCode methods.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3
         ],
@@ -1920,11 +1920,25 @@
         ],
         "priority": "low",
         "subtasks": []
+      },
+      {
+        "id": 65,
+        "title": "Fix Multiplatform Architecture Build Issues and Platform Code Separation",
+        "description": "Resolve compilation failures by properly separating Android-specific code from commonMain source set, creating expect/actual declarations, and implementing missing repository classes to enable clean builds in the multiplatform structure.",
+        "details": "## Critical Issues Identified:\n\n### 1. Room Database Code in commonMain (Lines 3-5 in TranscriptionHistoryEntity.kt)\n- **Move to androidMain**: TranscriptionHistoryEntity.kt, UserStatisticsEntity.kt, DatabaseConverters.kt\n- **Create expect/actual pattern**: Define data interfaces in commonMain, implement Room entities in androidMain\n- **Update mappers**: TranscriptionHistoryMapper.kt to work with platform abstractions\n\n### 2. AndroidX Paging in commonMain (Lines 3-4 in TranscriptionHistoryPagingSource.kt)\n- **Move PagingSource**: TranscriptionHistoryPagingSource.kt to androidMain\n- **Create abstractions**: Define platform-agnostic pagination interfaces in commonMain\n- **Update repositories**: Make TranscriptionHistoryRepository platform-agnostic\n\n### 3. Java-Specific APIs in commonMain (Lines 61-63 in RetryService.kt)\n- **Replace Java exceptions**: java.net.SocketTimeoutException, java.net.UnknownHostException, java.io.IOException with KMP alternatives\n- **Create expect/actual**: For platform-specific exception handling\n\n### 4. JVM-Specific Synchronization (Lines 67, 119, 142 in ErrorLoggingService.kt)\n- **Replace synchronized blocks**: Use Kotlin Multiplatform Mutex from kotlinx.coroutines.sync\n- **Update thread safety**: Implement proper concurrent data structures\n\n### 5. SecurityException Usage (ErrorClassification.kt)\n- **Create expect/actual**: For SecurityException handling across platforms\n- **Platform abstractions**: Define common error types in commonMain\n\n### 6. Missing Repository Implementations\n- **Implement**: TranscriptionHistoryRepositoryImpl, UserStatisticsRepositoryImpl in data layer\n- **Dependency injection**: Update SharedModule to properly separate platform-specific dependencies\n- **Database setup**: Create proper Room database initialization in androidMain\n\n### 7. Audio Recorder Platform Separation\n- **Move implementations**: Android-specific MediaRecorder usage to androidMain\n- **Create abstractions**: Audio recording interfaces in commonMain with Android actual implementations\n\n### 8. SettingsViewModel Issues\n- **Fix byte array conversion**: Handle platform-specific serialization properly\n- **Update preferences**: Ensure multiplatform compatibility for secure storage\n\n## Implementation Steps:\n1. Create expect declarations in commonMain for all platform-specific APIs\n2. Move Android-specific implementations to androidMain as actual implementations\n3. Update dependency injection to properly separate concerns\n4. Implement missing repository classes with proper multiplatform structure\n5. Replace Java-specific APIs with Kotlin Multiplatform alternatives\n6. Update all import statements and references\n7. Test compilation on both Android and potential iOS targets",
+        "testStrategy": "Verify successful compilation with './gradlew build' and './gradlew compileDebugKotlinAndroid'. Test that commonMain contains no platform-specific code by attempting to compile against iOS target if configured. Run existing unit tests to ensure functionality is preserved. Verify dependency injection works correctly across platform boundaries. Test that Room database operations work correctly through the new abstractions. Validate that audio recording, transcription workflows, and settings management continue to work properly after the architectural changes.",
+        "status": "pending",
+        "dependencies": [
+          1,
+          3
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-21T18:27:11.774Z",
+      "updated": "2025-08-21T19:40:24.774Z",
       "description": "Tasks for master context"
     }
   }

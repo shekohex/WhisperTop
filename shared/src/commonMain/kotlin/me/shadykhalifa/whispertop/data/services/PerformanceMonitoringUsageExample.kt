@@ -3,7 +3,8 @@ package me.shadykhalifa.whispertop.data.services
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
 import me.shadykhalifa.whispertop.domain.services.MetricsExportFormat
 // Note: PerformanceMonitor is Android-specific, this example demonstrates the concept
-import java.util.UUID
+import me.shadykhalifa.whispertop.utils.UuidGenerator
+import me.shadykhalifa.whispertop.utils.TimeUtils
 
 /**
  * Example usage of the performance monitoring system for WhisperTop.
@@ -16,7 +17,7 @@ class PerformanceMonitoringUsageExample(
     
     suspend fun demonstrateRecordingMetrics() {
         // Start a new performance session
-        val sessionId = UUID.randomUUID().toString()
+        val sessionId = UuidGenerator.randomUUID()
         metricsCollector.startSession(sessionId)
         
         // Start recording metrics
@@ -55,7 +56,7 @@ class PerformanceMonitoringUsageExample(
     
     suspend fun demonstrateTranscriptionMetrics() {
         // Start a new performance session
-        val sessionId = UUID.randomUUID().toString()
+        val sessionId = UuidGenerator.randomUUID()
         metricsCollector.startSession(sessionId)
         
         // Start transcription metrics
@@ -98,7 +99,7 @@ class PerformanceMonitoringUsageExample(
     }
     
     suspend fun demonstrateMetricsAggregation() {
-        val now = System.currentTimeMillis()
+        val now = TimeUtils.currentTimeMillis()
         val oneDayAgo = now - (24 * 60 * 60 * 1000)
         
         // Get metrics aggregation for the last 24 hours
@@ -135,7 +136,7 @@ class PerformanceMonitoringUsageExample(
     }
     
     suspend fun demonstrateMemoryMonitoring() {
-        val sessionId = UUID.randomUUID().toString()
+        val sessionId = UuidGenerator.randomUUID()
         metricsCollector.startSession(sessionId)
         
         // Demonstrate memory monitoring with different contexts

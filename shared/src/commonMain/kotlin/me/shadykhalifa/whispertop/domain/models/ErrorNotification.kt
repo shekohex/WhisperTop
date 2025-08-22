@@ -1,11 +1,12 @@
 package me.shadykhalifa.whispertop.domain.models
 
 import kotlinx.coroutines.flow.StateFlow
+import me.shadykhalifa.whispertop.utils.TimeUtils
 
 data class ErrorNotification(
     val id: String,
     val errorInfo: ErrorInfo,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = TimeUtils.currentTimeMillis(),
     val isShown: Boolean = false,
     val isDismissed: Boolean = false,
     val retryCount: Int = 0,
@@ -111,6 +112,6 @@ class ErrorNotificationServiceImpl : ErrorNotificationService {
     }
     
     private fun generateNotificationId(): String {
-        return "error_${System.currentTimeMillis()}_${(1000..9999).random()}"
+        return "error_${TimeUtils.currentTimeMillis()}_${(1000..9999).random()}"
     }
 }

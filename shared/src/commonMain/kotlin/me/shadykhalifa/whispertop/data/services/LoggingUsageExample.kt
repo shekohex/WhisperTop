@@ -44,7 +44,7 @@ class LoggingUsageExample {
         logger.debug("Audio buffer initialized with 1024 samples", context)
     }
     
-    fun demonstratePerformanceLogging() {
+    suspend fun demonstratePerformanceLogging() {
         // Performance tracking
         val performanceTracker = PerformanceTracker(
             operationName = "audio_transcription",
@@ -52,7 +52,7 @@ class LoggingUsageExample {
         )
         
         // Simulate some work
-        Thread.sleep(100) // In real code, this would be actual work
+        kotlinx.coroutines.delay(100) // In real code, this would be actual work
         
         // Finish tracking with additional metrics
         performanceTracker.finish(mapOf(

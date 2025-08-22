@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.roundToInt
+import me.shadykhalifa.whispertop.utils.TimeUtils
 
 class AudioQualityManager(
     private val qualityPreset: QualityPreset = QualityPreset.MEDIUM
@@ -23,7 +24,7 @@ class AudioQualityManager(
     private var peakLevelSoFar: Float = 0f
     
     fun startMonitoring() {
-        recordingStartTime = System.currentTimeMillis()
+        recordingStartTime = TimeUtils.currentTimeMillis()
         metricsHistory.clear()
         totalSamples = 0
         silentSamples = 0
@@ -115,7 +116,7 @@ class AudioQualityManager(
     }
     
     private fun updateStatistics() {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = TimeUtils.currentTimeMillis()
         val duration = currentTime - recordingStartTime
         val fileSize = (totalSamples * 2).toLong() // 2 bytes per sample (16-bit)
         

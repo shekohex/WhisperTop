@@ -1,5 +1,7 @@
 package me.shadykhalifa.whispertop.data.audio
 
+import me.shadykhalifa.whispertop.utils.TimeUtils
+
 class SilenceDetector(
     private val silenceDurationThresholdMs: Long = RecordingConstraints.SILENCE_DURATION_MS,
     private val sampleRateHz: Int = RecordingConstraints.SAMPLE_RATE,
@@ -20,7 +22,7 @@ class SilenceDetector(
             
             if (!isCurrentlySilent && consecutiveSilentBuffers >= buffersForSilenceThreshold) {
                 isCurrentlySilent = true
-                silenceStartTime = System.currentTimeMillis() - (consecutiveSilentBuffers * bufferDurationMs)
+                silenceStartTime = TimeUtils.currentTimeMillis() - (consecutiveSilentBuffers * bufferDurationMs)
                 return SilenceState.ENTERED_SILENCE
             }
         } else {
@@ -29,7 +31,7 @@ class SilenceDetector(
             
             if (isCurrentlySilent && consecutiveNonSilentBuffers >= 2) {
                 isCurrentlySilent = false
-                lastSilenceEndTime = System.currentTimeMillis()
+                lastSilenceEndTime = TimeUtils.currentTimeMillis()
                 silenceStartTime = null
                 return SilenceState.EXITED_SILENCE
             }
@@ -40,7 +42,7 @@ class SilenceDetector(
     
     fun getCurrentSilenceDuration(): Long {
         return if (isCurrentlySilent && silenceStartTime != null) {
-            System.currentTimeMillis() - silenceStartTime!!
+            TimeUtils.currentTimeMillis() - silenceStartTime!!
         } else {
             0L
         }

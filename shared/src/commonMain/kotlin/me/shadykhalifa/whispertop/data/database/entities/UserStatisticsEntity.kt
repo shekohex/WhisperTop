@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.data.database.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 
 @Entity(tableName = "user_statistics")
@@ -17,6 +18,6 @@ data class UserStatisticsEntity(
     val lastUsedDate: String = "",
     val mostUsedLanguage: String = "",
     val mostUsedModel: String = "",
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
+    val updatedAt: Long = Clock.System.now().toEpochMilliseconds()
 )

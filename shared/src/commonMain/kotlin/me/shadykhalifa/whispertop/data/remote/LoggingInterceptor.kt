@@ -8,6 +8,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.util.*
 import me.shadykhalifa.whispertop.domain.services.DebugLoggingService
+import me.shadykhalifa.whispertop.utils.TimeUtils
 import me.shadykhalifa.whispertop.domain.services.LoggingManager
 
 enum class OpenAILogLevel {
@@ -82,7 +83,7 @@ class OpenAILoggingInterceptor(
     }
     
     private fun generateRequestId(): String {
-        return "req_${System.currentTimeMillis()}_${(0..999).random()}"
+        return "req_${TimeUtils.currentTimeMillis()}_${(0..999).random()}"
     }
 }
 

@@ -3,6 +3,7 @@ package me.shadykhalifa.whispertop.data.database.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Index
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 
 @Entity(
@@ -26,6 +27,6 @@ data class TranscriptionHistoryEntity(
     val language: String? = null,
     val model: String? = null,
     val wordCount: Int = 0,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
+    val updatedAt: Long = Clock.System.now().toEpochMilliseconds()
 )

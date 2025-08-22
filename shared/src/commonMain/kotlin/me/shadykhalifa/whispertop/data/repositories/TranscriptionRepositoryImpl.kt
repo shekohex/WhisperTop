@@ -24,6 +24,7 @@ import me.shadykhalifa.whispertop.domain.services.FileReaderService
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
 import me.shadykhalifa.whispertop.domain.usecases.LanguageDetectionUseCase
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.utils.TimeUtils
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.withContext
@@ -93,7 +94,7 @@ class TranscriptionRepositoryImpl(
             
             log(TAG, "Audio file size check passed: $audioFileSize bytes")
             
-            val requestStartTime = System.currentTimeMillis()
+            val requestStartTime = TimeUtils.currentTimeMillis()
             var retryCount = 0
             var lastException: Exception? = null
             
@@ -102,7 +103,7 @@ class TranscriptionRepositoryImpl(
             repeat(3) { attempt ->
                 try {
                     log(TAG, "Attempt ${attempt + 1}/3: Starting API call to OpenAI")
-                    val connectionStartTime = System.currentTimeMillis()
+                    val connectionStartTime = TimeUtils.currentTimeMillis()
                     
                     val transcriptionUrl = "${settings.baseUrl.trimEnd('/')}/audio/transcriptions"
                     log(TAG, "Making request to URL: '$transcriptionUrl'")
@@ -129,7 +130,7 @@ class TranscriptionRepositoryImpl(
                         }
                     }
                     
-                    val connectionTime = System.currentTimeMillis() - connectionStartTime
+                    val connectionTime = TimeUtils.currentTimeMillis() - connectionStartTime
                     log(TAG, "API request completed in ${connectionTime}ms, status: ${response.status}")
                     
                     // Update metrics with network timing
@@ -167,7 +168,7 @@ class TranscriptionRepositoryImpl(
                     log(TAG, "Parsing response body...")
                     val transcriptionResponse: TranscriptionResponseDto = response.body()
                     val responseSize = transcriptionResponse.toString().length.toLong() // Approximate size
-                    val transferTime = System.currentTimeMillis() - requestStartTime
+                    val transferTime = TimeUtils.currentTimeMillis() - requestStartTime
                     
                     log(TAG, "Response parsed successfully, transcription length: ${transcriptionResponse.text?.length ?: 0} chars")
                     log(TAG, "Total request time: ${transferTime}ms")
@@ -368,7 +369,7 @@ class TranscriptionRepositoryImpl(
         }
     }
     
-    private fun generateSessionId(): String = "session_${System.currentTimeMillis()}"
+    private fun generateSessionId(): String = "session_${TimeUtils.currentTimeMillis()}"
 }
 
 expect class FileReader {
