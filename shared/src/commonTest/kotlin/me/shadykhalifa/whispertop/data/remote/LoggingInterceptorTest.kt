@@ -9,6 +9,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.*
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class LoggingInterceptorTest {
 
@@ -30,9 +31,9 @@ class LoggingInterceptorTest {
         val interceptor = OpenAILoggingInterceptor(OpenAILogLevel.BODY)
         
         val testCases = listOf(
-            "Authorization: Bearer sk-abc123def456" to "Authorization: Bearer [REDACTED]",
-            "Bearer sk-proj-xyz789" to "Bearer [REDACTED]",
-            "\"api_key\": \"sk-test-key\"" to "\"api_key\": \"[REDACTED]\"",
+            "Authorization: Bearer ${TestConstants.MOCK_BEARER_TOKEN}" to "Authorization: Bearer [REDACTED]",
+            "Bearer ${TestConstants.MOCK_JWT_TOKEN}" to "Bearer [REDACTED]",
+            "\"api_key\": \"${TestConstants.MOCK_API_KEY}\"" to "\"api_key\": \"[REDACTED]\"",
             "Regular log message" to "Regular log message"
         )
         
@@ -73,7 +74,7 @@ class LoggingInterceptorTest {
         // Should not throw any exceptions
         val response = client.get("https://api.openai.com/v1/test") {
             headers {
-                append("Authorization", "Bearer sk-test-key")
+                append("Authorization", "Bearer TestConstants.MOCK_BEARER_TOKEN")
             }
         }
         
@@ -99,7 +100,7 @@ class LoggingInterceptorTest {
 
         val response = client.get("https://api.openai.com/v1/test") {
             headers {
-                append("Authorization", "Bearer sk-test-key")
+                append("Authorization", "Bearer TestConstants.MOCK_BEARER_TOKEN")
             }
         }
         
@@ -125,7 +126,7 @@ class LoggingInterceptorTest {
 
         val response = client.get("https://api.openai.com/v1/test") {
             headers {
-                append("Authorization", "Bearer sk-test-key")
+                append("Authorization", "Bearer TestConstants.MOCK_BEARER_TOKEN")
             }
         }
         
@@ -151,7 +152,7 @@ class LoggingInterceptorTest {
 
         val response = client.get("https://api.openai.com/v1/test") {
             headers {
-                append("Authorization", "Bearer sk-test-key")
+                append("Authorization", "Bearer TestConstants.MOCK_BEARER_TOKEN")
             }
         }
         

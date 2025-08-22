@@ -13,6 +13,7 @@ import me.shadykhalifa.whispertop.utils.Result
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class StartRecordingUseCaseTest {
     
@@ -20,7 +21,7 @@ class StartRecordingUseCaseTest {
     fun `startRecording should succeed with valid API key and not recording`() = runTest {
         val mockAudioRepository = MockAudioRepository(isRecording = false)
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -65,7 +66,7 @@ class StartRecordingUseCaseTest {
     fun `startRecording should fail when already recording`() = runTest {
         val mockAudioRepository = MockAudioRepository(isRecording = true)
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -84,7 +85,7 @@ class StartRecordingUseCaseTest {
             startRecordingResult = Result.Error(RuntimeException("Microphone unavailable"))
         )
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -102,7 +103,7 @@ class StartRecordingUseCaseTest {
             startRecordingResult = Result.Error(SecurityException("Permission denied"))
         )
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -120,7 +121,7 @@ class StartRecordingUseCaseTest {
             startRecordingResult = Result.Error(IllegalStateException("Audio hardware not available"))
         )
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -181,7 +182,7 @@ class StartRecordingUseCaseTest {
             startRecordingResult = Result.Error(IllegalStateException("Repository not initialized"))
         )
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -198,7 +199,7 @@ class StartRecordingUseCaseTest {
             startRecordingResult = Result.Error(IllegalStateException("Concurrent access detected"))
         )
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -212,7 +213,7 @@ class StartRecordingUseCaseTest {
     fun `startRecording should succeed after previous failure`() = runTest {
         val mockAudioRepository = MockAudioRepository(isRecording = false)
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
         
@@ -230,7 +231,7 @@ class StartRecordingUseCaseTest {
     @Test
     fun `startRecording should handle very long API key`() = runTest {
         val mockAudioRepository = MockAudioRepository(isRecording = false)
-        val longApiKey = "sk-" + "a".repeat(1000)
+        val longApiKey = TestConstants.MOCK_API_KEY + "a".repeat(1000)
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = longApiKey)
         )
@@ -245,7 +246,7 @@ class StartRecordingUseCaseTest {
     @Test
     fun `startRecording should handle API key with special characters`() = runTest {
         val mockAudioRepository = MockAudioRepository(isRecording = false)
-        val specialCharApiKey = "sk-test!@#$%^&*()_+-=[]{}|;:,.<>?"
+        val specialCharApiKey = TestConstants.MOCK_API_KEY
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = specialCharApiKey)
         )
@@ -260,7 +261,7 @@ class StartRecordingUseCaseTest {
     @Test
     fun `startRecording should handle all recording states correctly`() = runTest {
         val mockSettingsRepository = MockSettingsRepository(
-            appSettings = AppSettings(apiKey = "sk-validkey123456789")
+            appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
         
         // Test when not recording

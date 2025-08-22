@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.jacoco)
 }
 
 kotlin {
@@ -63,7 +64,12 @@ kotlin {
             implementation(libs.koin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+        }
+        
+        androidUnitTest.dependencies {
+            implementation(libs.junit)
             implementation(libs.androidx.room.testing)
+            implementation(libs.mockk)
         }
         
         androidInstrumentedTest.dependencies {
@@ -76,6 +82,7 @@ kotlin {
             implementation(libs.androidx.room.testing)
             implementation(libs.koin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.mockk.android)
         }
     }
 }
@@ -106,4 +113,60 @@ dependencies {
     // Temporarily disabled due to KSP compatibility issues with Room 2.7.0-alpha08
     // TODO: Re-enable when Room/KSP versions are compatible
     // add("kspAndroid", libs.androidx.room.compiler)
+}
+
+// JaCoCo Coverage Configuration for Shared Module
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+val sharedCoverageExclusions = listOf(
+    // Kotlin generated
+    "**/*\$serializer.*",
+    "**/*\$WhenMappings.*",
+    "**/*\$Companion.*",
+    
+    // Data models (focus on business logic)
+    "**/models/**",
+    "**/dto/**",
+    "**/data/models/**",
+    
+    // DI modules
+    "**/di/*Module*.*",
+    
+    // Platform-specific expect/actual implementations 
+    "**/platform/**"
+)
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoSharedTestReport") {
+    dependsOn("testDebugUnitTest", "allTests")
+    
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+    
+    val fileFilter = sharedCoverageExclusions
+    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug")
+    val mainSrc = "${project.projectDir}/src/commonMain/kotlin"
+    
+    sourceDirectories.setFrom(files(listOf(mainSrc)))
+    classDirectories.setFrom(files(listOf(debugTree)))
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it).apply {
+            exclude(fileFilter)
+        }
+    }))
+    
+    executionData.setFrom(fileTree(layout.buildDirectory.get()).include(
+        "**/*.exec"
+    ))
 }

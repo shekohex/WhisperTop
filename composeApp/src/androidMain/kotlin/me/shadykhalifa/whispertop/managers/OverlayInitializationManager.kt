@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.service.AudioRecordingService
@@ -277,21 +278,25 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
         Log.d(TAG, "handleMicButtonClick: currentState=$currentState, isServiceReady=${uiState.isServiceReady}, connection=${uiState.serviceConnectionState}, permission=${uiState.permissionState}")
         
         when (currentState) {
-            ServiceStateRepository.RecordingState.IDLE -> {
+            RecordingState.Idle -> {
                 Log.d(TAG, "Starting recording from mic button")
                 audioRecordingViewModel.startRecording()
             }
-            ServiceStateRepository.RecordingState.RECORDING -> {
+            is RecordingState.Recording -> {
                 Log.d(TAG, "Stopping recording from mic button")
                 audioRecordingViewModel.stopRecording()
             }
-            ServiceStateRepository.RecordingState.PAUSED -> {
-                Log.d(TAG, "Resuming recording from mic button")
-                audioRecordingViewModel.startRecording()
-            }
-            ServiceStateRepository.RecordingState.PROCESSING -> {
+            is RecordingState.Processing -> {
                 Log.d(TAG, "Recording is processing, ignoring click")
                 // Do nothing - processing in progress
+            }
+            is RecordingState.Success -> {
+                Log.d(TAG, "Recording successful, ignoring click")
+                // Do nothing - recording completed
+            }
+            is RecordingState.Error -> {
+                Log.d(TAG, "Recording error, ignoring click")
+                // Do nothing - error state
             }
         }
     }
@@ -303,10 +308,11 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
         scope.launch {
             audioRecordingViewModel.uiState.collect { uiState ->
                 val buttonState = when (uiState.recordingState) {
-                    ServiceStateRepository.RecordingState.IDLE -> MicButtonState.IDLE
-                    ServiceStateRepository.RecordingState.RECORDING -> MicButtonState.RECORDING
-                    ServiceStateRepository.RecordingState.PAUSED -> MicButtonState.IDLE
-                    ServiceStateRepository.RecordingState.PROCESSING -> MicButtonState.PROCESSING
+                    RecordingState.Idle -> MicButtonState.IDLE
+                    is RecordingState.Recording -> MicButtonState.RECORDING
+                    is RecordingState.Processing -> MicButtonState.PROCESSING
+                    is RecordingState.Success -> MicButtonState.IDLE
+                    is RecordingState.Error -> MicButtonState.IDLE
                 }
                 
                 micButtonOverlay?.setState(buttonState)

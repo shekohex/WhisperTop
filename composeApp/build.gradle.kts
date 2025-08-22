@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.jacoco)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
@@ -90,10 +91,13 @@ kotlin {
             implementation(libs.robolectric)
             implementation(libs.mockito.core)
             implementation(libs.mockito.kotlin)
+            implementation(libs.mockk)
+            implementation(libs.mockk.android)
             implementation(libs.koin.test)
             implementation(libs.turbine)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.compose.ui.test.junit4)
+            implementation(libs.compose.ui.test.manifest)
         }
     }
 }
@@ -249,6 +253,10 @@ dependencies {
     debugImplementation(compose.uiTooling)
     debugImplementation(libs.compose.ui.test.manifest)
     
+    // LeakCanary for memory leak detection
+    debugImplementation(libs.leakcanary.android)
+    androidTestImplementation(libs.leakcanary.android.instrumentation)
+    
     // Android Test dependencies
     androidTestImplementation(libs.androidx.testExt.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -258,6 +266,84 @@ dependencies {
     androidTestImplementation(libs.koin.test)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android)
 
+}
+
+// JaCoCo Coverage Configuration
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+val coverageExclusions = listOf(
+    // Android generated files
+    "**/R.class",
+    "**/R$*.class", 
+    "**/BuildConfig.*",
+    "**/Manifest*.*",
+    "**/*\$*.class",
+    
+    // Data binding
+    "**/DataBinding*.*",
+    "**/BR.*",
+    "**/*_ViewBinding*.*",
+    
+    // Compose generated
+    "**/*\$Companion.*",
+    "**/*ComposableSingletons*.*",
+    "**/*_Factory*.*",
+    "**/ComposableSingletons*.*",
+    
+    // Kotlin generated
+    "**/*\$serializer.*",
+    "**/*\$WhenMappings.*",
+    
+    // DI/Koin generated
+    "**/di/*Module*.*",
+    
+    // Models/DTOs (data classes)
+    "**/models/**",
+    "**/dto/**",
+    "**/data/models/**",
+    
+    // Application class
+    "**/WhisperTopApplication.*"
+)
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testPlaystoreDebugUnitTest", "testSideloadDebugUnitTest")
+    
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+    
+    val fileFilter = coverageExclusions
+    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/playstoreDebug")
+    val mainSrc = "${project.projectDir}/src/androidMain/kotlin"
+    val composeSrc = "${project.projectDir}/src/commonMain/kotlin"
+    
+    sourceDirectories.setFrom(files(listOf(mainSrc, composeSrc)))
+    classDirectories.setFrom(files(listOf(debugTree)))
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it).apply {
+            exclude(fileFilter)
+        }
+    }))
+    
+    executionData.setFrom(fileTree(layout.buildDirectory.get()).include(
+        "outputs/unit_test_code_coverage/playstoreDebugUnitTest/testPlaystoreDebugUnitTest.exec",
+        "outputs/unit_test_code_coverage/sideloadDebugUnitTest/testSideloadDebugUnitTest.exec",
+        "outputs/code_coverage/playstoreDebugAndroidTest/connected/*/coverage.ec",
+        "outputs/code_coverage/sideloadDebugAndroidTest/connected/*/coverage.ec"
+    ))
 }
 

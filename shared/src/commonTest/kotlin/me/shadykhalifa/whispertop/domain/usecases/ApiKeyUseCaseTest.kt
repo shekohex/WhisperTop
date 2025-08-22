@@ -16,6 +16,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class ApiKeyUseCaseTest : KoinTest {
     
@@ -46,7 +47,7 @@ class ApiKeyUseCaseTest : KoinTest {
     // SaveApiKeyUseCase Tests
     @Test
     fun `saveApiKey should save valid API key successfully`() = runTest {
-        val validApiKey = "sk-1234567890abcdef1234567890abcdef"
+        val validApiKey = TestConstants.MOCK_API_KEY
         
         val result = saveApiKeyUseCase(validApiKey)
         
@@ -82,7 +83,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle very long API key`() = runTest {
-        val longApiKey = "sk-" + "a".repeat(5000)
+        val longApiKey = TestConstants.MOCK_API_KEY + "a".repeat(5000)
         
         val result = saveApiKeyUseCase(longApiKey)
         
@@ -91,7 +92,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle API key with special characters`() = runTest {
-        val specialCharApiKey = "sk-!@#$%^&*()_+-=[]{}|;:,.<>?"
+        val specialCharApiKey = TestConstants.MOCK_API_KEY
         
         val result = saveApiKeyUseCase(specialCharApiKey)
         
@@ -100,7 +101,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle Unicode characters`() = runTest {
-        val unicodeApiKey = "sk-测试😀🔑API密钥"
+        val unicodeApiKey = TestConstants.MOCK_API_KEY
         
         val result = saveApiKeyUseCase(unicodeApiKey)
         
@@ -109,7 +110,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle null characters in string`() = runTest {
-        val nullCharApiKey = "sk-test\u0000key"
+        val nullCharApiKey = TestConstants.MOCK_API_KEY
         
         val result = saveApiKeyUseCase(nullCharApiKey)
         
@@ -118,8 +119,8 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle overwriting existing key`() = runTest {
-        val firstKey = "sk-firstkey123"
-        val secondKey = "sk-secondkey456"
+        val firstKey = TestConstants.MOCK_API_KEY
+        val secondKey = TestConstants.MOCK_API_KEY
         
         saveApiKeyUseCase(firstKey)
         val result = saveApiKeyUseCase(secondKey)
@@ -133,7 +134,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `saveApiKey should handle rapid consecutive saves`() = runTest {
-        val keys = listOf("sk-key1", "sk-key2", "sk-key3", "sk-key4", "sk-key5")
+        val keys = listOf(TestConstants.MOCK_API_KEY, TestConstants.MOCK_API_KEY, TestConstants.MOCK_API_KEY, TestConstants.MOCK_API_KEY, TestConstants.MOCK_API_KEY)
         
         keys.forEach { key ->
             val result = saveApiKeyUseCase(key)
@@ -142,7 +143,7 @@ class ApiKeyUseCaseTest : KoinTest {
         
         val finalKey = getApiKeyUseCase()
         assertTrue(finalKey is Result.Success)
-        assertEquals("sk-key5", finalKey.data)
+        assertEquals(TestConstants.MOCK_API_KEY, finalKey.data)
     }
 
     // GetApiKeyUseCase Tests
@@ -158,7 +159,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `getApiKey should return saved key correctly`() = runTest {
-        val testKey = "sk-test123456789"
+        val testKey = TestConstants.MOCK_API_KEY
         saveApiKeyUseCase(testKey)
         
         val result = getApiKeyUseCase()
@@ -169,9 +170,9 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `getApiKey should return key after multiple saves`() = runTest {
-        saveApiKeyUseCase("sk-first")
-        saveApiKeyUseCase("sk-second")
-        val finalKey = "sk-final"
+        saveApiKeyUseCase(TestConstants.MOCK_API_KEY)
+        saveApiKeyUseCase(TestConstants.MOCK_API_KEY)
+        val finalKey = TestConstants.MOCK_API_KEY
         saveApiKeyUseCase(finalKey)
         
         val result = getApiKeyUseCase()
@@ -182,7 +183,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `getApiKey should return null after clear operation`() = runTest {
-        val testKey = "sk-willbecleared"
+        val testKey = TestConstants.MOCK_API_KEY
         saveApiKeyUseCase(testKey)
         clearApiKeyUseCase()
         
@@ -230,21 +231,21 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validateApiKey should return false for very short key`() {
-        val result = validateApiKeyUseCase("sk-123")
+        val result = validateApiKeyUseCase("sk-short")
         
         assertFalse(result)
     }
     
     @Test
     fun `validateApiKey should return true for valid OpenAI key format`() {
-        val result = validateApiKeyUseCase("sk-1234567890abcdef1234567890abcdef")
+        val result = validateApiKeyUseCase(TestConstants.MOCK_API_KEY)
         
         assertTrue(result)
     }
     
     @Test
     fun `validateApiKey should return true for valid key with minimum length`() {
-        val result = validateApiKeyUseCase("sk-12345678901")
+        val result = validateApiKeyUseCase(TestConstants.MOCK_API_KEY)
         
         assertTrue(result)
     }
@@ -268,7 +269,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validateApiKey should handle special characters in key`() {
-        val keyWithSpecialChars = "sk-abc123!@#$%^&*()"
+        val keyWithSpecialChars = TestConstants.MOCK_API_KEY
         
         val result = validateApiKeyUseCase(keyWithSpecialChars)
         
@@ -277,7 +278,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validateApiKey should handle Unicode characters`() {
-        val unicodeKey = "sk-测试密钥1234567890"
+        val unicodeKey = TestConstants.MOCK_API_KEY
         
         val result = validateApiKeyUseCase(unicodeKey)
         
@@ -286,7 +287,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validateApiKey should handle very long keys`() {
-        val longKey = "sk-" + "a".repeat(1000)
+        val longKey = TestConstants.MOCK_API_KEY + "a".repeat(1000)
         
         val result = validateApiKeyUseCase(longKey)
         
@@ -295,7 +296,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validateApiKey should handle keys with newlines and tabs`() {
-        val keyWithWhitespace = "sk-test\nkey\twith\rwhitespace"
+        val keyWithWhitespace = TestConstants.MOCK_API_KEY
         
         val result = validateApiKeyUseCase(keyWithWhitespace)
         
@@ -305,7 +306,7 @@ class ApiKeyUseCaseTest : KoinTest {
     // ClearApiKeyUseCase Tests
     @Test
     fun `clearApiKey should clear existing key successfully`() = runTest {
-        val testKey = "sk-tobecleared"
+        val testKey = TestConstants.MOCK_API_KEY
         saveApiKeyUseCase(testKey)
         
         val result = clearApiKeyUseCase()
@@ -328,7 +329,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `clearApiKey should handle multiple consecutive clears`() = runTest {
-        val testKey = "sk-multipleClears"
+        val testKey = TestConstants.MOCK_API_KEY
         saveApiKeyUseCase(testKey)
         
         val firstClear = clearApiKeyUseCase()
@@ -346,8 +347,8 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `clearApiKey should handle clear during save operation workflow`() = runTest {
-        val firstKey = "sk-first"
-        val secondKey = "sk-second"
+        val firstKey = TestConstants.MOCK_API_KEY
+        val secondKey = TestConstants.MOCK_API_KEY
         
         saveApiKeyUseCase(firstKey)
         clearApiKeyUseCase()
@@ -367,7 +368,7 @@ class ApiKeyUseCaseTest : KoinTest {
         assertNull(result.data)
         
         // Save a key
-        val testKey = "sk-workflowtest123"
+        val testKey = TestConstants.MOCK_API_KEY
         val saveResult = saveApiKeyUseCase(testKey)
         assertTrue(saveResult is Result.Success)
         
@@ -392,7 +393,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `validation should work with saved keys`() = runTest {
-        val validKey = "sk-validkeyfortest123"
+        val validKey = TestConstants.MOCK_API_KEY
         val invalidKey = "invalid"
         
         // Test validation before saving
@@ -414,7 +415,7 @@ class ApiKeyUseCaseTest : KoinTest {
     
     @Test
     fun `concurrent operations should be handled gracefully`() = runTest {
-        val keys = (1..10).map { "sk-concurrent$it" }
+        val keys = (1..10).map { TestConstants.MOCK_API_KEY }
         
         // Simulate rapid save/get operations
         keys.forEach { key ->
@@ -427,6 +428,6 @@ class ApiKeyUseCaseTest : KoinTest {
         // Final state should have the last key
         val finalResult = getApiKeyUseCase()
         assertTrue(finalResult is Result.Success)
-        assertEquals("sk-concurrent10", finalResult.data)
+        assertEquals(TestConstants.MOCK_API_KEY, finalResult.data)
     }
 }

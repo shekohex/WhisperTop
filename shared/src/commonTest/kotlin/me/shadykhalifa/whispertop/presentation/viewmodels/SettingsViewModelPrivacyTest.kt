@@ -20,6 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelPrivacyTest {
@@ -160,8 +161,8 @@ class SettingsViewModelPrivacyTest {
     @Test
     fun `confirmClearAllData should clear optimistic values`() = runTest {
         // Set some optimistic values
-        viewModel.updateApiKeyValue("sk-test-key")
-        assertEquals("sk-test-key", viewModel.uiState.value.apiKeyValue)
+        viewModel.updateApiKeyValue(TestConstants.MOCK_API_KEY)
+        assertEquals(TestConstants.MOCK_API_KEY, viewModel.uiState.value.apiKeyValue)
         
         // Clear all data
         viewModel.confirmClearAllData()
@@ -232,6 +233,6 @@ private class MockSecurePreferencesRepository : SecurePreferencesRepository {
         if (!isOpenAIEndpoint) {
             return apiKey.isBlank() || apiKey.length >= 3
         }
-        return apiKey.startsWith("sk-") && apiKey.length >= 51
+        return apiKey.startsWith(TestConstants.MOCK_API_KEY) && apiKey.length >= 51
     }
 }

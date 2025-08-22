@@ -29,6 +29,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecordingManagerTest {
@@ -345,7 +346,7 @@ class RecordingManagerTest {
     
     private class MockSettingsRepository : me.shadykhalifa.whispertop.domain.repositories.SettingsRepository {
         private val testSettings = me.shadykhalifa.whispertop.domain.models.AppSettings(
-            apiKey = "sk-test123",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-1",
             customPrompt = null,
             temperature = 0.0f

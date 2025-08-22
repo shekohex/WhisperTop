@@ -24,6 +24,8 @@ import me.shadykhalifa.whispertop.managers.ServiceRecoveryManager
 import me.shadykhalifa.whispertop.managers.SystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.createApiManager
 import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
@@ -86,7 +88,9 @@ val androidAppModule = module {
     viewModel { 
         AudioRecordingViewModel(
             serviceManagementUseCase = get(),
+            serviceInitializationUseCase = get(),
             permissionManagementUseCase = get(),
+            serviceBindingUseCase = get(),
             transcriptionWorkflowUseCase = get(),
             userFeedbackUseCase = get()
         )

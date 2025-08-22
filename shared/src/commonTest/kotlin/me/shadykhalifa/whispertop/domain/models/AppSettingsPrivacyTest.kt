@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class AppSettingsPrivacyTest {
 
@@ -44,7 +45,7 @@ class AppSettingsPrivacyTest {
     @Test
     fun `copy with privacy settings should preserve other settings`() {
         val originalSettings = AppSettings(
-            apiKey = "sk-test-key",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-1",
             theme = Theme.Dark,
             enableHapticFeedback = false
@@ -56,7 +57,7 @@ class AppSettingsPrivacyTest {
         )
         
         // Original settings should be preserved
-        assertEquals("sk-test-key", updatedSettings.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, updatedSettings.apiKey)
         assertEquals("whisper-1", updatedSettings.selectedModel)
         assertEquals(Theme.Dark, updatedSettings.theme)
         assertFalse(updatedSettings.enableHapticFeedback)

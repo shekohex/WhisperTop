@@ -38,6 +38,7 @@ object ErrorClassifier {
             is AudioRecordingError -> classifyAudioError(error)
             is OpenAIException -> classifyOpenAIError(error)
             is PlatformSecurityException -> classifyPermissionError(error)
+            is SecurityException -> classifySecurityError(error)
             else -> classifyGenericError(error)
         }
     }
@@ -252,6 +253,15 @@ object ErrorClassifier {
         )
     }
     
+    private fun classifySecurityError(error: SecurityException): ErrorInfo {
+        return ErrorInfo(
+            title = "Permission Required",
+            message = error.message ?: "Permission denied. Please grant the required permissions.",
+            actionText = "Grant Permission",
+            severity = ErrorSeverity.CRITICAL
+        )
+    }
+    
     private fun classifyGenericError(error: Throwable): ErrorInfo {
         return ErrorInfo(
             title = "Unexpected Error",
@@ -274,7 +284,8 @@ object ErrorClassifier {
             
             is TranscriptionError.PermissionDenied,
             is AudioRecordingError.PermissionDenied,
-            is PlatformSecurityException -> ErrorCategory.PERMISSION
+            is PlatformSecurityException,
+            is SecurityException -> ErrorCategory.PERMISSION
             
             is AudioRecordingError -> ErrorCategory.AUDIO
             

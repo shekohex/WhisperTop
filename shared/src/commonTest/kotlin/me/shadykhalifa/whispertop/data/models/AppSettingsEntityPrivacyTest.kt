@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class AppSettingsEntityPrivacyTest {
 
@@ -22,7 +23,7 @@ class AppSettingsEntityPrivacyTest {
     @Test
     fun `toDomain should correctly map privacy fields`() {
         val entity = AppSettingsEntity(
-            apiKey = "sk-test-key",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-1",
             theme = "Dark",
             enableUsageAnalytics = true,
@@ -33,7 +34,7 @@ class AppSettingsEntityPrivacyTest {
         
         val domain = entity.toDomain()
         
-        assertEquals("sk-test-key", domain.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, domain.apiKey)
         assertEquals("whisper-1", domain.selectedModel)
         assertEquals(Theme.Dark, domain.theme)
         assertTrue(domain.enableUsageAnalytics)
@@ -45,7 +46,7 @@ class AppSettingsEntityPrivacyTest {
     @Test
     fun `toEntity should correctly map privacy fields`() {
         val domain = AppSettings(
-            apiKey = "sk-test-key",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "gpt-4",
             theme = Theme.Light,
             enableUsageAnalytics = true,
@@ -56,7 +57,7 @@ class AppSettingsEntityPrivacyTest {
         
         val entity = domain.toEntity()
         
-        assertEquals("sk-test-key", entity.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, entity.apiKey)
         assertEquals("gpt-4", entity.selectedModel)
         assertEquals("Light", entity.theme)
         assertTrue(entity.enableUsageAnalytics)
@@ -68,7 +69,7 @@ class AppSettingsEntityPrivacyTest {
     @Test
     fun `round trip conversion should preserve all privacy fields`() {
         val originalDomain = AppSettings(
-            apiKey = "sk-original-key",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-large-v3",
             enableUsageAnalytics = true,
             enableApiCallLogging = true,

@@ -69,7 +69,7 @@ class DailyUsageTest {
     fun `should handle different date formats`() {
         val dates = listOf(
             LocalDate(2023, 1, 1),    // New Year
-            LocalDate(2023, 2, 29),   // Leap year (this should fail, but test framework)
+            LocalDate(2023, 2, 28),   // February (2023 is not a leap year)
             LocalDate(2023, 12, 31)   // Year end
         )
 

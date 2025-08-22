@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class AppSettingsTranscriptionCustomizationTest {
 
@@ -78,7 +79,7 @@ class AppSettingsTranscriptionCustomizationTest {
     @Test
     fun `should work with all parameters together`() {
         val settings = AppSettings(
-            apiKey = "sk-test123",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-1",
             customPrompt = "This audio contains medical terminology",
             temperature = 0.3f,
@@ -86,7 +87,7 @@ class AppSettingsTranscriptionCustomizationTest {
             autoDetectLanguage = false
         )
         
-        assertEquals("sk-test123", settings.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, settings.apiKey)
         assertEquals("whisper-1", settings.selectedModel)
         assertEquals("This audio contains medical terminology", settings.customPrompt)
         assertEquals(0.3f, settings.temperature)
@@ -98,7 +99,7 @@ class AppSettingsTranscriptionCustomizationTest {
     fun `should maintain backward compatibility with existing settings`() {
         // Create settings without new fields (simulating old data)
         val oldStyleSettings = AppSettings(
-            apiKey = "sk-old123",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "whisper-1",
             language = "fr"
         )
@@ -108,7 +109,7 @@ class AppSettingsTranscriptionCustomizationTest {
         assertEquals(0.0f, oldStyleSettings.temperature)
         
         // Old fields should still work
-        assertEquals("sk-old123", oldStyleSettings.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, oldStyleSettings.apiKey)
         assertEquals("whisper-1", oldStyleSettings.selectedModel)
         assertEquals("fr", oldStyleSettings.language)
     }

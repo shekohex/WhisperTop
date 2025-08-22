@@ -7,8 +7,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.DateRange
 import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.ExportResult
@@ -29,7 +29,7 @@ class HistoryViewModelTest {
 
     private lateinit var mockRepository: MockTranscriptionHistoryRepository
     private lateinit var viewModel: HistoryViewModel
-    private val testDispatcher = TestCoroutineDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     @BeforeTest
     fun setup() {
@@ -38,7 +38,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `initial state is correct`() = testDispatcher.runBlockingTest {
+    fun `initial state is correct`() = runTest(testDispatcher) {
         val uiState = viewModel.uiState.value
         
         assertFalse(uiState.isSearching)
@@ -51,7 +51,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `search query is debounced correctly`() = testDispatcher.runBlockingTest {
+    fun `search query is debounced correctly`() = runTest(testDispatcher) {
         viewModel.searchQuery.test {
             // Initial empty query
             assertEquals("", awaitItem())
@@ -62,7 +62,7 @@ class HistoryViewModelTest {
             viewModel.updateSearchQuery("test query")
             
             // Should only receive the final query after debounce
-            advanceTimeBy(300)
+            testScheduler.advanceTimeBy(300)
             assertEquals("test query", expectMostRecentItem())
         }
     }

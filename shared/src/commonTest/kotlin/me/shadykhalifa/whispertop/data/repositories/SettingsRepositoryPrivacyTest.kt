@@ -17,6 +17,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class SettingsRepositoryPrivacyTest {
 
@@ -27,7 +28,7 @@ class SettingsRepositoryPrivacyTest {
     fun `clearAllData should reset settings to defaults`() = runTest {
         // Set up some initial settings
         val customSettings = AppSettings(
-            apiKey = "sk-test-key",
+            apiKey = TestConstants.MOCK_API_KEY,
             selectedModel = "gpt-4",
             enableUsageAnalytics = true,
             enableApiCallLogging = true,
@@ -38,7 +39,7 @@ class SettingsRepositoryPrivacyTest {
         
         // Verify settings were saved
         val savedSettings = repository.getSettings()
-        assertEquals("sk-test-key", savedSettings.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, savedSettings.apiKey)
         assertTrue(savedSettings.enableUsageAnalytics)
         
         // Clear all data
@@ -77,7 +78,7 @@ class SettingsRepositoryPrivacyTest {
     @Test
     fun `cleanupTemporaryFiles should clear last recording only`() = runTest {
         // Set up settings and recording
-        val settings = AppSettings(apiKey = "sk-test-key")
+        val settings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         repository.updateSettings(settings)
         
         val audioFile = AudioFileEntity(
@@ -94,7 +95,7 @@ class SettingsRepositoryPrivacyTest {
         
         // Verify settings were preserved
         val preservedSettings = repository.getSettings()
-        assertEquals("sk-test-key", preservedSettings.apiKey)
+        assertEquals(TestConstants.MOCK_API_KEY, preservedSettings.apiKey)
         
         // Verify last recording was cleared
         val lastRecording = mockPreferencesDataSource.getLastRecording()

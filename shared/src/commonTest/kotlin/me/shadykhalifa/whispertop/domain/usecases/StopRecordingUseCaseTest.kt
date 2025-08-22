@@ -20,6 +20,7 @@ import java.net.SocketTimeoutException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import me.shadykhalifa.whispertop.utils.TestConstants
 
 class StopRecordingUseCaseTest {
     
@@ -186,7 +187,7 @@ class StopRecordingUseCaseTest {
         )
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(
-                apiKey = "sk-test123",
+                apiKey = TestConstants.MOCK_API_KEY,
                 language = "es",
                 autoDetectLanguage = false,
                 selectedModel = "whisper-1"
@@ -217,7 +218,7 @@ class StopRecordingUseCaseTest {
         )
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(
-                apiKey = "sk-test123",
+                apiKey = TestConstants.MOCK_API_KEY,
                 language = "es", // This should be ignored
                 autoDetectLanguage = true,
                 selectedModel = "whisper-1"
@@ -374,7 +375,7 @@ class StopRecordingUseCaseTest {
         )
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(
-                apiKey = "sk-test123",
+                apiKey = TestConstants.MOCK_API_KEY,
                 selectedModel = "whisper-large-v3",
                 autoDetectLanguage = true
             )
@@ -475,7 +476,7 @@ class StopRecordingUseCaseTest {
     }
     
     private class MockSettingsRepository(
-        private val appSettings: AppSettings = AppSettings(apiKey = "sk-test123")
+        private val appSettings: AppSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
     ) : SettingsRepository {
         override val settings: Flow<AppSettings> = flowOf(this.appSettings)
         

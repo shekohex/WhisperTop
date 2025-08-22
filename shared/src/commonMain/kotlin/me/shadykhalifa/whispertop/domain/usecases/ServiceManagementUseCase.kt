@@ -1,17 +1,36 @@
 package me.shadykhalifa.whispertop.domain.usecases
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.RecordingState
+import me.shadykhalifa.whispertop.domain.models.ServiceConnectionState
 import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
 
 class ServiceManagementUseCase(
     private val serviceStateRepository: ServiceStateRepository
 ) {
-    val connectionState: Flow<ServiceStateRepository.ServiceConnectionState> = 
-        serviceStateRepository.connectionState
+    val connectionState: Flow<ServiceConnectionState> = 
+        serviceStateRepository.connectionState.map { repoState ->
+            when (repoState) {
+                ServiceStateRepository.ServiceConnectionState.CONNECTED -> ServiceConnectionState.CONNECTED
+                ServiceStateRepository.ServiceConnectionState.CONNECTING -> ServiceConnectionState.CONNECTING
+                ServiceStateRepository.ServiceConnectionState.DISCONNECTED -> ServiceConnectionState.DISCONNECTED
+            }
+        }
     
-    val recordingState: Flow<ServiceStateRepository.RecordingState> = 
-        serviceStateRepository.recordingState
+    val recordingState: Flow<RecordingState> = 
+        serviceStateRepository.recordingState.map { repoState ->
+            when (repoState) {
+                ServiceStateRepository.RecordingState.IDLE -> RecordingState.Idle
+                ServiceStateRepository.RecordingState.RECORDING -> RecordingState.Recording(
+                    startTime = System.currentTimeMillis(),
+                    duration = 0L
+                )
+                ServiceStateRepository.RecordingState.PROCESSING -> RecordingState.Processing(0f)
+                ServiceStateRepository.RecordingState.PAUSED -> RecordingState.Processing(0f)
+            }
+        }
     
     val errorEvents: Flow<String> = 
         serviceStateRepository.errorEvents
@@ -23,8 +42,17 @@ class ServiceManagementUseCase(
         return serviceStateRepository.bindService()
     }
     
-    fun getCurrentRecordingState(): ServiceStateRepository.RecordingState {
-        return serviceStateRepository.getCurrentRecordingState()
+    fun getCurrentRecordingState(): RecordingState {
+        val repoState = serviceStateRepository.getCurrentRecordingState()
+        return when (repoState) {
+            ServiceStateRepository.RecordingState.IDLE -> RecordingState.Idle
+            ServiceStateRepository.RecordingState.RECORDING -> RecordingState.Recording(
+                startTime = System.currentTimeMillis(),
+                duration = 0L
+            )
+            ServiceStateRepository.RecordingState.PROCESSING -> RecordingState.Processing(0f)
+            ServiceStateRepository.RecordingState.PAUSED -> RecordingState.Processing(0f)
+        }
     }
     
     fun getRecordingDuration(): Long {

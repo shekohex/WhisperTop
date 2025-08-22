@@ -9,17 +9,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.RecordingState
+import me.shadykhalifa.whispertop.domain.models.ServiceConnectionState
 import me.shadykhalifa.whispertop.domain.repositories.PermissionRepository
 import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
 import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
+import me.shadykhalifa.whispertop.utils.Result
 
 class AudioRecordingViewModel(
     private val serviceManagementUseCase: ServiceManagementUseCase,
+    private val serviceInitializationUseCase: ServiceInitializationUseCase,
     private val permissionManagementUseCase: PermissionManagementUseCase,
+    private val serviceBindingUseCase: ServiceBindingUseCase,
     private val transcriptionWorkflowUseCase: TranscriptionWorkflowUseCase,
     private val userFeedbackUseCase: UserFeedbackUseCase
 ) : ViewModel() {
@@ -47,8 +54,8 @@ class AudioRecordingViewModel(
                 serviceManagementUseCase.recordingState,
                 permissionManagementUseCase.permissionState
             ) { connectionState, recordingState, permissionState ->
-                val isServiceReady = connectionState == ServiceStateRepository.ServiceConnectionState.CONNECTED &&
-                        permissionState == PermissionRepository.PermissionState.GRANTED
+                val isServiceReady = connectionState == ServiceConnectionState.CONNECTED &&
+                        permissionState
                 
                 Log.d(TAG, "Service state update: connection=$connectionState, recording=$recordingState, permission=$permissionState, isReady=$isServiceReady")
                 
@@ -205,28 +212,21 @@ class AudioRecordingViewModel(
         Log.d(TAG, "initializeService: starting service initialization")
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = serviceManagementUseCase.bindService()) {
-            is ServiceStateRepository.ServiceBindResult.SUCCESS -> {
-                Log.d(TAG, "initializeService: service bound successfully")
+        when (val result = serviceInitializationUseCase()) {
+            is Result.Success -> {
+                val connectionStatus = result.data
+                Log.d(TAG, "initializeService: $connectionStatus")
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
-            is ServiceStateRepository.ServiceBindResult.ALREADY_BOUND -> {
-                Log.d(TAG, "initializeService: service already bound")
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-            is ServiceStateRepository.ServiceBindResult.FAILED -> {
-                Log.w(TAG, "initializeService: failed to bind service")
+            is Result.Error -> {
+                Log.e(TAG, "initializeService: error", result.exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Failed to bind to audio service"
+                    errorMessage = "Service initialization error: ${result.exception.message}"
                 )
             }
-            is ServiceStateRepository.ServiceBindResult.ERROR -> {
-                Log.e(TAG, "initializeService: service binding error", result.exception)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Service binding error: ${result.exception.message}"
-                )
+            is Result.Loading -> {
+                // Keep loading state
             }
         }
     }
@@ -234,22 +234,62 @@ class AudioRecordingViewModel(
     suspend fun requestPermissions() {
         _uiState.value = _uiState.value.copy(isLoading = true)
         
-        when (val result = permissionManagementUseCase.requestAllPermissions()) {
-            is PermissionRepository.PermissionResult.GRANTED -> {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+        when (val result = permissionManagementUseCase()) {
+            is Result.Success -> {
+                val permissionStatus = result.data
+                when (permissionStatus) {
+                    is me.shadykhalifa.whispertop.domain.models.PermissionStatus.AllGranted -> {
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                    }
+                    is me.shadykhalifa.whispertop.domain.models.PermissionStatus.SomeDenied -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Required permissions denied: ${permissionStatus.deniedPermissions.joinToString()}"
+                        )
+                    }
+                    is me.shadykhalifa.whispertop.domain.models.PermissionStatus.ShowRationale -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showPermissionRationale = true,
+                            rationalePermissions = permissionStatus.permissions
+                        )
+                    }
+                }
             }
-            is PermissionRepository.PermissionResult.DENIED -> {
+            is Result.Error -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Required permissions denied: ${result.deniedPermissions.joinToString()}"
+                    errorMessage = "Permission request error: ${result.exception.message}"
                 )
             }
-            is PermissionRepository.PermissionResult.SHOW_RATIONALE -> {
+            is Result.Loading -> {
+                // Keep loading state
+            }
+        }
+    }
+    
+    suspend fun ensureServiceReady() {
+        Log.d(TAG, "ensureServiceReady: checking service readiness")
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        
+        when (val result = serviceBindingUseCase()) {
+            is Result.Success -> {
+                val readinessState = result.data
+                Log.d(TAG, "ensureServiceReady: $readinessState")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showPermissionRationale = true,
-                    rationalePermissions = result.permissions
+                    errorMessage = readinessState.errorMessage
                 )
+            }
+            is Result.Error -> {
+                Log.e(TAG, "ensureServiceReady: error", result.exception)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Service readiness check failed: ${result.exception.message}"
+                )
+            }
+            is Result.Loading -> {
+                // Keep loading state
             }
         }
     }
@@ -299,9 +339,9 @@ class AudioRecordingViewModel(
 }
 
 data class AudioRecordingUiState(
-    val serviceConnectionState: ServiceStateRepository.ServiceConnectionState = ServiceStateRepository.ServiceConnectionState.DISCONNECTED,
-    val recordingState: ServiceStateRepository.RecordingState = ServiceStateRepository.RecordingState.IDLE,
-    val permissionState: PermissionRepository.PermissionState = PermissionRepository.PermissionState.UNKNOWN,
+    val serviceConnectionState: ServiceConnectionState = ServiceConnectionState.DISCONNECTED,
+    val recordingState: RecordingState = RecordingState.Idle,
+    val permissionState: Boolean = false,
     val isServiceReady: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
