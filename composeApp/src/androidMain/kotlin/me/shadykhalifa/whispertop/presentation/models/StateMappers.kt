@@ -31,6 +31,8 @@ fun ServiceStateRepository.RecordingState.toRecordingStatus(): RecordingStatus {
 fun WorkflowState.toRecordingStatus(): RecordingStatus {
     return when (this) {
         is WorkflowState.Idle -> RecordingStatus.Idle
+        is WorkflowState.ServiceReady -> RecordingStatus.Idle
+        is WorkflowState.PermissionDenied -> RecordingStatus.Error
         is WorkflowState.Recording -> RecordingStatus.Recording
         is WorkflowState.Processing -> RecordingStatus.Processing
         is WorkflowState.InsertingText -> RecordingStatus.InsertingText
@@ -61,9 +63,15 @@ fun WorkflowState.toUiState(currentUiState: AudioRecordingUiState): AudioRecordi
     val recordingStatus = this.toRecordingStatus()
     val transcriptionResult = this.toTranscriptionDisplayModel()
     val isLoading = recordingStatus == RecordingStatus.Processing || recordingStatus == RecordingStatus.InsertingText
-    val errorMessage = if (recordingStatus == RecordingStatus.Error) {
-        (this as? WorkflowState.Error)?.error?.toDisplayMessage()
-    } else null
+    val errorMessage = when {
+        recordingStatus == RecordingStatus.Error && this is WorkflowState.Error -> {
+            this.error.toDisplayMessage()
+        }
+        this is WorkflowState.PermissionDenied -> {
+            "Required permissions not granted: ${deniedPermissions.joinToString(", ")}"
+        }
+        else -> null
+    }
     
     return currentUiState.copy(
         status = recordingStatus,

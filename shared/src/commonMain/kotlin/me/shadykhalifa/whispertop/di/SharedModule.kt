@@ -49,6 +49,7 @@ import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.LanguageDetectionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscribeWithLanguageDetectionUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCaseImpl
 import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
@@ -120,7 +121,7 @@ val sharedModule = module {
     factoryOf(::TranscriptionUseCase)
     factoryOf(::LanguageDetectionUseCase)
     factoryOf(::TranscribeWithLanguageDetectionUseCase)
-    factoryOf(::ServiceManagementUseCase)
+    single<ServiceManagementUseCase> { ServiceManagementUseCaseImpl(get(), get()) }
     factoryOf(::ServiceInitializationUseCase)
     factoryOf(::PermissionManagementUseCase)
     factoryOf(::ServiceBindingUseCase)

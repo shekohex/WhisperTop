@@ -20,6 +20,22 @@ class StateMappersTest {
     }
 
     @Test
+    fun `WorkflowState_ServiceReady maps to RecordingStatus_Idle`() {
+        val workflowState = WorkflowState.ServiceReady
+        val result = workflowState.toRecordingStatus()
+        
+        assertEquals(RecordingStatus.Idle, result)
+    }
+
+    @Test
+    fun `WorkflowState_PermissionDenied maps to RecordingStatus_Error`() {
+        val workflowState = WorkflowState.PermissionDenied(listOf("RECORD_AUDIO"))
+        val result = workflowState.toRecordingStatus()
+        
+        assertEquals(RecordingStatus.Error, result)
+    }
+
+    @Test
     fun `WorkflowState_Recording maps to RecordingStatus_Recording`() {
         val workflowState = WorkflowState.Recording
         val result = workflowState.toRecordingStatus()
@@ -90,6 +106,8 @@ class StateMappersTest {
     fun `Non-success WorkflowState returns null TranscriptionDisplayModel`() {
         val workflowStates = listOf(
             WorkflowState.Idle,
+            WorkflowState.ServiceReady,
+            WorkflowState.PermissionDenied(listOf("RECORD_AUDIO")),
             WorkflowState.Recording,
             WorkflowState.Processing(0.5f),
             WorkflowState.InsertingText,
@@ -146,15 +164,30 @@ class StateMappersTest {
     }
 
     @Test
-    fun `WorkflowState_Idle transforms to UiState correctly`() {
+    fun `WorkflowState_ServiceReady transforms to UiState correctly`() {
         val currentUiState = createTestUiState()
-        val workflowState = WorkflowState.Idle
+        val workflowState = WorkflowState.ServiceReady
         val result = workflowState.toUiState(currentUiState)
         
         assertEquals(RecordingStatus.Idle, result.status)
         assertFalse(result.isLoading)
         assertNull(result.errorMessage)
         assertNull(result.transcription)
+    }
+
+    @Test
+    fun `WorkflowState_PermissionDenied transforms to UiState with error message`() {
+        val currentUiState = createTestUiState()
+        val deniedPermissions = listOf("RECORD_AUDIO", "SYSTEM_ALERT_WINDOW")
+        val workflowState = WorkflowState.PermissionDenied(deniedPermissions)
+        val result = workflowState.toUiState(currentUiState)
+        
+        assertEquals(RecordingStatus.Error, result.status)
+        assertFalse(result.isLoading)
+        assertNotNull(result.errorMessage)
+        assertTrue(result.errorMessage!!.contains("Required permissions not granted"))
+        assertTrue(result.errorMessage!!.contains("RECORD_AUDIO"))
+        assertTrue(result.errorMessage!!.contains("SYSTEM_ALERT_WINDOW"))
     }
 
     @Test

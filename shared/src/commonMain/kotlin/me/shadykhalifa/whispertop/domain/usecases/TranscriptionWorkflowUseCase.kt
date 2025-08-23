@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.managers.RecordingManager
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.TranscriptionError
+import me.shadykhalifa.whispertop.domain.models.PermissionStatus
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
@@ -33,6 +34,8 @@ private fun Boolean?.orFalse(): Boolean = this ?: false
 
 sealed class WorkflowState {
     data object Idle : WorkflowState()
+    data object ServiceReady : WorkflowState()
+    data class PermissionDenied(val deniedPermissions: List<String>) : WorkflowState()
     data object Recording : WorkflowState()
     data class Processing(val progress: Float = 0f) : WorkflowState()
     data object InsertingText : WorkflowState()
@@ -51,7 +54,8 @@ class TranscriptionWorkflowUseCase(
     private val retryService: RetryService,
     private val errorLoggingService: ErrorLoggingService,
     private val connectionStatusService: ConnectionStatusService,
-    private val errorNotificationService: ErrorNotificationService
+    private val errorNotificationService: ErrorNotificationService,
+    private val serviceManagementUseCase: ServiceManagementUseCase
 ) {
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -63,6 +67,9 @@ class TranscriptionWorkflowUseCase(
     
     init {
         scope.launch {
+            // Initialize services and check readiness
+            initializeServices()
+            
             recordingManager.recordingState.collect { recordingState ->
                 handleRecordingStateChange(recordingState)
             }
@@ -72,6 +79,59 @@ class TranscriptionWorkflowUseCase(
         connectionStatusService.startMonitoring(scope)
     }
     
+    private suspend fun initializeServices() {
+        try {
+            // Bind services first
+            when (val bindResult = serviceManagementUseCase.bindServices()) {
+                is Result.Success -> {
+                    // Check permissions after services are bound
+                    when (val permissionResult = serviceManagementUseCase.checkPermissions()) {
+                        is Result.Success -> {
+                            when (permissionResult.data) {
+                                is PermissionStatus.AllGranted -> {
+                                    _workflowState.value = WorkflowState.ServiceReady
+                                }
+                                is PermissionStatus.SomeDenied -> {
+                                    _workflowState.value = WorkflowState.PermissionDenied(
+                                        permissionResult.data.deniedPermissions
+                                    )
+                                }
+                                is PermissionStatus.ShowRationale -> {
+                                    _workflowState.value = WorkflowState.PermissionDenied(
+                                        permissionResult.data.permissions
+                                    )
+                                }
+                            }
+                        }
+                        is Result.Error -> {
+                            _workflowState.value = WorkflowState.Error(
+                                TranscriptionError.fromThrowable(permissionResult.exception),
+                                retryable = true
+                            )
+                        }
+                        is Result.Loading -> {
+                            // Stay in current state during permission loading
+                        }
+                    }
+                }
+                is Result.Error -> {
+                    _workflowState.value = WorkflowState.Error(
+                        TranscriptionError.ServiceNotConfigured(),
+                        retryable = true
+                    )
+                }
+                is Result.Loading -> {
+                    // Stay in current state during service binding
+                }
+            }
+        } catch (e: Exception) {
+            _workflowState.value = WorkflowState.Error(
+                TranscriptionError.fromThrowable(e),
+                retryable = true
+            )
+        }
+    }
+    
     suspend fun startRecording(): Result<Unit> {
         return try {
             retryService.withRetry(
@@ -79,6 +139,41 @@ class TranscriptionWorkflowUseCase(
                 initialDelay = 1000L,
                 retryPredicate = RetryPredicates.nonRetryableErrors
             ) {
+                // Check service readiness first
+                val serviceReadiness = serviceManagementUseCase.getServiceReadiness()
+                when (serviceReadiness) {
+                    is Result.Success -> {
+                        if (!serviceReadiness.data.serviceConnected) {
+                            val error = TranscriptionError.ServiceNotConfigured()
+                            errorLoggingService.logError(error, mapOf("context" to "startRecording"))
+                            errorNotificationService.showError(error, "startRecording")
+                            _workflowState.value = WorkflowState.Error(error, retryable = true)
+                            throw error
+                        }
+                        if (!serviceReadiness.data.permissionsGranted) {
+                            val error = TranscriptionError.AccessibilityServiceNotEnabled()
+                            errorLoggingService.logError(error, mapOf("context" to "startRecording"))
+                            errorNotificationService.showError(error, "startRecording")
+                            _workflowState.value = WorkflowState.PermissionDenied(emptyList())
+                            throw error
+                        }
+                    }
+                    is Result.Error -> {
+                        val error = TranscriptionError.ServiceNotConfigured()
+                        errorLoggingService.logError(error, mapOf("context" to "startRecording"))
+                        errorNotificationService.showError(error, "startRecording")
+                        _workflowState.value = WorkflowState.Error(error, retryable = true)
+                        throw error
+                    }
+                    is Result.Loading -> {
+                        val error = TranscriptionError.ServiceNotConfigured()
+                        errorLoggingService.logError(error, mapOf("context" to "startRecording"))
+                        errorNotificationService.showError(error, "startRecording")
+                        _workflowState.value = WorkflowState.Error(error, retryable = true)
+                        throw error
+                    }
+                }
+                
                 val settings = settingsRepository.getSettings()
                 
                 val error = when {
@@ -320,6 +415,7 @@ class TranscriptionWorkflowUseCase(
     fun cleanup() {
         connectionStatusService.stopMonitoring()
         recordingManager.cleanup()
+        serviceManagementUseCase.cleanup()
         scope.cancel()
     }
 }
