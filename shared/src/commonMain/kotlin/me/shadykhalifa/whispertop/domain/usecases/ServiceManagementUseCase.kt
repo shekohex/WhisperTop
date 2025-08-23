@@ -6,6 +6,7 @@ import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.ServiceConnectionState
 import me.shadykhalifa.whispertop.domain.repositories.ServiceStateRepository
+import me.shadykhalifa.whispertop.utils.TimeUtils
 
 class ServiceManagementUseCase(
     private val serviceStateRepository: ServiceStateRepository
@@ -24,7 +25,7 @@ class ServiceManagementUseCase(
             when (repoState) {
                 ServiceStateRepository.RecordingState.IDLE -> RecordingState.Idle
                 ServiceStateRepository.RecordingState.RECORDING -> RecordingState.Recording(
-                    startTime = System.currentTimeMillis(),
+                    startTime = TimeUtils.currentTimeMillis(),
                     duration = 0L
                 )
                 ServiceStateRepository.RecordingState.PROCESSING -> RecordingState.Processing(0f)
@@ -47,7 +48,7 @@ class ServiceManagementUseCase(
         return when (repoState) {
             ServiceStateRepository.RecordingState.IDLE -> RecordingState.Idle
             ServiceStateRepository.RecordingState.RECORDING -> RecordingState.Recording(
-                startTime = System.currentTimeMillis(),
+                startTime = TimeUtils.currentTimeMillis(),
                 duration = 0L
             )
             ServiceStateRepository.RecordingState.PROCESSING -> RecordingState.Processing(0f)

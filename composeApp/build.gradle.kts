@@ -98,6 +98,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.compose.ui.test.junit4)
             implementation(libs.compose.ui.test.manifest)
+            implementation(libs.androidx.work.testing)
         }
     }
 }

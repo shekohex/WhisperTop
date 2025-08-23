@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import me.shadykhalifa.whispertop.domain.models.PlatformSecurityException
 
 /**
  * Comprehensive error monitoring and alerting system for critical operations
@@ -34,24 +35,31 @@ interface ErrorReporter {
     suspend fun reportMetric(metric: String, value: Double, tags: Map<String, String> = emptyMap())
 }
 
+expect object Logger {
+    fun debug(tag: String, message: String)
+    fun warn(tag: String, message: String) 
+    fun error(tag: String, message: String)
+    fun wtf(tag: String, message: String)
+}
+
 class LoggingErrorReporter : ErrorReporter {
     override suspend fun reportError(error: ErrorEvent) {
         val tag = "ErrorMonitor_${error.component}"
         val message = "${error.operation}: ${error.errorMessage}"
         
         when (error.severity) {
-            ErrorSeverity.LOW -> android.util.Log.d(tag, message)
-            ErrorSeverity.MEDIUM -> android.util.Log.w(tag, message)
-            ErrorSeverity.HIGH -> android.util.Log.e(tag, message)
+            ErrorSeverity.LOW -> Logger.debug(tag, message)
+            ErrorSeverity.MEDIUM -> Logger.warn(tag, message)
+            ErrorSeverity.HIGH -> Logger.error(tag, message)
             ErrorSeverity.CRITICAL -> {
-                android.util.Log.wtf(tag, message)
+                Logger.wtf(tag, message)
                 // In production, this could trigger push notifications or external alerts
             }
         }
     }
     
     override suspend fun reportMetric(metric: String, value: Double, tags: Map<String, String>) {
-        android.util.Log.d("Metrics", "$metric: $value ${tags.entries.joinToString { "${it.key}=${it.value}" }}")
+        Logger.debug("Metrics", "$metric: $value ${tags.entries.joinToString { "${it.key}=${it.value}" }}")
     }
 }
 
@@ -59,7 +67,7 @@ object ErrorMonitor {
     private val reporters = mutableListOf<ErrorReporter>()
     private val errorHistory = mutableListOf<ErrorEvent>()
     private val maxHistorySize = 1000
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.Default)
     
     // Error rate tracking
     private val errorRates = mutableMapOf<String, MutableList<Long>>()
@@ -130,7 +138,7 @@ object ErrorMonitor {
                 
             } catch (e: Exception) {
                 // Failsafe: Don't let error reporting break
-                android.util.Log.e("ErrorMonitor", "Failed to report error", e)
+                Logger.error("ErrorMonitor", "Failed to report error: ${e.message}")
             }
         }
     }
@@ -145,7 +153,7 @@ object ErrorMonitor {
                     reporter.reportMetric(metric, value, tags)
                 }
             } catch (e: Exception) {
-                android.util.Log.e("ErrorMonitor", "Failed to report metric", e)
+                Logger.error("ErrorMonitor", "Failed to report metric: ${e.message}")
             }
         }
     }
@@ -209,15 +217,15 @@ object ErrorMonitor {
                 reporter.reportError(errorEvent)
             } catch (e: Exception) {
                 // Don't let one reporter failure affect others
-                android.util.Log.e("ErrorMonitor", "Reporter failed", e)
+                Logger.error("ErrorMonitor", "Reporter failed: ${e.message}")
             }
         }
     }
     
     private fun determineSeverity(throwable: Throwable, retryCount: Int): ErrorSeverity {
         return when {
-            throwable is OutOfMemoryError -> ErrorSeverity.CRITICAL
-            throwable is SecurityException -> ErrorSeverity.HIGH
+            throwable::class.simpleName == "OutOfMemoryError" -> ErrorSeverity.CRITICAL
+            throwable is PlatformSecurityException -> ErrorSeverity.HIGH
             throwable is IllegalStateException && retryCount > 2 -> ErrorSeverity.HIGH
             throwable is NetworkException && retryCount > 3 -> ErrorSeverity.MEDIUM
             retryCount > 5 -> ErrorSeverity.HIGH

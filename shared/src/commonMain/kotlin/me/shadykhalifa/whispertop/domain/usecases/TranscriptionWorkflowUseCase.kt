@@ -27,7 +27,7 @@ import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.services.RetryPredicates
 import me.shadykhalifa.whispertop.utils.Result
 import kotlinx.datetime.Clock
-import java.util.UUID
+import me.shadykhalifa.whispertop.utils.UuidGenerator
 
 private fun Boolean?.orFalse(): Boolean = this ?: false
 
@@ -258,7 +258,7 @@ class TranscriptionWorkflowUseCase(
         val speakingRate = calculateSpeakingRate(wordCount, audioDurationSeconds)
         
         val transcriptionHistoryItem = TranscriptionHistoryItem(
-            id = UUID.randomUUID().toString(),
+            id = UuidGenerator.randomUUID(),
             text = transcription,
             timestamp = Clock.System.now().toEpochMilliseconds(),
             duration = audioDurationSeconds,

@@ -17,6 +17,7 @@ import me.shadykhalifa.whispertop.domain.usecases.StatisticsCalculatorUseCase
 import me.shadykhalifa.whispertop.domain.repositories.SessionMetricsRepository
 import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
 import me.shadykhalifa.whispertop.utils.Result
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -281,7 +282,8 @@ class DailyStatsAggregatorWorkerTest {
         assertTrue(true)
     }
 
-    private fun tearDown() {
+    @After
+    fun tearDown() {
         stopKoin()
     }
 }

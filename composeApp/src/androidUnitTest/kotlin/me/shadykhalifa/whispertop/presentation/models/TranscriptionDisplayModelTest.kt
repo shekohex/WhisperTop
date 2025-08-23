@@ -25,13 +25,14 @@ class TranscriptionDisplayModelTest {
 
     @Test
     fun `toDisplayModel handles exactly 47 characters`() {
-        val exactText = "This text is exactly forty seven characters!"
+        val exactText = "12345678901234567890123456789012345678901234567"
+        println("String length: ${exactText.length}")
         assertEquals(47, exactText.length)
         
         val model = exactText.toDisplayModel()
         
-        assertEquals("This text is exactly forty seven characters!", model.previewText)
-        assertEquals("This text is exactly forty seven characters!", model.fullText)
+        assertEquals("12345678901234567890123456789012345678901234567", model.previewText)
+        assertEquals("12345678901234567890123456789012345678901234567", model.fullText)
     }
 
     @Test

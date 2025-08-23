@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.domain.models
 
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+import me.shadykhalifa.whispertop.utils.StringFormatter
 
 @Serializable
 data class RetentionPolicyResult(
@@ -19,9 +20,9 @@ data class RetentionPolicyResult(
     fun formatBytesFreed(): String {
         return when {
             bytesFreed < 1024 -> "${bytesFreed}B"
-            bytesFreed < 1024 * 1024 -> "${String.format("%.1f", bytesFreed / 1024.0)}KB"
-            bytesFreed < 1024 * 1024 * 1024 -> "${String.format("%.1f", megabytesFreed)}MB"
-            else -> "${String.format("%.1f", bytesFreed / (1024.0 * 1024.0 * 1024.0))}GB"
+            bytesFreed < 1024 * 1024 -> "${StringFormatter.format("%.1f", bytesFreed / 1024.0)}KB"
+            bytesFreed < 1024 * 1024 * 1024 -> "${StringFormatter.format("%.1f", megabytesFreed)}MB"
+            else -> "${StringFormatter.format("%.1f", bytesFreed / (1024.0 * 1024.0 * 1024.0))}GB"
         }
     }
 }

@@ -18,6 +18,7 @@ import me.shadykhalifa.whispertop.domain.models.DailyStatistics
 import me.shadykhalifa.whispertop.domain.models.ProductivityTrends
 import me.shadykhalifa.whispertop.domain.models.UsagePatterns
 import me.shadykhalifa.whispertop.domain.models.RetentionPolicyResult
+import me.shadykhalifa.whispertop.utils.Logger
 import me.shadykhalifa.whispertop.utils.Result
 
 interface StatisticsCalculatorUseCase {
@@ -387,7 +388,7 @@ class StatisticsCalculatorUseCaseImpl(
                         val deletionResult = sessionMetricsRepository.deleteSessionsOlderThan(sessionCutoffTime)
                         when (deletionResult) {
                             is Result.Success -> {
-                                android.util.Log.d("DataRetention", "Successfully deleted $sessionsDeleted old session records")
+                                Logger.debug("DataRetention", "Successfully deleted $sessionsDeleted old session records")
                                 
                                 // Create audit record for data deletion
                                 me.shadykhalifa.whispertop.utils.PrivacyComplianceManager.createDataProcessingRecord(
@@ -397,7 +398,7 @@ class StatisticsCalculatorUseCaseImpl(
                                 )
                             }
                             is Result.Error -> {
-                                android.util.Log.e("DataRetention", "Failed to delete old sessions", deletionResult.exception)
+                                Logger.error("DataRetention", "Failed to delete old sessions: ${deletionResult.exception.message}")
                                 sessionsDeleted = 0 // Reset count on failure
                             }
                             is Result.Loading -> {
@@ -406,14 +407,14 @@ class StatisticsCalculatorUseCaseImpl(
                         }
                     }
                     is Result.Error -> {
-                        android.util.Log.e("DataRetention", "Failed to retrieve old sessions for deletion", oldSessionsResult.exception)
+                        Logger.error("DataRetention", "Failed to retrieve old sessions for deletion: ${oldSessionsResult.exception.message}")
                     }
                     is Result.Loading -> {
                         // Should not happen in this context
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("DataRetention", "Error during session cleanup", e)
+                Logger.error("DataRetention", "Error during session cleanup: ${e.message}")
             }
             
             // Clean up old transcription history with secure deletion
@@ -429,10 +430,10 @@ class StatisticsCalculatorUseCaseImpl(
                         val deletionResult = transcriptionHistoryRepository.deleteTranscriptionsOlderThan(transcriptionCutoffTime)
                         when (deletionResult) {
                             is Result.Success -> {
-                                android.util.Log.d("DataRetention", "Successfully deleted $transcriptionsDeleted old transcription records, freed ${bytesFreed / 1024}KB")
+                                Logger.debug("DataRetention", "Successfully deleted $transcriptionsDeleted old transcription records, freed ${bytesFreed / 1024}KB")
                             }
                             is Result.Error -> {
-                                android.util.Log.e("DataRetention", "Failed to delete old transcriptions", deletionResult.exception)
+                                Logger.error("DataRetention", "Failed to delete old transcriptions: ${deletionResult.exception.message}")
                                 transcriptionsDeleted = 0
                                 bytesFreed = 0L
                             }
@@ -442,14 +443,14 @@ class StatisticsCalculatorUseCaseImpl(
                         }
                     }
                     is Result.Error -> {
-                        android.util.Log.e("DataRetention", "Failed to retrieve old transcriptions for deletion", oldTranscriptionsResult.exception)
+                        Logger.error("DataRetention", "Failed to retrieve old transcriptions for deletion: ${oldTranscriptionsResult.exception.message}")
                     }
                     is Result.Loading -> {
                         // Should not happen in this context
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("DataRetention", "Error during transcription cleanup", e)
+                Logger.error("DataRetention", "Error during transcription cleanup: ${e.message}")
             }
             
             val result = RetentionPolicyResult(
@@ -572,7 +573,7 @@ class StatisticsCalculatorUseCaseImpl(
                                 offset += pageSize
                             }
                             is Result.Error -> {
-                                android.util.Log.w("StatisticsCalculator", "Failed to load page at offset $offset", pageResult.exception)
+                                Logger.warn("StatisticsCalculator", "Failed to load page at offset $offset: ${pageResult.exception.message}")
                                 break // Exit on error, process what we have
                             }
                             is Result.Loading -> {

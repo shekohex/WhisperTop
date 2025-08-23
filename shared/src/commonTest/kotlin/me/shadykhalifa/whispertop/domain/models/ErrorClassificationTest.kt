@@ -86,13 +86,25 @@ class ErrorClassificationTest {
     }
 
     @Test
-    fun `classifyError should classify generic security exceptions`() {
-        val securityError = SecurityException("Permission denied")
+    fun `classifyError should classify platform security exceptions`() {
+        val securityError = PlatformSecurityException("Permission denied")
         val errorInfo = ErrorClassifier.classifyError(securityError)
         
         assertEquals("Permission Required", errorInfo.title)
         assertEquals("Grant Permission", errorInfo.actionText)
         assertEquals(ErrorSeverity.CRITICAL, errorInfo.severity)
+    }
+    
+    @Test
+    fun `classifyError should classify generic security exceptions as unexpected errors`() {
+        // Since we removed direct SecurityException support, it should fall through to generic
+        val securityError = SecurityException("Permission denied")
+        val errorInfo = ErrorClassifier.classifyError(securityError)
+        
+        assertEquals("Unexpected Error", errorInfo.title)
+        assertEquals("Retry", errorInfo.actionText)
+        assertEquals(ErrorSeverity.ERROR, errorInfo.severity)
+        assertTrue(errorInfo.isRetryable)
     }
 
     @Test

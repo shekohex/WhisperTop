@@ -159,9 +159,6 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
      */
     private suspend fun createAndShowMicButton(): Boolean {
         try {
-            // Initialize audio recording service first
-            audioRecordingViewModel.initializeService()
-            
             // Create layout parameters for the overlay
             val layoutParams = createMicButtonLayoutParams()
             val (initialX, initialY) = loadOverlayPosition()

@@ -1522,7 +1522,7 @@
               "41.3"
             ],
             "details": "Refactor AudioRecordingViewModel.kt: 1) Remove constructor parameters: serviceManagementUseCase, serviceInitializationUseCase, permissionManagementUseCase, serviceBindingUseCase (keep transcriptionWorkflowUseCase, userFeedbackUseCase). 2) Remove observeServiceState() and observeServiceEvents() methods (100+ lines). 3) Replace complex state observation with single transcriptionWorkflowUseCase.workflowState.collect using StateMappers.toUiState(). 4) Remove initializeService(), requestPermissions(), ensureServiceReady() methods. 5) Keep only UI actions: startRecording(), stopRecording(), cancelRecording(), retryFromError(), clearError(). 6) Reduce ViewModel from 339 to ~100 lines. Target architecture: ViewModel -> WorkflowUseCase -> Domain Services.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test ViewModel with mocked TranscriptionWorkflowUseCase, verify state transformations work correctly, test UI action methods delegate to workflow use case, confirm removed infrastructure methods no longer exist, and verify ViewModel line count reduction while maintaining functionality."
           },
           {
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-22T23:21:19.153Z",
+      "updated": "2025-08-22T23:34:11.543Z",
       "description": "Tasks for master context"
     }
   }

@@ -209,16 +209,10 @@ class StateMappersTest {
 
     @Test
     fun `WorkflowState transformation preserves other UiState properties`() {
-        val currentUiState = createTestUiState().copy(
-            showPermissionRationale = true,
-            rationalePermissions = listOf("RECORD_AUDIO")
-        )
+        val currentUiState = createTestUiState()
         
         val workflowState = WorkflowState.Recording
         val result = workflowState.toUiState(currentUiState)
-        
-        assertTrue(result.showPermissionRationale)
-        assertEquals(listOf("RECORD_AUDIO"), result.rationalePermissions)
         
         assertEquals(RecordingStatus.Recording, result.status)
         assertFalse(result.isLoading)
@@ -229,8 +223,6 @@ class StateMappersTest {
         isLoading = false,
         errorMessage = null,
         lastRecording = null,
-        transcription = null,
-        showPermissionRationale = false,
-        rationalePermissions = emptyList()
+        transcription = null
     )
 }

@@ -1,6 +1,7 @@
 package me.shadykhalifa.whispertop.domain.models
 
 import kotlinx.serialization.Serializable
+import me.shadykhalifa.whispertop.utils.StringFormatter
 
 @Serializable
 data class OpenAIModel(
@@ -80,7 +81,7 @@ data class PricingInfo(
     val pricePerMinute: Double, // Price in USD per minute of audio
     val currency: String = "USD"
 ) {
-    fun formatPrice(): String = "$${String.format("%.3f", pricePerMinute)}/$currency per minute"
+    fun formatPrice(): String = "$${StringFormatter.format("%.3f", pricePerMinute)}/$currency per minute"
 }
 
 @Serializable

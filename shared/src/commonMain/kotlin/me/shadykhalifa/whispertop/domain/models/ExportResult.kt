@@ -1,6 +1,7 @@
 package me.shadykhalifa.whispertop.domain.models
 
 import kotlinx.serialization.Serializable
+import me.shadykhalifa.whispertop.utils.TimeUtils
 
 sealed class ExportResult {
     data class Success(val filePath: String, val itemCount: Int) : ExportResult()
@@ -39,18 +40,18 @@ data class DateRange(
     companion object {
         fun all(): DateRange = DateRange(null, null)
         fun today(): DateRange {
-            val now = System.currentTimeMillis()
-            val startOfDay = now - (now % (24 * 60 * 60 * 1000))
-            val endOfDay = startOfDay + (24 * 60 * 60 * 1000) - 1
+            val now = TimeUtils.currentTimeMillis()
+            val startOfDay = TimeUtils.startOfDay(now)
+            val endOfDay = TimeUtils.endOfDay(now)
             return DateRange(startOfDay, endOfDay)
         }
         fun lastWeek(): DateRange {
-            val now = System.currentTimeMillis()
+            val now = TimeUtils.currentTimeMillis()
             val weekAgo = now - (7 * 24 * 60 * 60 * 1000)
             return DateRange(weekAgo, now)
         }
         fun lastMonth(): DateRange {
-            val now = System.currentTimeMillis()
+            val now = TimeUtils.currentTimeMillis()
             val monthAgo = now - (30L * 24 * 60 * 60 * 1000)
             return DateRange(monthAgo, now)
         }

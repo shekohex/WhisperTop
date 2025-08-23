@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.DateRange
 import me.shadykhalifa.whispertop.domain.models.ExportFormat
@@ -29,7 +30,8 @@ class HistoryViewModelTest {
 
     private lateinit var mockRepository: MockTranscriptionHistoryRepository
     private lateinit var viewModel: HistoryViewModel
-    private val testDispatcher = StandardTestDispatcher()
+    private val testScheduler = TestCoroutineScheduler()
+    private val testDispatcher = StandardTestDispatcher(testScheduler)
 
     @BeforeTest
     fun setup() {
@@ -68,7 +70,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `search state updates correctly`() = testDispatcher.runBlockingTest {
+    fun `search state updates correctly`() = runTest {
         assertFalse(viewModel.uiState.value.isSearching)
         
         viewModel.updateSearchQuery("test")
@@ -80,7 +82,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `sort option updates correctly`() = testDispatcher.runBlockingTest {
+    fun `sort option updates correctly`() = runTest {
         assertEquals(SortOption.DateNewest, viewModel.selectedSortOption.value)
         
         viewModel.uiEvents.test {
@@ -94,7 +96,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `date range updates correctly`() = testDispatcher.runBlockingTest {
+    fun `date range updates correctly`() = runTest {
         assertEquals(DateRange.all(), viewModel.selectedDateRange.value)
         
         viewModel.uiEvents.test {
@@ -108,7 +110,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `item selection works correctly`() = testDispatcher.runBlockingTest {
+    fun `item selection works correctly`() = runTest {
         // Initially no items selected
         assertEquals(emptySet<String>(), viewModel.selectedItems.value)
         assertFalse(viewModel.isSelectionMode.value)
@@ -133,34 +135,53 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `select all works correctly`() = testDispatcher.runBlockingTest {
+    fun `select all works correctly`() = runTest(testDispatcher) {
         val ids = listOf("1", "2", "3", "4", "5")
-        
-        viewModel.selectAll(ids)
-        
-        assertEquals(ids.toSet(), viewModel.selectedItems.value)
-        assertTrue(viewModel.isSelectionMode.value)
-        assertTrue(viewModel.uiState.value.isSelectionMode)
-        assertEquals(5, viewModel.uiState.value.selectedItemsCount)
+        viewModel.uiState.test {
+            viewModel.selectAll(ids)
+            // Await state with selection mode true and correct count
+            val state = awaitItem()
+            // There may be an initial state emission, so loop until correct
+            var found = false
+            var lastState = state
+            repeat(5) {
+                if (lastState.isSelectionMode && lastState.selectedItemsCount == 5) {
+                    found = true
+                    return@repeat
+                }
+                lastState = awaitItem()
+            }
+            assertTrue(found)
+            assertEquals(ids.toSet(), viewModel.selectedItems.value)
+            assertTrue(viewModel.isSelectionMode.value)
+        }
     }
 
     @Test
-    fun `clear selection works correctly`() = testDispatcher.runBlockingTest {
-        // First select some items
+    fun `clear selection works correctly`() = runTest(testDispatcher) {
         viewModel.selectAll(listOf("1", "2", "3"))
+        testScheduler.advanceUntilIdle()
         assertTrue(viewModel.isSelectionMode.value)
-        
-        // Then clear selection
-        viewModel.clearSelection()
-        
-        assertEquals(emptySet<String>(), viewModel.selectedItems.value)
-        assertFalse(viewModel.isSelectionMode.value)
-        assertFalse(viewModel.uiState.value.isSelectionMode)
-        assertEquals(0, viewModel.uiState.value.selectedItemsCount)
+        viewModel.uiState.test {
+            viewModel.clearSelection()
+            // Await state with selection mode false and count 0
+            var found = false
+            var lastState = awaitItem()
+            repeat(5) {
+                if (!lastState.isSelectionMode && lastState.selectedItemsCount == 0) {
+                    found = true
+                    return@repeat
+                }
+                lastState = awaitItem()
+            }
+            assertTrue(found)
+            assertEquals(emptySet<String>(), viewModel.selectedItems.value)
+            assertFalse(viewModel.isSelectionMode.value)
+        }
     }
 
     @Test
-    fun `delete selected items works correctly`() = testDispatcher.runBlockingTest {
+    fun `delete selected items works correctly`() = runTest {
         mockRepository.deleteMultipleResult = Result.Success(3)
         
         // Select some items
@@ -180,7 +201,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `delete selected items handles error correctly`() = testDispatcher.runBlockingTest {
+    fun `delete selected items handles error correctly`() = runTest {
         val error = Exception("Database error")
         mockRepository.deleteMultipleResult = Result.Error(error)
         
@@ -195,7 +216,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `delete single transcription works correctly`() = testDispatcher.runBlockingTest {
+    fun `delete single transcription works correctly`() = runTest {
         mockRepository.deleteResult = Result.Success(Unit)
         
         viewModel.uiEvents.test {
@@ -207,7 +228,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `export as JSON works correctly`() = testDispatcher.runBlockingTest {
+    fun `export as JSON works correctly`() = runTest {
         mockRepository.exportResult = flowOf(
             ExportResult.InProgress,
             ExportResult.Success("export.json", 10)
@@ -224,7 +245,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `export as CSV works correctly`() = testDispatcher.runBlockingTest {
+    fun `export as CSV works correctly`() = runTest {
         mockRepository.exportResult = flowOf(
             ExportResult.InProgress,
             ExportResult.Success("export.csv", 5)
@@ -241,7 +262,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `export handles error correctly`() = testDispatcher.runBlockingTest {
+    fun `export handles error correctly`() = runTest {
         mockRepository.exportResult = flowOf(
             ExportResult.InProgress,
             ExportResult.Error("Export failed")
@@ -256,32 +277,33 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `export updates loading state correctly`() = testDispatcher.runBlockingTest {
+    fun `export updates loading state correctly`() = runTest(testDispatcher) {
         mockRepository.exportResult = flow {
             emit(ExportResult.InProgress)
             delay(100)
             emit(ExportResult.Success("export.json", 10))
         }
         
-        assertFalse(viewModel.uiState.value.isExporting)
-        
-        viewModel.exportAsJson()
-        advanceTimeBy(50) // Progress should be in progress
-        assertTrue(viewModel.uiState.value.isExporting)
-        
-        advanceTimeBy(100) // Should complete
-        assertFalse(viewModel.uiState.value.isExporting)
+        viewModel.uiState.test {
+            viewModel.exportAsJson()
+            // Initial state
+            assertFalse(awaitItem().isExporting)
+            // Should emit exporting true
+            assertTrue(awaitItem().isExporting)
+            // Should emit exporting false after success
+            assertFalse(awaitItem().isExporting)
+        }
     }
 
     @Test
-    fun `refresh triggers correctly`() = testDispatcher.runBlockingTest {
+    fun `refresh triggers correctly`() = runTest(testDispatcher) {
         viewModel.uiEvents.test {
             viewModel.refresh()
             
             val refreshingEvent = awaitItem() as HistoryUiEvent.ShowMessage
             assertEquals("Refreshing...", refreshingEvent.message)
             
-            advanceTimeBy(500)
+            testScheduler.advanceTimeBy(500)
             
             val completedEvent = awaitItem() as HistoryUiEvent.RefreshCompleted
             // Event should be RefreshCompleted
@@ -374,4 +396,11 @@ private class MockTranscriptionHistoryRepository : TranscriptionHistoryRepositor
         format: ExportFormat,
         dateRange: DateRange
     ): Flow<ExportResult> = exportResult
+    
+    override suspend fun deleteOlderThan(timestamp: Long): Result<Int> = Result.Success(0)
+    
+    override suspend fun getTranscriptionsOlderThan(cutoffTime: Long): Result<List<TranscriptionHistoryItem>> = 
+        Result.Success(emptyList())
+    
+    override suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int> = Result.Success(0)
 }
