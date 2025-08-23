@@ -40,7 +40,7 @@ class TranscriptionWorkflowUseCaseIntegrationTest {
     private val errorLoggingService = mockk<ErrorLoggingService>(relaxed = true)
     private val connectionStatusService = mockk<ConnectionStatusService>(relaxed = true)
     private val errorNotificationService = mockk<ErrorNotificationService>(relaxed = true)
-    private val serviceManagementUseCase = mockk<ServiceManagementUseCase>()
+    private val serviceManagementUseCase = mockk<ServiceManagementUseCase>(relaxed = true)
 
     @Test
     fun `initialization should emit ServiceReady when services and permissions are ready`() = runTest {

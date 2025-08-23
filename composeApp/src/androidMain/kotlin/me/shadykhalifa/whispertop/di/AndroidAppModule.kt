@@ -33,6 +33,7 @@ import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.HistoryViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
 import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.data.database.createDatabaseBuilder
 import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
@@ -102,6 +103,11 @@ val androidAppModule = module {
     viewModel { 
         HistoryViewModel(
             transcriptionHistoryRepository = get()
+        )
+    }
+    viewModel { 
+        MainNavigationViewModel(
+            savedStateHandle = get()
         )
     }
 }
