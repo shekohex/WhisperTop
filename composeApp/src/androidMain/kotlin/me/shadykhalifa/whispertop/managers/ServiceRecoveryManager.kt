@@ -21,6 +21,8 @@ import kotlin.math.pow
 class ServiceRecoveryManager(private val context: Context) : KoinComponent {
     
     private val audioServiceManager: AudioServiceManager by inject()
+    private val audioRecordingServiceManager: AudioRecordingServiceManager by inject()
+    private val bindAudioServiceUseCase: me.shadykhalifa.whispertop.domain.usecases.BindAudioServiceUseCase by inject()
     private val permissionHandler: PermissionHandler by inject()
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -116,13 +118,21 @@ class ServiceRecoveryManager(private val context: Context) : KoinComponent {
                 delay(delay)
             }
             
-            when (val result = audioServiceManager.bindService()) {
-                is AudioServiceManager.ServiceBindResult.SUCCESS,
-                is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
-                    return ServiceBindingResult.SUCCESS
+            when (val result = bindAudioServiceUseCase()) {
+                is me.shadykhalifa.whispertop.utils.Result.Success -> {
+                    when (result.data) {
+                        is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.Success,
+                        is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.AlreadyBound -> {
+                            return ServiceBindingResult.SUCCESS
+                        }
+                        is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.Failed,
+                        is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.Error -> {
+                            // Continue to next retry
+                        }
+                    }
                 }
-                is AudioServiceManager.ServiceBindResult.FAILED,
-                is AudioServiceManager.ServiceBindResult.ERROR -> {
+                is me.shadykhalifa.whispertop.utils.Result.Error,
+                is me.shadykhalifa.whispertop.utils.Result.Loading -> {
                     // Continue to next retry
                 }
             }
@@ -191,7 +201,7 @@ class ServiceRecoveryManager(private val context: Context) : KoinComponent {
     }
     
     private fun isServiceHealthy(): Boolean {
-        return audioServiceManager.connectionState.value == AudioServiceManager.ServiceConnectionState.CONNECTED &&
+        return audioServiceManager.connectionState.value == me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceConnectionState.CONNECTED &&
                 permissionHandler.permissionState.value == PermissionHandler.PermissionState.GRANTED
     }
     
@@ -214,9 +224,16 @@ class ServiceRecoveryManager(private val context: Context) : KoinComponent {
                 delay(1000)
                 
                 // Attempt to rebind
-                when (val result = audioServiceManager.bindService()) {
-                    is AudioServiceManager.ServiceBindResult.SUCCESS -> {
-                        _recoveryState.value = RecoveryState.RECOVERED
+                when (val result = bindAudioServiceUseCase()) {
+                    is me.shadykhalifa.whispertop.utils.Result.Success -> {
+                        when (result.data) {
+                            is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.Success -> {
+                                _recoveryState.value = RecoveryState.RECOVERED
+                            }
+                            else -> {
+                                _recoveryState.value = RecoveryState.FAILED
+                            }
+                        }
                     }
                     else -> {
                         _recoveryState.value = RecoveryState.FAILED
@@ -269,7 +286,7 @@ class ServiceRecoveryManager(private val context: Context) : KoinComponent {
     private fun saveServiceState(): ServiceState? {
         return try {
             // Get current service state from AudioServiceManager
-            val currentState = audioServiceManager.getCurrentRecordingState()
+            val currentState = audioRecordingServiceManager.getCurrentRecordingState()
             val isRecording = currentState == AudioRecordingService.RecordingState.RECORDING || 
                              currentState == AudioRecordingService.RecordingState.PAUSED
             val recordingStartTime = if (isRecording) System.currentTimeMillis() else 0L
@@ -307,10 +324,17 @@ class ServiceRecoveryManager(private val context: Context) : KoinComponent {
                 if (timeSinceCrash < 5 * 60 * 1000L && state.isRecording) {
                     // Attempt to restart the service - automatic recording restoration is risky
                     // Instead, we just ensure the service is bound and available
-                    when (val result = audioServiceManager.bindService()) {
-                        is AudioServiceManager.ServiceBindResult.SUCCESS,
-                        is AudioServiceManager.ServiceBindResult.ALREADY_BOUND -> {
-                            // Service is available, user can manually restart recording if needed
+                    when (val result = bindAudioServiceUseCase()) {
+                        is me.shadykhalifa.whispertop.utils.Result.Success -> {
+                            when (result.data) {
+                                is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.Success,
+                                is me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceBindResult.AlreadyBound -> {
+                                    // Service is available, user can manually restart recording if needed
+                                }
+                                else -> {
+                                    // Service binding failed, will be handled by health checks
+                                }
+                            }
                         }
                         else -> {
                             // Service binding failed, will be handled by health checks

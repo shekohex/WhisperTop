@@ -140,7 +140,7 @@ class ServiceHealthCheckJob : JobService() {
     
     private fun isServiceHealthy(): Boolean {
         val connectionState = audioServiceManager.connectionState.value
-        return connectionState == AudioServiceManager.ServiceConnectionState.CONNECTED
+        return connectionState == me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceConnectionState.CONNECTED
     }
     
     private fun checkServiceMetrics() {

@@ -96,7 +96,7 @@ class SystemEventReceiver : BroadcastReceiver(), KoinComponent {
     }
     
     private fun isServiceHealthy(): Boolean {
-        return audioServiceManager.connectionState.value == AudioServiceManager.ServiceConnectionState.CONNECTED
+        return audioServiceManager.connectionState.value == me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceConnectionState.CONNECTED
     }
     
     companion object {

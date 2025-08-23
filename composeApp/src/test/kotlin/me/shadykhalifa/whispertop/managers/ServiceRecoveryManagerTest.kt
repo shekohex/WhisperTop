@@ -43,7 +43,7 @@ class ServiceRecoveryManagerTest : KoinTest {
         
         // Setup default mock behavior
         whenever(mockAudioServiceManager.connectionState).thenReturn(
-            MutableStateFlow(AudioServiceManager.ServiceConnectionState.DISCONNECTED)
+            MutableStateFlow(me.shadykhalifa.whispertop.domain.services.IAudioServiceManager.ServiceConnectionState.DISCONNECTED)
         )
         whenever(mockPermissionHandler.permissionState).thenReturn(
             MutableStateFlow(PermissionHandler.PermissionState.UNKNOWN)

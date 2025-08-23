@@ -13,6 +13,7 @@ import me.shadykhalifa.whispertop.domain.services.TextInsertionService
 import me.shadykhalifa.whispertop.domain.services.ToastService
 import me.shadykhalifa.whispertop.managers.AndroidSystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.AudioServiceManager
+import me.shadykhalifa.whispertop.managers.AudioRecordingServiceManager
 import me.shadykhalifa.whispertop.managers.BatteryOptimizationUtil
 import me.shadykhalifa.whispertop.managers.OnboardingPermissionManager
 import me.shadykhalifa.whispertop.managers.OverlayInitializationManager
@@ -29,6 +30,10 @@ import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
+import me.shadykhalifa.whispertop.domain.usecases.BindAudioServiceUseCase
+import me.shadykhalifa.whispertop.domain.usecases.UnbindAudioServiceUseCase
+import me.shadykhalifa.whispertop.domain.managers.AudioRecordingStateManager
+import me.shadykhalifa.whispertop.domain.services.IAudioServiceManager
 import me.shadykhalifa.whispertop.presentation.AudioRecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
@@ -47,8 +52,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
 
 val androidAppModule = module {
-    // Service Management
+    // Clean Architecture Service Management
+    single<IAudioServiceManager> { AudioServiceManager() }
+    singleOf(::AudioRecordingStateManager)
     singleOf(::AudioServiceManager)
+    singleOf(::AudioRecordingServiceManager)
+    
+    // Use Cases for Service Management
+    singleOf(::BindAudioServiceUseCase)
+    singleOf(::UnbindAudioServiceUseCase)
+    
+    // Legacy Service Management
     singleOf(::PermissionHandler)
     singleOf(::OnboardingPermissionManager)
     singleOf(::OverlayManager)
@@ -66,7 +80,7 @@ val androidAppModule = module {
     }
     
     // Platform-specific repositories
-    singleOf(::AndroidServiceStateRepository) { bind<ServiceStateRepository>() }
+    single<ServiceStateRepository> { AndroidServiceStateRepository(get<AudioRecordingServiceManager>()) }
     singleOf(::AndroidPermissionRepository) { bind<PermissionRepository>() }
     singleOf(::AndroidUserFeedbackRepository) { bind<UserFeedbackRepository>() }
     

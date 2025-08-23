@@ -1459,7 +1459,7 @@
         "description": "Extract business logic from AudioServiceManager (217 lines) to domain layer, create IAudioServiceManager interface, and move state management to comply with Interface Segregation and Single Responsibility principles.",
         "details": "CRITICAL ARCHITECTURAL VIOLATION: AudioServiceManager violates SOLID principles by mixing Android service binding with business logic. Current issues: 1) Manages both service connection AND recording state (lines 29-43) 2) Handles error events and channels (lines 35-39, 69-85) 3) Coordinates business operations (lines 130-184) 4) Mixed concerns across presentation, domain, and platform layers. SOLUTION: 1) Create IAudioServiceManager interface with only service binding methods (bindService, unbindService, getServiceReference) 2) Create AudioRecordingStateManager in domain layer to handle recording state flows and coordination 3) Move error event channels to domain ErrorLoggingService 4) Create BindAudioServiceUseCase and UnbindAudioServiceUseCase for clean service lifecycle management 5) Refactor AudioServiceManager to implement interface with ONLY Android-specific service binding logic (should be ~50 lines max) 6) Update AudioRecordingViewModel to use domain state manager instead of direct service manager 7) Preserve all existing functionality while achieving clean architecture separation.",
         "testStrategy": "Verify architectural compliance: 1) Confirm AudioServiceManager implements IAudioServiceManager with only service binding methods 2) Verify all recording state management moved to domain AudioRecordingStateManager 3) Test error handling works through domain ErrorLoggingService 4) Verify use cases properly coordinate service binding 5) Test existing functionality (service binding, recording state sync, error propagation) 6) Verify no direct service access from ViewModels 7) Run existing AudioServiceManagerTest and update for new interface 8) Integration tests with AudioRecordingViewModel to ensure proper state flow 9) Test service recovery scenarios work with new architecture",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           5,
           18,
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-23T13:30:34.240Z",
+      "updated": "2025-08-23T13:54:17.630Z",
       "description": "Tasks for master context"
     }
   }
