@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import me.shadykhalifa.whispertop.R
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionDatabaseRepository
 import me.shadykhalifa.whispertop.utils.ErrorMonitor
-import me.shadykhalifa.whispertop.utils.Result
+
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -119,8 +119,8 @@ class BulkDeleteWorker(
             
             val result = processBulkDeletion(transcriptionIds, createBackup)
             
-            when (result) {
-                is Result.Success -> {
+            return when (result) {
+                is me.shadykhalifa.whispertop.utils.Result.Success -> {
                     val deletedCount = result.data
                     Log.i(TAG, "Bulk deletion completed: $deletedCount transcriptions deleted")
                     
@@ -139,7 +139,7 @@ class BulkDeleteWorker(
                     
                     androidx.work.ListenableWorker.Result.success(outputData)
                 }
-                is Result.Error -> {
+                    is me.shadykhalifa.whispertop.utils.Result.Error -> {
                     Log.e(TAG, "Bulk deletion failed: ${result.exception.message}", result.exception)
                     
                     showErrorNotification(result.exception.message ?: "Unknown error")
@@ -154,7 +154,7 @@ class BulkDeleteWorker(
                     
                     androidx.work.ListenableWorker.Result.retry()
                 }
-                is Result.Loading -> {
+                    is me.shadykhalifa.whispertop.utils.Result.Loading -> {
                     androidx.work.ListenableWorker.Result.failure()
                 }
             }
@@ -181,7 +181,7 @@ class BulkDeleteWorker(
     private suspend fun processBulkDeletion(
         transcriptionIds: List<String>,
         createBackup: Boolean
-    ): Result<Int> {
+    ): me.shadykhalifa.whispertop.utils.Result<Int> {
         return try {
             val totalIds = transcriptionIds.size
             val batchSize = 100 // Process in batches to avoid overwhelming the database
@@ -196,17 +196,17 @@ class BulkDeleteWorker(
                 
                 val result = transcriptionRepository.bulkDelete(batch)
                 when (result) {
-                    is Result.Success -> {
+                    is me.shadykhalifa.whispertop.utils.Result.Success -> {
                         val batchDeleted = result.data
                         deletedCount += batchDeleted
                         Log.d(TAG, "Batch ${batchIndex + 1}: deleted $batchDeleted transcriptions")
                     }
-                    is Result.Error -> {
+                is me.shadykhalifa.whispertop.utils.Result.Error -> {
                         Log.e(TAG, "Failed to delete batch ${batchIndex + 1}", result.exception)
                         return result
                     }
-                    is Result.Loading -> {
-                        return Result.Error(IllegalStateException("Unexpected loading state"))
+                is me.shadykhalifa.whispertop.utils.Result.Loading -> {
+                        return me.shadykhalifa.whispertop.utils.Result.Error(IllegalStateException("Unexpected loading state"))
                     }
                 }
                 
@@ -214,11 +214,11 @@ class BulkDeleteWorker(
                 delay(100)
             }
             
-            Result.Success(deletedCount)
+            me.shadykhalifa.whispertop.utils.Result.Success(deletedCount)
             
         } catch (e: Exception) {
             Log.e(TAG, "Error during bulk deletion processing", e)
-            Result.Error(e)
+            me.shadykhalifa.whispertop.utils.Result.Error(e)
         }
     }
 

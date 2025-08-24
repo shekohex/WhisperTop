@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.presentation.viewmodels.PrivacyViewModel
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun PrivacyDashboardScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PrivacyViewModel = koinViewModel()
+    viewModel: PrivacyViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     

@@ -96,4 +96,18 @@ interface TranscriptionHistoryRepository {
     suspend fun getRecentTranscriptionSessions(limit: Int): Result<List<TranscriptionSession>>
     
     suspend fun getDailyUsage(startDate: LocalDate, endDate: LocalDate): Result<List<DailyUsage>>
+    
+    // Performance optimization methods
+    suspend fun getTranscriptionHistory(
+        offset: Int = 0,
+        limit: Int = 50
+    ): Result<List<TranscriptionHistoryItem>>
+    
+    suspend fun searchTranscriptionHistory(
+        query: String,
+        offset: Int = 0,
+        limit: Int = 50
+    ): Result<List<TranscriptionHistoryItem>>
+    
+    suspend fun getTotalHistoryCount(): Result<Long>
 }

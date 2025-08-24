@@ -14,6 +14,7 @@ import androidx.work.workDataOf
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import me.shadykhalifa.whispertop.domain.models.RetentionConfiguration
@@ -23,7 +24,7 @@ import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionDatabaseRepository
 import me.shadykhalifa.whispertop.domain.services.ExportService
 import me.shadykhalifa.whispertop.utils.ErrorMonitor
-import me.shadykhalifa.whispertop.utils.Result
+
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -137,7 +138,7 @@ class RetentionWorker(
             val result = processRetentionPolicy(policy, forceCleanup)
             
             when (result) {
-                is Result.Success -> {
+                is me.shadykhalifa.whispertop.utils.Result.Success -> {
                     val retentionResult = result.data
                     Log.i(TAG, "Retention cleanup completed: ${retentionResult.totalRecordsDeleted} records deleted, ${retentionResult.formatBytesFreed()} freed")
                     
@@ -155,7 +156,7 @@ class RetentionWorker(
                     
                     androidx.work.ListenableWorker.Result.success(outputData)
                 }
-                is Result.Error -> {
+                is me.shadykhalifa.whispertop.utils.Result.Error -> {
                     Log.e(TAG, "Retention cleanup failed: ${result.exception.message}", result.exception)
                     ErrorMonitor.reportError(
                         component = "RetentionWorker",
@@ -166,7 +167,7 @@ class RetentionWorker(
                     ErrorMonitor.reportMetric("worker.retention.completed", 1.0, mapOf("status" to "failed"))
                     androidx.work.ListenableWorker.Result.retry()
                 }
-                is Result.Loading -> {
+                is me.shadykhalifa.whispertop.utils.Result.Loading -> {
                     // Should not happen in this context
                     androidx.work.ListenableWorker.Result.failure()
                 }
@@ -190,7 +191,7 @@ class RetentionWorker(
     private suspend fun processRetentionPolicy(
         policy: RetentionPolicy,
         forceCleanup: Boolean
-    ): Result<RetentionPolicyResult> {
+    ): me.shadykhalifa.whispertop.utils.Result<RetentionPolicyResult> {
         return try {
             val now = Clock.System.now()
             val timeZone = TimeZone.currentSystemDefault()
@@ -198,14 +199,15 @@ class RetentionWorker(
             
             // Calculate cutoff time
             val cutoffTime = if (policy.retentionDays != null) {
-                val cutoffDate = currentDate.minus(policy.retentionDays, DateTimeUnit.DAY)
+                val retentionDaysValue = policy.retentionDays!!
+                val cutoffDate = currentDate.minus(retentionDaysValue, DateTimeUnit.DAY)
                 cutoffDate.atStartOfDayIn(timeZone).toEpochMilliseconds()
             } else if (forceCleanup) {
                 // For unlimited policies with force cleanup, use a very old date
                 0L
             } else {
                 // Skip cleanup for unlimited policies
-                return Result.Success(
+                return me.shadykhalifa.whispertop.utils.Result.Success(
                     RetentionPolicyResult(
                         sessionsDeleted = 0,
                         transcriptionsDeleted = 0,
@@ -221,12 +223,12 @@ class RetentionWorker(
             val expiredResult = transcriptionRepository.getExpiredByRetentionPolicy(policy.id, cutoffTime)
             
             when (expiredResult) {
-                is Result.Success -> {
+                is me.shadykhalifa.whispertop.utils.Result.Success -> {
                     val expiredTranscriptions = expiredResult.data
                     
                     if (expiredTranscriptions.isEmpty()) {
                         Log.d(TAG, "No expired transcriptions found for policy ${policy.name}")
-                        return Result.Success(
+                        return me.shadykhalifa.whispertop.utils.Result.Success(
                             RetentionPolicyResult(
                                 sessionsDeleted = 0,
                                 transcriptionsDeleted = 0,
@@ -251,12 +253,12 @@ class RetentionWorker(
                     val deleteResult = transcriptionRepository.deleteExpiredByRetentionPolicy(policy.id, cutoffTime)
                     
                     when (deleteResult) {
-                        is Result.Success -> {
+                        is me.shadykhalifa.whispertop.utils.Result.Success -> {
                             val deletedCount = deleteResult.data
                             
                             Log.i(TAG, "Successfully deleted $deletedCount transcriptions for policy ${policy.name}")
                             
-                            Result.Success(
+                            me.shadykhalifa.whispertop.utils.Result.Success(
                                 RetentionPolicyResult(
                                     sessionsDeleted = 0, // TODO: Add session deletion if needed
                                     transcriptionsDeleted = deletedCount,
@@ -265,27 +267,27 @@ class RetentionWorker(
                                 )
                             )
                         }
-                        is Result.Error -> {
+                        is me.shadykhalifa.whispertop.utils.Result.Error -> {
                             Log.e(TAG, "Failed to delete expired transcriptions", deleteResult.exception)
                             deleteResult
                         }
-                        is Result.Loading -> {
-                            Result.Error(IllegalStateException("Unexpected loading state during deletion"))
+                        is me.shadykhalifa.whispertop.utils.Result.Loading -> {
+                            me.shadykhalifa.whispertop.utils.Result.Error(IllegalStateException("Unexpected loading state during deletion"))
                         }
                     }
                 }
-                is Result.Error -> {
+                is me.shadykhalifa.whispertop.utils.Result.Error -> {
                     Log.e(TAG, "Failed to get expired transcriptions", expiredResult.exception)
                     expiredResult
                 }
-                is Result.Loading -> {
-                    Result.Error(IllegalStateException("Unexpected loading state during query"))
+                is me.shadykhalifa.whispertop.utils.Result.Loading -> {
+                    me.shadykhalifa.whispertop.utils.Result.Error(IllegalStateException("Unexpected loading state during query"))
                 }
             }
             
         } catch (e: Exception) {
             Log.e(TAG, "Error processing retention policy ${policy.name}", e)
-            Result.Error(e)
+            me.shadykhalifa.whispertop.utils.Result.Error(e)
         }
     }
 }

@@ -256,6 +256,23 @@ class SettingsViewModelTranscriptionCustomizationTest {
         override suspend fun clearAllData(): Result<Unit> = Result.Success(Unit)
         
         override suspend fun cleanupTemporaryFiles(): Result<Unit> = Result.Success(Unit)
+        
+        private var wordsPerMinute: Int = 60
+        private var wpmOnboardingCompleted: Boolean = false
+        
+        override suspend fun updateWordsPerMinute(wpm: Int): Result<Unit> {
+            wordsPerMinute = wpm
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+            wpmOnboardingCompleted = completed
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun getWordsPerMinute(): Int = wordsPerMinute
+        
+        override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
     }
     
     private class MockSecurePreferencesRepository : SecurePreferencesRepository {
@@ -266,5 +283,30 @@ class SettingsViewModelTranscriptionCustomizationTest {
         override suspend fun saveApiEndpoint(endpoint: String): Result<Unit> = Result.Success(Unit)
         override suspend fun getApiEndpoint(): Result<String> = Result.Success("https://api.openai.com/v1/")
         override fun validateApiKey(key: String, isOpenAIEndpoint: Boolean): Boolean = true
+        
+        private var wpm: Int = 60
+        private var wpmOnboardingCompleted: Boolean = false
+
+        override suspend fun saveWpm(wpm: Int): Result<Unit> {
+            this.wpm = wpm
+            return Result.Success(Unit)
+        }
+
+        override suspend fun getWpm(): Result<Int> {
+            return Result.Success(wpm)
+        }
+
+        override suspend fun saveWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+            this.wpmOnboardingCompleted = completed
+            return Result.Success(Unit)
+        }
+
+        override suspend fun isWpmOnboardingCompleted(): Result<Boolean> {
+            return Result.Success(wpmOnboardingCompleted)
+        }
+
+        override fun validateWpm(wpm: Int): Boolean {
+            return wpm in 1..300
+        }
     }
 }

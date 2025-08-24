@@ -98,7 +98,7 @@ class ErrorHandlingIntegrationTest {
     fun `error classification should be consistent across components`() = runTest {
         val errors = listOf(
             TranscriptionError.AuthenticationError("Invalid API key"),
-            me.shadykhalifa.whispertop.data.audio.AudioRecordingError.PermissionDenied("Microphone denied"),
+            me.shadykhalifa.whispertop.data.audio.AudioRecordingError.PermissionDenied(),
             me.shadykhalifa.whispertop.data.models.OpenAIException.RateLimitException("Rate limit exceeded"),
             RuntimeException("Generic error")
         )

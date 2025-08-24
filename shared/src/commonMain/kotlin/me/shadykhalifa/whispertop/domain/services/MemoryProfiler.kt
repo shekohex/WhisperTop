@@ -18,7 +18,7 @@ interface MemoryProfiler {
     fun suggestGarbageCollection()
 }
 
-expect class MemoryProfilerImpl() : MemoryProfiler
+expect class MemoryProfilerImpl : MemoryProfiler
 
 
 // Extension functions for easier usage

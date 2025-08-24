@@ -20,6 +20,8 @@ import me.shadykhalifa.whispertop.domain.services.ExportService
 import me.shadykhalifa.whispertop.utils.Result
 import me.shadykhalifa.whispertop.domain.models.DataSummary
 import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.ZoneId
 
 class DataExportViewModel(
     private val exportService: ExportService,
@@ -38,7 +40,11 @@ class DataExportViewModel(
 
     fun updateDateRange(startDate: LocalDate?, endDate: LocalDate?) {
         val dateRange = when {
-            startDate != null && endDate != null -> DateRange(startDate, endDate)
+            startDate != null && endDate != null -> {
+                val startTime = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val endTime = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+                DateRange(startTime, endTime)
+            }
             else -> DateRange.all()
         }
         _uiState.update { 

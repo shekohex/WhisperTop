@@ -74,7 +74,7 @@ import me.shadykhalifa.whispertop.domain.services.StatisticsCacheServiceImpl
 import me.shadykhalifa.whispertop.domain.services.BackgroundThreadManager
 import me.shadykhalifa.whispertop.domain.services.BackgroundThreadManagerImpl
 import me.shadykhalifa.whispertop.domain.services.MemoryProfiler
-import me.shadykhalifa.whispertop.domain.services.CommonMemoryProfiler
+// import me.shadykhalifa.whispertop.domain.services.CommonMemoryProfiler
 import me.shadykhalifa.whispertop.domain.services.PerformanceMonitor
 import me.shadykhalifa.whispertop.domain.services.PerformanceMonitorImpl
 import me.shadykhalifa.whispertop.domain.services.LazyHistoryLoader
@@ -139,7 +139,7 @@ val sharedModule = module {
     // Performance Optimization Services
     single<BackgroundThreadManager> { BackgroundThreadManagerImpl() }
     single<PerformanceCacheManager> { PerformanceCacheManagerImpl() }
-    single<MemoryProfiler> { MemoryProfilerImpl() }
+    // MemoryProfiler is platform-specific and provided in platform modules
     single<PerformanceMonitor> { PerformanceMonitorImpl() }
     single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
     single<LazyHistoryLoader> { 

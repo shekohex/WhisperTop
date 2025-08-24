@@ -5,10 +5,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import io.mockk.mockk
 import me.shadykhalifa.whispertop.utils.Result
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,7 +25,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -37,7 +39,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = "")
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -53,7 +55,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = "   ")
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -68,7 +70,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -87,7 +89,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -105,7 +107,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -123,7 +125,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -137,7 +139,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings() // Default constructor has empty API key
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -152,7 +154,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = "\n\t\r")
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -167,7 +169,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = " sk-validkey123456789 ")
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -184,7 +186,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -201,7 +203,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -215,7 +217,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = TestConstants.MOCK_API_KEY)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         // First call fails
         mockAudioRepository.startRecordingResult = Result.Error(RuntimeException("First failure"))
@@ -235,7 +237,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = longApiKey)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -250,7 +252,7 @@ class StartRecordingUseCaseTest {
         val mockSettingsRepository = MockSettingsRepository(
             appSettings = AppSettings(apiKey = specialCharApiKey)
         )
-        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository)
+        val useCase = StartRecordingUseCase(mockAudioRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -266,13 +268,13 @@ class StartRecordingUseCaseTest {
         
         // Test when not recording
         val notRecordingRepo = MockAudioRepository(isRecording = false)
-        val useCase1 = StartRecordingUseCase(notRecordingRepo, mockSettingsRepository)
+        val useCase1 = StartRecordingUseCase(notRecordingRepo, mockSettingsRepository, mockk(relaxed = true))
         val result1 = useCase1()
         assertTrue(result1 is Result.Success)
         
         // Test when already recording
         val recordingRepo = MockAudioRepository(isRecording = true)
-        val useCase2 = StartRecordingUseCase(recordingRepo, mockSettingsRepository)
+        val useCase2 = StartRecordingUseCase(recordingRepo, mockSettingsRepository, mockk(relaxed = true))
         val result2 = useCase2()
         assertTrue(result2 is Result.Error)
         assertEquals("Already recording", (result2 as Result.Error).exception.message)
@@ -334,5 +336,22 @@ class StartRecordingUseCaseTest {
         override suspend fun updateTemperature(temperature: Float): Result<Unit> = Result.Success(Unit)
         
         override suspend fun cleanupTemporaryFiles(): Result<Unit> = Result.Success(Unit)
+        
+        private var wordsPerMinute: Int = 60
+        private var wpmOnboardingCompleted: Boolean = false
+        
+        override suspend fun updateWordsPerMinute(wpm: Int): Result<Unit> {
+            wordsPerMinute = wpm
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+            wpmOnboardingCompleted = completed
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun getWordsPerMinute(): Int = wordsPerMinute
+        
+        override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
     }
 }

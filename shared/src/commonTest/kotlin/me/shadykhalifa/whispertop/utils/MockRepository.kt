@@ -143,6 +143,31 @@ class MockSettingsRepository : SettingsRepository {
     fun simulateError(shouldError: Boolean = true) {
         shouldSimulateError = shouldError
     }
+    
+    private var wordsPerMinute: Int = 60
+    private var wpmOnboardingCompleted: Boolean = false
+    
+    override suspend fun updateWordsPerMinute(wpm: Int): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update WPM"))
+        } else {
+            wordsPerMinute = wpm
+            Result.Success(Unit)
+        }
+    }
+    
+    override suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update WPM onboarding"))
+        } else {
+            wpmOnboardingCompleted = completed
+            Result.Success(Unit)
+        }
+    }
+    
+    override suspend fun getWordsPerMinute(): Int = wordsPerMinute
+    
+    override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
 }
 
 class MockTranscriptionRepository : TranscriptionRepository {

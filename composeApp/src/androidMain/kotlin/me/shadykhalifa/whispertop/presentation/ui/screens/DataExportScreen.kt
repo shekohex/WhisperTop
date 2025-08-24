@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.presentation.viewmodels.DataExportUiEvent
 import me.shadykhalifa.whispertop.presentation.viewmodels.DataExportViewModel
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.collectLatest
 import me.shadykhalifa.whispertop.presentation.ui.components.export.FormatSelectionDialog
 import me.shadykhalifa.whispertop.presentation.ui.components.export.DateRangePickerDialog
@@ -30,7 +30,7 @@ import me.shadykhalifa.whispertop.presentation.ui.components.export.RetentionPol
 fun DataExportScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: DataExportViewModel = koinViewModel()
+    viewModel: DataExportViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

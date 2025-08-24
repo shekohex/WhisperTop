@@ -20,6 +20,8 @@ import me.shadykhalifa.whispertop.data.repositories.FileReader
 import me.shadykhalifa.whispertop.data.security.SecurePreferencesRepositoryImpl
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.data.local.DatabaseKeyManager
+import me.shadykhalifa.whispertop.domain.services.MemoryProfiler
+import me.shadykhalifa.whispertop.domain.services.MemoryProfilerImpl
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
@@ -47,6 +49,9 @@ val androidModule = module {
     single<me.shadykhalifa.whispertop.domain.services.DataRetentionService> { 
         me.shadykhalifa.whispertop.domain.services.DataRetentionServiceImpl(get(), get()) 
     }
+    
+    // Performance services
+    single<MemoryProfiler> { MemoryProfilerImpl(get()) }
 }
 
 fun providePlatformModule(context: Context) = module {

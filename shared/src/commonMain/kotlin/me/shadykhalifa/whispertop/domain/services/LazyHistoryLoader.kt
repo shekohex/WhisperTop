@@ -13,6 +13,7 @@ import me.shadykhalifa.whispertop.domain.models.PageRequest
 import me.shadykhalifa.whispertop.domain.models.PaginatedResult
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
+import me.shadykhalifa.whispertop.utils.getOrNull
 
 interface LazyHistoryLoader {
     suspend fun loadInitialPage(pageSize: Int = 20): LoadingState<PaginatedResult<TranscriptionHistoryItem>>
@@ -202,20 +203,22 @@ class LazyHistoryLoaderImpl(
         query: String?
     ): PaginatedResult<TranscriptionHistoryItem> {
         
-        return backgroundThreadManager.executeDatabase("load_history_${pageRequest.page}") {
+        val historyResult = backgroundThreadManager.executeDatabase<List<TranscriptionHistoryItem>>("load_history_${pageRequest.page}") {
             if (query.isNullOrBlank()) {
                 historyRepository.getTranscriptionHistory(
                     offset = pageRequest.offset,
                     limit = pageRequest.pageSize
-                )
+                ).getOrNull() ?: emptyList()
             } else {
                 historyRepository.searchTranscriptionHistory(
                     query = query,
                     offset = pageRequest.offset,
                     limit = pageRequest.pageSize
-                )
+                ).getOrNull() ?: emptyList()
             }
         }
+        
+        return createPaginatedResult(historyResult, pageRequest)
     }
     
     private suspend fun createPaginatedResult(
@@ -225,8 +228,8 @@ class LazyHistoryLoaderImpl(
         
         // This would typically come from the repository, but for cached results
         // we need to reconstruct pagination info
-        val totalItems = backgroundThreadManager.executeDatabase("count_history") {
-            historyRepository.getTotalHistoryCount()
+        val totalItems = backgroundThreadManager.executeDatabase<Long>("count_history") {
+            historyRepository.getTotalHistoryCount().getOrNull() ?: 0L
         }
         
         val hasNextPage = pageRequest.offset + items.size < totalItems

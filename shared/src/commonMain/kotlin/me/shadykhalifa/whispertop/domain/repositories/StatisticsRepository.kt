@@ -53,4 +53,10 @@ interface StatisticsRepository {
     suspend fun deleteUserStatistics(userId: String): Result<Unit>
     
     suspend fun deleteAllStatistics(): Result<Unit>
+    
+    // Performance optimization methods
+    suspend fun getDailyStatistics(
+        userId: String,
+        date: LocalDate
+    ): Result<DailyUsage?>
 }

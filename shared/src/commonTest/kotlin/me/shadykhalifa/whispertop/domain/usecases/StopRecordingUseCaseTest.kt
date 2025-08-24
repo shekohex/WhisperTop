@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.domain.models.Language
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.Theme
@@ -13,6 +14,7 @@ import me.shadykhalifa.whispertop.domain.models.TranscriptionResponse
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
+import io.mockk.mockk
 import me.shadykhalifa.whispertop.utils.Result
 import java.io.IOException
 import java.net.ConnectException
@@ -35,7 +37,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Success(TranscriptionResponse("Hello world"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -49,7 +51,7 @@ class StopRecordingUseCaseTest {
         val mockAudioRepository = MockAudioRepository(isRecording = false)
         val mockTranscriptionRepository = MockTranscriptionRepository()
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -67,7 +69,7 @@ class StopRecordingUseCaseTest {
         )
         val mockTranscriptionRepository = MockTranscriptionRepository()
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -88,7 +90,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(RuntimeException("API Error 500"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -108,7 +110,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(SocketTimeoutException("Request timed out"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -128,7 +130,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(ConnectException("Connection refused"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -148,7 +150,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Success(TranscriptionResponse(""))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -167,7 +169,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Success(TranscriptionResponse("Long transcription text"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -193,7 +195,7 @@ class StopRecordingUseCaseTest {
                 selectedModel = "whisper-1"
             )
         )
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -224,7 +226,7 @@ class StopRecordingUseCaseTest {
                 selectedModel = "whisper-1"
             )
         )
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -247,7 +249,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(RuntimeException("Rate limit exceeded. Please try again later."))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -266,7 +268,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(SecurityException("Invalid API key"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -286,7 +288,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Error(IllegalArgumentException("Unsupported audio format"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -302,7 +304,7 @@ class StopRecordingUseCaseTest {
         )
         val mockTranscriptionRepository = MockTranscriptionRepository()
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -319,7 +321,7 @@ class StopRecordingUseCaseTest {
         )
         val mockTranscriptionRepository = MockTranscriptionRepository()
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -336,7 +338,7 @@ class StopRecordingUseCaseTest {
         )
         val mockTranscriptionRepository = MockTranscriptionRepository()
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -356,7 +358,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Loading
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -380,7 +382,7 @@ class StopRecordingUseCaseTest {
                 autoDetectLanguage = true
             )
         )
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -403,7 +405,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Success(TranscriptionResponse("Hi"))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -423,7 +425,7 @@ class StopRecordingUseCaseTest {
             transcribeResult = Result.Success(TranscriptionResponse(specialText))
         )
         val mockSettingsRepository = MockSettingsRepository()
-        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository)
+        val useCase = StopRecordingUseCase(mockAudioRepository, mockTranscriptionRepository, mockSettingsRepository, mockk(relaxed = true))
         
         val result = useCase()
         
@@ -505,5 +507,22 @@ class StopRecordingUseCaseTest {
         override suspend fun updateTemperature(temperature: Float): Result<Unit> = Result.Success(Unit)
         
         override suspend fun cleanupTemporaryFiles(): Result<Unit> = Result.Success(Unit)
+        
+        private var wordsPerMinute: Int = 60
+        private var wpmOnboardingCompleted: Boolean = false
+        
+        override suspend fun updateWordsPerMinute(wpm: Int): Result<Unit> {
+            wordsPerMinute = wpm
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+            wpmOnboardingCompleted = completed
+            return Result.Success(Unit)
+        }
+        
+        override suspend fun getWordsPerMinute(): Int = wordsPerMinute
+        
+        override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
     }
 }

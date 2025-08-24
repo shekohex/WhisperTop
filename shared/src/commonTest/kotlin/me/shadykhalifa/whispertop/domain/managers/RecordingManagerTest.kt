@@ -379,5 +379,22 @@ class RecordingManagerTest {
         override suspend fun clearAllData(): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
         
         override suspend fun cleanupTemporaryFiles(): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        
+        private var wordsPerMinute: Int = 60
+        private var wpmOnboardingCompleted: Boolean = false
+        
+        override suspend fun updateWordsPerMinute(wpm: Int): me.shadykhalifa.whispertop.utils.Result<Unit> {
+            wordsPerMinute = wpm
+            return me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        }
+        
+        override suspend fun updateWpmOnboardingCompleted(completed: Boolean): me.shadykhalifa.whispertop.utils.Result<Unit> {
+            wpmOnboardingCompleted = completed
+            return me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        }
+        
+        override suspend fun getWordsPerMinute(): Int = wordsPerMinute
+        
+        override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
     }
 }

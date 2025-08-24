@@ -27,6 +27,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.utils.safeCall
 import java.util.UUID
 
 class TranscriptionHistoryRepositoryImpl(
@@ -417,5 +418,36 @@ class TranscriptionHistoryRepositoryImpl(
             characterCount = this.text.length,
             transcribedText = this.text
         )
+    }
+    
+    override suspend fun getTranscriptionHistory(
+        offset: Int,
+        limit: Int
+    ): Result<List<TranscriptionHistoryItem>> = safeCall {
+        dao.getAllForExportChunk(
+            startTime = null,
+            endTime = null,
+            retentionPolicyId = null,
+            limit = limit,
+            offset = offset
+        ).map { it.toDomainModel() }
+    }
+    
+    override suspend fun searchTranscriptionHistory(
+        query: String,
+        offset: Int,
+        limit: Int
+    ): Result<List<TranscriptionHistoryItem>> = safeCall {
+        // Use a simpler approach - get recent items and filter
+        // In a real implementation, this would need a proper search method with pagination
+        dao.getRecent(limit * 3) // Get more to account for filtering
+            .filter { it.text.contains(query, ignoreCase = true) }
+            .drop(offset)
+            .take(limit)
+            .map { it.toDomainModel() }
+    }
+    
+    override suspend fun getTotalHistoryCount(): Result<Long> = safeCall {
+        dao.getTotalCount()
     }
 }

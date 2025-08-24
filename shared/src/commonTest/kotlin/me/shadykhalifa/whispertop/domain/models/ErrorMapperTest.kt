@@ -37,7 +37,7 @@ class ErrorMapperTest {
     
     @Test
     fun `mapToErrorInfo should classify AudioRecordingError correctly`() = runTest {
-        val error = me.shadykhalifa.whispertop.data.audio.AudioRecordingError.PermissionDenied("Microphone access denied")
+        val error = me.shadykhalifa.whispertop.data.audio.AudioRecordingError.PermissionDenied()
         
         val result = errorMapper.mapToErrorInfo(error, "recording_start")
         
@@ -113,7 +113,7 @@ class ErrorMapperTest {
     
     @Test
     fun `mapToErrorInfoWithContext should log detailed context`() = runTest {
-        val error = me.shadykhalifa.whispertop.data.audio.AudioRecordingError.DeviceUnavailable("Microphone busy")
+        val error = me.shadykhalifa.whispertop.data.audio.AudioRecordingError.DeviceUnavailable()
         val context = ErrorContext(
             operationName = "audio_recording",
             userId = "user789",

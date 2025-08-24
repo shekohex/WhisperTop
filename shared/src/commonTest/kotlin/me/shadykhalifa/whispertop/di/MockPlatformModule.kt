@@ -84,6 +84,31 @@ class MockSecurePreferencesRepository : SecurePreferencesRepository {
         }
         return apiKey.isNotBlank() && apiKey.length > 10
     }
+
+    private var wpm: Int = 60
+    private var wpmOnboardingCompleted: Boolean = false
+
+    override suspend fun saveWpm(wpm: Int): Result<Unit> {
+        this.wpm = wpm
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getWpm(): Result<Int> {
+        return Result.Success(wpm)
+    }
+
+    override suspend fun saveWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+        this.wpmOnboardingCompleted = completed
+        return Result.Success(Unit)
+    }
+
+    override suspend fun isWpmOnboardingCompleted(): Result<Boolean> {
+        return Result.Success(wpmOnboardingCompleted)
+    }
+
+    override fun validateWpm(wpm: Int): Boolean {
+        return wpm in 1..300 // Reasonable WPM range
+    }
 }
 
 val mockPlatformModule = module {

@@ -73,6 +73,106 @@ fun SettingsScreen(
             viewModel.clearError()
         }
     }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // OpenAI API Configuration
+                ApiConfigurationSection(
+                    apiKey = uiState.apiKey,
+                    customEndpoint = uiState.customEndpoint,
+                    isValid = uiState.isValid,
+                    timeout = uiState.timeout,
+                    onApiKeyChanged = viewModel::updateApiKey,
+                    onCustomEndpointChanged = viewModel::updateCustomEndpoint,
+                    onTimeoutChanged = viewModel::updateTimeout,
+                    onValidateCredentials = viewModel::validateCredentials,
+                    onResetToDefault = viewModel::resetToDefaults,
+                    onDeleteAllData = viewModel::deleteAllData,
+                    onToggleCustomEndpoint = viewModel::toggleCustomEndpoint,
+                    onToggleDebugMode = viewModel::toggleDebugMode,
+                    currentState = uiState,
+                    
+                    // New Model Selection parameters
+                    availableModels = modelSelectionState.availableModels,
+                    selectedModel = modelSelectionViewModel::selectModel,
+                    onRefreshModels = modelSelectionViewModel::refreshModels,
+                    onAddCustomModel = modelSelectionViewModel::addCustomModel,
+                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
+                    onSelectUseCaseRecommendation = modelSelectionViewModel::selectUseCaseRecommendation,
+                    onUpdateModelParameters = modelSelectionViewModel::updateModelParameters
+                )
+
+                // Data Privacy Section 
+                DataPrivacySection(
+                    retentionDays = uiState.retentionDays,
+                    autoDelete = uiState.autoDelete ?: false,
+                    onRetentionDaysChanged = viewModel::updateRetentionDays,
+                    onAutoDeleteChanged = viewModel::updateAutoDelete
+                )
+
+                // Enhanced Model Selection Section
+                EnhancedModelSelectionSection(
+                    settings = uiState,
+                    modelSelectionState = modelSelectionState,
+                    onModelSelected = modelSelectionViewModel::selectModel,
+                    onUseCaseRecommendationSelected = modelSelectionViewModel::selectUseCaseRecommendation,
+                    onAddCustomModel = modelSelectionViewModel::addCustomModel,
+                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
+                    onRefreshModels = modelSelectionViewModel::refreshModels,
+                    onUpdateModelParameters = modelSelectionViewModel::updateModelParameters,
+                    onTestModel = modelSelectionViewModel::testModel,
+                    onSaveModelConfiguration = modelSelectionViewModel::saveConfiguration,
+                    onResetModelConfiguration = modelSelectionViewModel::resetConfiguration
+                )
+
+                // Loading indicator
+                if (isLoading || modelSelectionState.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                text = "Loading...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -172,168 +272,7 @@ private fun WpmConfigurationSection(
         }
     }
 }
-    }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // API Configuration Section
-                ApiConfigurationSection(
-                    apiKey = uiState.optimisticApiKey ?: uiState.settings.apiKey,
-                    apiKeyValue = uiState.apiKeyValue,
-                    apiEndpoint = uiState.apiEndpoint,
-                    isApiKeyVisible = uiState.isApiKeyVisible,
-                    validationErrors = uiState.validationErrors,
-                    testingConnection = uiState.testingConnection,
-                    connectionTestResult = uiState.connectionTestResult,
-                    showClearApiKeyDialog = uiState.showClearApiKeyDialog,
-                    onApiKeyChange = viewModel::updateApiKey,
-                    onApiKeyValueChange = viewModel::updateApiKeyValue,
-                    onApiEndpointChange = viewModel::updateApiEndpoint,
-                    onToggleApiKeyVisibility = viewModel::toggleApiKeyVisibility,
-                    onClearApiKey = viewModel::clearApiKey,
-                    onConfirmClearApiKey = viewModel::confirmClearApiKey,
-                    onDismissClearApiKeyDialog = viewModel::dismissClearApiKeyDialog,
-                    onValidateAndSave = viewModel::validateAndSaveApiKey,
-                    onTestConnection = viewModel::testConnection,
-                    onClearConnectionResult = viewModel::clearConnectionTestResult,
-                    isLoading = uiState.savingApiKey
-                )
-                
-                HorizontalDivider()
-                
-                // Enhanced Model Selection Section
-                EnhancedModelSelectionSection(
-                    settings = uiState.settings,
-                    modelSelectionState = modelSelectionState,
-                    onModelSelected = modelSelectionViewModel::selectModel,
-                    onUseCaseRecommendationSelected = modelSelectionViewModel::selectModelByUseCase,
-                    onAddCustomModel = modelSelectionViewModel::showAddCustomModelDialog,
-                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
-                    onCustomModelInputChange = modelSelectionViewModel::updateCustomModelInput,
-                    onConfirmAddCustomModel = modelSelectionViewModel::addCustomModel,
-                    onCancelAddCustomModel = modelSelectionViewModel::hideAddCustomModelDialog
-                )
-                
-                HorizontalDivider()
-                
-                // Transcription Customization Section
-                TranscriptionCustomizationSection(
-                    customPrompt = uiState.customPrompt,
-                    temperature = uiState.temperature,
-                    promptError = uiState.validationErrors["customPrompt"],
-                    temperatureError = uiState.validationErrors["temperature"],
-                    savingCustomPrompt = uiState.savingCustomPrompt,
-                    savingTemperature = uiState.savingTemperature,
-                    onCustomPromptChange = viewModel::updateCustomPrompt,
-                    onTemperatureChange = viewModel::updateTemperature
-                )
-                
-                HorizontalDivider()
-                
-                // Language Preferences Section
-                LanguagePreferenceSection(
-                    preference = uiState.settings.languagePreference,
-                    onPreferenceChange = viewModel::updateLanguagePreference
-                )
-                
-                HorizontalDivider()
-                
-                // Battery Optimization Section
-                BatteryOptimizationSection()
-                
-                HorizontalDivider()
-                
-                // Theme Customization Section
-                ThemeCustomizationSection(
-                    selectedTheme = uiState.settings.theme,
-                    availableThemes = uiState.availableThemes,
-                    onThemeSelected = viewModel::updateTheme
-                )
-                
-                HorizontalDivider()
-                
-                // WPM Configuration Section
-                WpmConfigurationSection(
-                    currentWpm = uiState.settings.wordsPerMinute,
-                    onWpmChanged = viewModel::updateWordsPerMinute
-                )
-                
-                HorizontalDivider()
-                
-                // Privacy Controls Section
-                PrivacyControlsSection(
-                    settings = uiState.settings,
-                    showClearAllDataDialog = uiState.showClearAllDataDialog,
-                    showPrivacyPolicyDialog = uiState.showPrivacyPolicyDialog,
-                    clearingAllData = uiState.clearingAllData,
-                    cleaningTempFiles = uiState.cleaningTempFiles,
-                    onToggleHapticFeedback = viewModel::toggleHapticFeedback,
-
-                    onToggleUsageAnalytics = viewModel::toggleUsageAnalytics,
-                    onToggleApiCallLogging = viewModel::toggleApiCallLogging,
-                    onToggleAutoCleanupTempFiles = viewModel::toggleAutoCleanupTempFiles,
-                    onUpdateTempFileRetentionDays = viewModel::updateTempFileRetentionDays,
-                    onShowClearAllDataDialog = viewModel::showClearAllDataDialog,
-                    onConfirmClearAllData = viewModel::confirmClearAllData,
-                    onDismissClearAllDataDialog = viewModel::dismissClearAllDataDialog,
-                    onCleanupTemporaryFiles = viewModel::cleanupTemporaryFiles,
-                    onShowPrivacyPolicyDialog = viewModel::showPrivacyPolicyDialog,
-                    onDismissPrivacyPolicyDialog = viewModel::dismissPrivacyPolicyDialog
-                )
-            }
-            
-            if (isLoading || modelSelectionState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.padding(32.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator()
-                            Text(
-                                text = "Saving settings...",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun EnhancedModelSelectionSection(

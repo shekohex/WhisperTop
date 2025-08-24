@@ -12,9 +12,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.shadykhalifa.whispertop.domain.models.CacheEntry
-import me.shadykhalifa.whispertop.domain.models.DailyStatistics
+import me.shadykhalifa.whispertop.domain.models.DailyUsage
 import me.shadykhalifa.whispertop.domain.models.UserStatistics
 import me.shadykhalifa.whispertop.domain.repositories.StatisticsRepository
+import me.shadykhalifa.whispertop.utils.getOrNull
 
 sealed class CacheInvalidationEvent {
     object DataChanged : CacheInvalidationEvent()
@@ -25,11 +26,11 @@ sealed class CacheInvalidationEvent {
 
 interface StatisticsCacheService {
     suspend fun getUserStatistics(forceRefresh: Boolean = false): UserStatistics?
-    suspend fun getDailyStatistics(date: String, forceRefresh: Boolean = false): DailyStatistics?
+    suspend fun getDailyStatistics(date: String, forceRefresh: Boolean = false): DailyUsage?
     suspend fun invalidateCache(event: CacheInvalidationEvent)
     suspend fun clearCache()
     fun observeUserStatistics(): Flow<UserStatistics?>
-    fun observeDailyStatistics(): Flow<Map<String, DailyStatistics>>
+    fun observeDailyStatistics(): Flow<Map<String, DailyUsage>>
     fun observeCacheInvalidations(): Flow<CacheInvalidationEvent>
 }
 
@@ -42,11 +43,11 @@ class StatisticsCacheServiceImpl(
     
     // Cache storage
     private var userStatisticsCache: CacheEntry<UserStatistics>? = null
-    private val dailyStatisticsCache = mutableMapOf<String, CacheEntry<DailyStatistics>>()
+    private val dailyStatisticsCache = mutableMapOf<String, CacheEntry<DailyUsage>>()
     
     // Reactive state flows
     private val _userStatistics = MutableStateFlow<UserStatistics?>(null)
-    private val _dailyStatistics = MutableStateFlow<Map<String, DailyStatistics>>(emptyMap())
+    private val _dailyStatistics = MutableStateFlow<Map<String, DailyUsage>>(emptyMap())
     private val _invalidationEvents = MutableSharedFlow<CacheInvalidationEvent>(replay = 0)
     
     init {
@@ -56,13 +57,13 @@ class StatisticsCacheServiceImpl(
     
     override suspend fun getUserStatistics(forceRefresh: Boolean): UserStatistics? = mutex.withLock {
         val cachedEntry = userStatisticsCache
-        
         if (!forceRefresh && cachedEntry != null && !cachedEntry.isExpired()) {
             return cachedEntry.data
         }
         
-        // Fetch fresh data
-        val freshStats = statisticsRepository.getUserStatistics()
+        // Fetch fresh data - using a default userId for now
+        val freshStatsResult = statisticsRepository.getUserStatistics("default_user")
+        val freshStats: UserStatistics? = freshStatsResult.getOrNull()
         if (freshStats != null) {
             userStatisticsCache = CacheEntry(
                 data = freshStats,
@@ -75,7 +76,7 @@ class StatisticsCacheServiceImpl(
         return freshStats
     }
     
-    override suspend fun getDailyStatistics(date: String, forceRefresh: Boolean): DailyStatistics? = mutex.withLock {
+    override suspend fun getDailyStatistics(date: String, forceRefresh: Boolean): DailyUsage? = mutex.withLock {
         val cachedEntry = dailyStatisticsCache[date]
         
         if (!forceRefresh && cachedEntry != null && !cachedEntry.isExpired()) {
@@ -83,17 +84,19 @@ class StatisticsCacheServiceImpl(
         }
         
         // Fetch fresh data
-        val freshStats = statisticsRepository.getDailyStatistics(date)
-        if (freshStats != null) {
+        val freshDataResult = statisticsRepository.getDailyStatistics("default_user", kotlinx.datetime.LocalDate.parse(date))
+        val freshData: DailyUsage? = freshDataResult.getOrNull()
+        
+        if (freshData != null) {
             dailyStatisticsCache[date] = CacheEntry(
-                data = freshStats,
+                data = freshData,
                 timestamp = System.currentTimeMillis(),
                 ttlMs = cacheTtlMs
             )
-            updateDailyStatisticsFlow()
         }
         
-        return freshStats
+        updateDailyStatisticsFlow()
+        return freshData
     }
     
     override suspend fun invalidateCache(event: CacheInvalidationEvent) {
@@ -145,7 +148,7 @@ class StatisticsCacheServiceImpl(
     
     override fun observeUserStatistics(): Flow<UserStatistics?> = _userStatistics.asStateFlow()
     
-    override fun observeDailyStatistics(): Flow<Map<String, DailyStatistics>> = _dailyStatistics.asStateFlow()
+    override fun observeDailyStatistics(): Flow<Map<String, DailyUsage>> = _dailyStatistics.asStateFlow()
     
     override fun observeCacheInvalidations(): Flow<CacheInvalidationEvent> = _invalidationEvents
     
@@ -184,7 +187,7 @@ fun StatisticsCacheService.observeUserStatisticsWithAutoRefresh(): Flow<UserStat
         }
 }
 
-fun StatisticsCacheService.observeDailyStatisticsForDate(date: String): Flow<DailyStatistics?> {
+fun StatisticsCacheService.observeDailyStatisticsForDate(date: String): Flow<DailyUsage?> {
     return observeDailyStatistics()
         .map { it[date] }
         .distinctUntilChanged()

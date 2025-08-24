@@ -61,7 +61,6 @@ kotlin {
             implementation(libs.androidx.security.crypto)
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.koin.android)
-            implementation(libs.koin.compose)
             implementation(libs.androidx.paging.compose)
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.room.ktx)
@@ -80,6 +79,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
             implementation(projects.shared)
         }
         commonTest.dependencies {

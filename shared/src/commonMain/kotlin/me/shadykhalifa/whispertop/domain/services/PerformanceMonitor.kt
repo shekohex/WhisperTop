@@ -165,11 +165,16 @@ class PerformanceMonitorImpl : PerformanceMonitor {
         } else 0.0
         
         return PerformanceMetrics(
-            averageFrameTime = averageFrameTime,
-            jankyFramePercentage = jankyFramePercentage,
-            activeOperations = activeOperations.size,
-            completedOperations = completedOperations.size,
-            timestamp = System.currentTimeMillis()
+            operationName = "SystemPerformance",
+            startTime = System.currentTimeMillis(),
+            endTime = System.currentTimeMillis(),
+            memoryUsageMb = null,
+            additionalMetrics = mapOf(
+                "averageFrameTime" to averageFrameTime.toString(),
+                "jankyFramePercentage" to jankyFramePercentage.toString(),
+                "activeOperations" to activeOperations.size.toString(),
+                "completedOperations" to completedOperations.size.toString()
+            )
         )
     }
     
