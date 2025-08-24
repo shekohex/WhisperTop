@@ -10,6 +10,10 @@ import kotlinx.datetime.Clock
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.AudioFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
+import me.shadykhalifa.whispertop.domain.models.DefaultDashboardMetrics
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.Language
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.Theme
@@ -168,6 +172,88 @@ class MockSettingsRepository : SettingsRepository {
     override suspend fun getWordsPerMinute(): Int = wordsPerMinute
     
     override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
+
+    // Statistics preferences
+    private var statisticsEnabled: Boolean = true
+    private var historyRetentionDays: Int = 30
+    private var exportFormat: ExportFormat = ExportFormat.JSON
+    private var dashboardMetricsVisible: Set<String> = DefaultDashboardMetrics.ESSENTIAL_METRICS
+    private var chartTimeRange: ChartTimeRange = ChartTimeRange.DAYS_14
+    private var notificationsEnabled: Boolean = true
+    private var dataPrivacyMode: DataPrivacyMode = DataPrivacyMode.FULL
+    private var allowDataImport: Boolean = true
+
+    override suspend fun updateStatisticsEnabled(enabled: Boolean): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update statistics enabled"))
+        } else {
+            statisticsEnabled = enabled
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateHistoryRetentionDays(days: Int): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update history retention"))
+        } else {
+            historyRetentionDays = days
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateExportFormat(format: ExportFormat): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update export format"))
+        } else {
+            exportFormat = format
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateDashboardMetricsVisible(metrics: Set<String>): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update dashboard metrics"))
+        } else {
+            dashboardMetricsVisible = metrics
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateChartTimeRange(range: ChartTimeRange): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update chart time range"))
+        } else {
+            chartTimeRange = range
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateNotificationsEnabled(enabled: Boolean): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update notifications enabled"))
+        } else {
+            notificationsEnabled = enabled
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update data privacy mode"))
+        } else {
+            dataPrivacyMode = mode
+            Result.Success(Unit)
+        }
+    }
+
+    override suspend fun updateAllowDataImport(allow: Boolean): Result<Unit> {
+        return if (shouldSimulateError) {
+            Result.Error(TestUtils.SimulatedApiError("Failed to update allow data import"))
+        } else {
+            allowDataImport = allow
+            Result.Success(Unit)
+        }
+    }
 }
 
 class MockTranscriptionRepository : TranscriptionRepository {

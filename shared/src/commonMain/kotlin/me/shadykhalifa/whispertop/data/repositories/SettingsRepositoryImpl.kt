@@ -7,6 +7,9 @@ import me.shadykhalifa.whispertop.data.models.toDomain
 import me.shadykhalifa.whispertop.data.models.toEntity
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.utils.Result
@@ -131,5 +134,39 @@ class SettingsRepositoryImpl(
             is Result.Error -> false // Return false on error
             is Result.Loading -> false // Return false during loading
         }
+    }
+    
+    // Statistics Preferences Implementation
+    
+    override suspend fun updateStatisticsEnabled(enabled: Boolean): Result<Unit> {
+        return securePreferencesRepository.saveStatisticsEnabled(enabled)
+    }
+    
+    override suspend fun updateHistoryRetentionDays(days: Int): Result<Unit> {
+        return securePreferencesRepository.saveHistoryRetentionDays(days)
+    }
+    
+    override suspend fun updateExportFormat(format: ExportFormat): Result<Unit> {
+        return securePreferencesRepository.saveExportFormat(format)
+    }
+    
+    override suspend fun updateDashboardMetricsVisible(metrics: Set<String>): Result<Unit> {
+        return securePreferencesRepository.saveDashboardMetricsVisible(metrics)
+    }
+    
+    override suspend fun updateChartTimeRange(range: ChartTimeRange): Result<Unit> {
+        return securePreferencesRepository.saveChartTimeRange(range)
+    }
+    
+    override suspend fun updateNotificationsEnabled(enabled: Boolean): Result<Unit> {
+        return securePreferencesRepository.saveNotificationsEnabled(enabled)
+    }
+    
+    override suspend fun updateDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> {
+        return securePreferencesRepository.saveDataPrivacyMode(mode)
+    }
+    
+    override suspend fun updateAllowDataImport(allow: Boolean): Result<Unit> {
+        return securePreferencesRepository.saveAllowDataImport(allow)
     }
 }

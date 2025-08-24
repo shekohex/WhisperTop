@@ -396,5 +396,15 @@ class RecordingManagerTest {
         override suspend fun getWordsPerMinute(): Int = wordsPerMinute
         
         override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
+
+        // Statistics preferences
+        override suspend fun updateStatisticsEnabled(enabled: Boolean): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateHistoryRetentionDays(days: Int): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateExportFormat(format: me.shadykhalifa.whispertop.domain.models.ExportFormat): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateDashboardMetricsVisible(metrics: Set<String>): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateChartTimeRange(range: me.shadykhalifa.whispertop.domain.models.ChartTimeRange): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateNotificationsEnabled(enabled: Boolean): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateDataPrivacyMode(mode: me.shadykhalifa.whispertop.domain.models.DataPrivacyMode): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
+        override suspend fun updateAllowDataImport(allow: Boolean): me.shadykhalifa.whispertop.utils.Result<Unit> = me.shadykhalifa.whispertop.utils.Result.Success(Unit)
     }
 }

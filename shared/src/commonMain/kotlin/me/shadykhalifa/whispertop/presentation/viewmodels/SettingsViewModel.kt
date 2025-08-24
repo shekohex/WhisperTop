@@ -12,6 +12,9 @@ import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.models.Language
 import me.shadykhalifa.whispertop.domain.models.LanguagePreference
 import me.shadykhalifa.whispertop.domain.models.WhisperModel
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.data.remote.createOpenAIApiService
@@ -41,7 +44,11 @@ data class SettingsUiState(
     val showClearAllDataDialog: Boolean = false,
     val showPrivacyPolicyDialog: Boolean = false,
     val clearingAllData: Boolean = false,
-    val cleaningTempFiles: Boolean = false
+    val cleaningTempFiles: Boolean = false,
+    // Statistics Preferences UI State
+    val showStatisticsPreferencesDialog: Boolean = false,
+    val savingStatisticsPreferences: Boolean = false,
+    val statisticsPreferencesValidationErrors: Map<String, String> = emptyMap()
 )
 
 enum class ConnectionTestResult {
@@ -751,5 +758,197 @@ class SettingsViewModel(
         return endpoint.contains("api.openai.com") || 
                endpoint.contains("openai.azure.com") ||
                endpoint.contains("oai.azure.com")
+    }
+    
+    // Statistics Preferences Methods
+    
+    fun updateStatisticsEnabled(enabled: Boolean) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update statistics enabled")
+            }
+        ) {
+            when (val result = settingsRepository.updateStatisticsEnabled(enabled)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateHistoryRetentionDays(days: Int) {
+        // Clear existing validation errors
+        clearStatisticsValidationError("historyRetentionDays")
+        
+        // Validate input
+        val currentSettings = _uiState.value.settings
+        val validationError = currentSettings.validateHistoryRetentionDays(days)
+        if (validationError != null) {
+            val currentErrors = _uiState.value.statisticsPreferencesValidationErrors.toMutableMap()
+            currentErrors["historyRetentionDays"] = validationError
+            _uiState.value = _uiState.value.copy(statisticsPreferencesValidationErrors = currentErrors)
+            return
+        }
+        
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update history retention days")
+            }
+        ) {
+            when (val result = settingsRepository.updateHistoryRetentionDays(days)) {
+                is Result.Success -> {
+                    clearStatisticsValidationError("historyRetentionDays")
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateExportFormat(format: ExportFormat) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update export format")
+            }
+        ) {
+            when (val result = settingsRepository.updateExportFormat(format)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateDashboardMetricsVisible(metrics: Set<String>) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update dashboard metrics")
+            }
+        ) {
+            when (val result = settingsRepository.updateDashboardMetricsVisible(metrics)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateChartTimeRange(range: ChartTimeRange) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update chart time range")
+            }
+        ) {
+            when (val result = settingsRepository.updateChartTimeRange(range)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateNotificationsEnabled(enabled: Boolean) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update notifications enabled")
+            }
+        ) {
+            when (val result = settingsRepository.updateNotificationsEnabled(enabled)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateDataPrivacyMode(mode: DataPrivacyMode) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update data privacy mode")
+            }
+        ) {
+            when (val result = settingsRepository.updateDataPrivacyMode(mode)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun updateAllowDataImport(allow: Boolean) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update allow data import")
+            }
+        ) {
+            when (val result = settingsRepository.updateAllowDataImport(allow)) {
+                is Result.Success -> {
+                    // Success handled by flow collection
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by individual operations
+                }
+            }
+        }
+    }
+    
+    fun showStatisticsPreferencesDialog() {
+        _uiState.value = _uiState.value.copy(showStatisticsPreferencesDialog = true)
+    }
+    
+    fun dismissStatisticsPreferencesDialog() {
+        _uiState.value = _uiState.value.copy(
+            showStatisticsPreferencesDialog = false,
+            statisticsPreferencesValidationErrors = emptyMap()
+        )
+    }
+    
+    private fun clearStatisticsValidationError(field: String) {
+        val currentErrors = _uiState.value.statisticsPreferencesValidationErrors.toMutableMap()
+        currentErrors.remove(field)
+        _uiState.value = _uiState.value.copy(statisticsPreferencesValidationErrors = currentErrors)
     }
 }

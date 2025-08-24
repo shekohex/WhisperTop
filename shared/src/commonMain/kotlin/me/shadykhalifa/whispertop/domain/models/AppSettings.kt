@@ -1,6 +1,10 @@
 package me.shadykhalifa.whispertop.domain.models
 
 import me.shadykhalifa.whispertop.domain.models.LanguagePreference
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
+import me.shadykhalifa.whispertop.domain.models.DefaultDashboardMetrics
 
 data class AppSettings(
     val apiKey: String = "",
@@ -46,7 +50,16 @@ data class AppSettings(
     val autoDeleteTranscriptions: Boolean = true,
     // WPM Configuration settings
     val wordsPerMinute: Int = 36, // Mobile-optimized default based on research
-    val wpmOnboardingCompleted: Boolean = false
+    val wpmOnboardingCompleted: Boolean = false,
+    // Statistics and Dashboard Preferences
+    val statisticsEnabled: Boolean = true,
+    val historyRetentionDays: Int = 90,
+    val exportFormat: ExportFormat = ExportFormat.JSON,
+    val dashboardMetricsVisible: Set<String> = DefaultDashboardMetrics.ALL_METRICS,
+    val chartTimeRange: ChartTimeRange = ChartTimeRange.DAYS_14,
+    val notificationsEnabled: Boolean = true,
+    val dataPrivacyMode: DataPrivacyMode = DataPrivacyMode.FULL,
+    val allowDataImport: Boolean = true
 ) {
     /**
      * Determines if the current baseUrl is an OpenAI endpoint
@@ -60,6 +73,45 @@ data class AppSettings(
         
         println("AppSettings: Endpoint detection - baseUrl='$baseUrl', isOpenAI=$isOpenAI")
         return isOpenAI
+    }
+
+    /**
+     * Validates the history retention days value
+     */
+    fun validateHistoryRetentionDays(days: Int): String? {
+        return when {
+            days < 7 -> "History retention must be at least 7 days"
+            days > 365 -> "History retention cannot exceed 365 days (1 year)"
+            else -> null
+        }
+    }
+
+    /**
+     * Returns a copy of this AppSettings with validated retention days
+     */
+    fun withValidatedRetentionDays(days: Int): AppSettings {
+        val validDays = days.coerceIn(7, 365)
+        return copy(historyRetentionDays = validDays)
+    }
+
+    /**
+     * Checks if statistics collection is effectively enabled based on privacy settings
+     */
+    fun isStatisticsCollectionEnabled(): Boolean {
+        return statisticsEnabled && dataPrivacyMode != DataPrivacyMode.DISABLED
+    }
+
+    /**
+     * Gets the effective dashboard metrics based on privacy mode
+     */
+    fun getEffectiveDashboardMetrics(): Set<String> {
+        return when (dataPrivacyMode) {
+            DataPrivacyMode.DISABLED -> emptySet()
+            DataPrivacyMode.ANONYMIZED -> dashboardMetricsVisible.filter { 
+                it != "transcription_text" && it != "detailed_content" 
+            }.toSet()
+            DataPrivacyMode.FULL -> dashboardMetricsVisible
+        }
     }
 }
 

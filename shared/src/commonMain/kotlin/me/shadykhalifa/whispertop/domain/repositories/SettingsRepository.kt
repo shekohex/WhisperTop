@@ -2,6 +2,9 @@ package me.shadykhalifa.whispertop.domain.repositories
 
 import kotlinx.coroutines.flow.Flow
 import me.shadykhalifa.whispertop.domain.models.AppSettings
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
 import me.shadykhalifa.whispertop.utils.Result
 
 interface SettingsRepository {
@@ -26,4 +29,14 @@ interface SettingsRepository {
     suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit>
     suspend fun getWordsPerMinute(): Int
     suspend fun isWpmOnboardingCompleted(): Boolean
+    
+    // Statistics Preferences methods
+    suspend fun updateStatisticsEnabled(enabled: Boolean): Result<Unit>
+    suspend fun updateHistoryRetentionDays(days: Int): Result<Unit>
+    suspend fun updateExportFormat(format: ExportFormat): Result<Unit>
+    suspend fun updateDashboardMetricsVisible(metrics: Set<String>): Result<Unit>
+    suspend fun updateChartTimeRange(range: ChartTimeRange): Result<Unit>
+    suspend fun updateNotificationsEnabled(enabled: Boolean): Result<Unit>
+    suspend fun updateDataPrivacyMode(mode: DataPrivacyMode): Result<Unit>
+    suspend fun updateAllowDataImport(allow: Boolean): Result<Unit>
 }

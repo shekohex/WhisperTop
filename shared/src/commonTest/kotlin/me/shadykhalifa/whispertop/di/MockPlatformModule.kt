@@ -117,13 +117,110 @@ class MockSecurePreferencesRepository : SecurePreferencesRepository {
     override fun validateWpm(wpm: Int): Boolean {
         return wpm in 1..300 // Reasonable WPM range
     }
+
+    // Statistics preferences
+    private var statisticsEnabled: Boolean = true
+    private var historyRetentionDays: Int = 30
+    private var exportFormat: ExportFormat = ExportFormat.JSON
+    private var dashboardMetricsVisible: Set<String> = DefaultDashboardMetrics.ESSENTIAL_METRICS
+    private var chartTimeRange: ChartTimeRange = ChartTimeRange.DAYS_14
+    private var notificationsEnabled: Boolean = true
+    private var dataPrivacyMode: DataPrivacyMode = DataPrivacyMode.FULL
+    private var allowDataImport: Boolean = true
+
+    override suspend fun saveStatisticsEnabled(enabled: Boolean): Result<Unit> {
+        this.statisticsEnabled = enabled
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getStatisticsEnabled(): Result<Boolean> {
+        return Result.Success(statisticsEnabled)
+    }
+
+    override suspend fun saveHistoryRetentionDays(days: Int): Result<Unit> {
+        this.historyRetentionDays = days
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getHistoryRetentionDays(): Result<Int> {
+        return Result.Success(historyRetentionDays)
+    }
+
+    override suspend fun saveExportFormat(format: ExportFormat): Result<Unit> {
+        this.exportFormat = format
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getExportFormat(): Result<ExportFormat> {
+        return Result.Success(exportFormat)
+    }
+
+    override suspend fun saveDashboardMetricsVisible(metrics: Set<String>): Result<Unit> {
+        this.dashboardMetricsVisible = metrics
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getDashboardMetricsVisible(): Result<Set<String>> {
+        return Result.Success(dashboardMetricsVisible)
+    }
+
+    override suspend fun saveChartTimeRange(range: ChartTimeRange): Result<Unit> {
+        this.chartTimeRange = range
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getChartTimeRange(): Result<ChartTimeRange> {
+        return Result.Success(chartTimeRange)
+    }
+
+    override suspend fun saveNotificationsEnabled(enabled: Boolean): Result<Unit> {
+        this.notificationsEnabled = enabled
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getNotificationsEnabled(): Result<Boolean> {
+        return Result.Success(notificationsEnabled)
+    }
+
+    override suspend fun saveDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> {
+        this.dataPrivacyMode = mode
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getDataPrivacyMode(): Result<DataPrivacyMode> {
+        return Result.Success(dataPrivacyMode)
+    }
+
+    override suspend fun saveAllowDataImport(allow: Boolean): Result<Unit> {
+        this.allowDataImport = allow
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getAllowDataImport(): Result<Boolean> {
+        return Result.Success(allowDataImport)
+    }
+
+    override fun validateHistoryRetentionDays(days: Int): Boolean {
+        return days in 1..365 // 1 day to 1 year
+    }
 }
 
 class MockMemoryProfiler : MemoryProfiler {
-    override fun getCurrentMemoryUsage(): Long = 1024L * 1024L // 1MB
-    override fun getMaxMemoryUsage(): Long = 1024L * 1024L * 100L // 100MB  
-    override fun logMemoryUsage(tag: String) {}
-    override fun isLowMemory(): Boolean = false
+    override fun getCurrentMemoryInfo(): MemoryInfo = MemoryInfo(
+        totalMemory = 1024L * 1024L * 100L, // 100MB
+        freeMemory = 1024L * 1024L * 99L, // 99MB
+        usedMemory = 1024L * 1024L, // 1MB
+        maxMemory = 1024L * 1024L * 100L // 100MB
+    )
+    
+    override fun trackObject(obj: Any, tag: String): String = "mock-id-${obj.hashCode()}"
+    override fun releaseObject(id: String) {}
+    override fun performWeakReferenceCleanup(): Int = 0
+    override fun detectPotentialLeaks(): List<LeakSuspicion> = emptyList()
+    override fun observeMemoryInfo(): Flow<MemoryInfo> = flowOf(getCurrentMemoryInfo())
+    override fun observeLeakSuspicions(): Flow<List<LeakSuspicion>> = flowOf(emptyList())
+    override fun getWeakReferenceInfo(): List<WeakReferenceInfo> = emptyList()
+    override fun suggestGarbageCollection() {}
 }
 
 val mockPlatformModule = module {

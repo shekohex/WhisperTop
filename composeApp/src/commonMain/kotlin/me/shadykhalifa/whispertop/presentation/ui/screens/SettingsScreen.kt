@@ -48,6 +48,7 @@ import me.shadykhalifa.whispertop.presentation.ui.components.CustomModelInput
 import me.shadykhalifa.whispertop.presentation.ui.components.LanguagePreferenceSection
 import me.shadykhalifa.whispertop.presentation.ui.components.BatteryOptimizationSection
 import me.shadykhalifa.whispertop.presentation.ui.components.TranscriptionCustomizationSection
+import me.shadykhalifa.whispertop.presentation.ui.components.StatisticsPreferencesSection
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -148,6 +149,20 @@ fun SettingsScreen(
                     selectedModel = uiState.settings.selectedModel,
                     availableModels = uiState.availableModels,
                     onModelSelected = viewModel::updateSelectedModel
+                )
+
+                // Statistics Preferences Section
+                StatisticsPreferencesSection(
+                    settings = uiState.settings,
+                    validationErrors = uiState.statisticsPreferencesValidationErrors,
+                    onStatisticsEnabledChange = viewModel::updateStatisticsEnabled,
+                    onHistoryRetentionDaysChange = viewModel::updateHistoryRetentionDays,
+                    onExportFormatChange = viewModel::updateExportFormat,
+                    onDashboardMetricsVisibleChange = viewModel::updateDashboardMetricsVisible,
+                    onChartTimeRangeChange = viewModel::updateChartTimeRange,
+                    onNotificationsEnabledChange = viewModel::updateNotificationsEnabled,
+                    onDataPrivacyModeChange = viewModel::updateDataPrivacyMode,
+                    onAllowDataImportChange = viewModel::updateAllowDataImport
                 )
 
                 // Loading indicator

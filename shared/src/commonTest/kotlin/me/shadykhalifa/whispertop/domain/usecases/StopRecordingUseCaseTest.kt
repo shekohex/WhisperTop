@@ -5,7 +5,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.Language
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.Theme
@@ -524,5 +527,15 @@ class StopRecordingUseCaseTest {
         override suspend fun getWordsPerMinute(): Int = wordsPerMinute
         
         override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
+
+        // Statistics preferences
+        override suspend fun updateStatisticsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateHistoryRetentionDays(days: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateExportFormat(format: ExportFormat): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateDashboardMetricsVisible(metrics: Set<String>): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateChartTimeRange(range: ChartTimeRange): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateNotificationsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateAllowDataImport(allow: Boolean): Result<Unit> = Result.Success(Unit)
     }
 }

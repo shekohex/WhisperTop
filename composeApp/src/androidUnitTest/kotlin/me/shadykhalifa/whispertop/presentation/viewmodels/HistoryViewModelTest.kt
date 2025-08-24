@@ -10,12 +10,15 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import me.shadykhalifa.whispertop.domain.models.DailyUsage
 import me.shadykhalifa.whispertop.domain.models.DateRange
 import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.ExportResult
 import me.shadykhalifa.whispertop.domain.models.SortOption
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistory
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
+import me.shadykhalifa.whispertop.domain.models.TranscriptionSession
 import me.shadykhalifa.whispertop.domain.models.TranscriptionStatistics
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
 import me.shadykhalifa.whispertop.utils.Result
@@ -392,15 +395,31 @@ private class MockTranscriptionHistoryRepository : TranscriptionHistoryRepositor
 
     override suspend fun deleteTranscriptions(ids: List<String>): Result<Int> = deleteMultipleResult
 
+    override suspend fun deleteOlderThan(timestamp: Long): Result<Int> = deleteMultipleResult
+
+    override suspend fun getTranscriptionsOlderThan(cutoffTime: Long): Result<List<TranscriptionHistoryItem>> = 
+        Result.Success(emptyList())
+
+    override suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int> = 
+        Result.Success(0)
+
     override suspend fun exportTranscriptions(
         format: ExportFormat,
         dateRange: DateRange
     ): Flow<ExportResult> = exportResult
-    
-    override suspend fun deleteOlderThan(timestamp: Long): Result<Int> = Result.Success(0)
-    
-    override suspend fun getTranscriptionsOlderThan(cutoffTime: Long): Result<List<TranscriptionHistoryItem>> = 
+
+    override suspend fun getRecentTranscriptionSessions(limit: Int): Result<List<TranscriptionSession>> = 
         Result.Success(emptyList())
-    
-    override suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int> = Result.Success(0)
+
+    override suspend fun getDailyUsage(startDate: LocalDate, endDate: LocalDate): Result<List<DailyUsage>> = 
+        Result.Success(emptyList())
+
+    override suspend fun getTranscriptionHistory(offset: Int, limit: Int): Result<List<TranscriptionHistoryItem>> = 
+        Result.Success(emptyList())
+
+    override suspend fun searchTranscriptionHistory(query: String, offset: Int, limit: Int): Result<List<TranscriptionHistoryItem>> = 
+        Result.Success(emptyList())
+
+    override suspend fun getTotalHistoryCount(): Result<Long> = 
+        Result.Success(0L)
 }

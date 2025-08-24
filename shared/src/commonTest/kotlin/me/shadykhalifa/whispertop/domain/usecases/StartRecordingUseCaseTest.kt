@@ -1,21 +1,24 @@
 package me.shadykhalifa.whispertop.domain.usecases
 
+import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.AudioFile
-import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
-import io.mockk.mockk
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.utils.TestConstants
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import me.shadykhalifa.whispertop.utils.TestConstants
 
 class StartRecordingUseCaseTest {
     
@@ -353,5 +356,15 @@ class StartRecordingUseCaseTest {
         override suspend fun getWordsPerMinute(): Int = wordsPerMinute
         
         override suspend fun isWpmOnboardingCompleted(): Boolean = wpmOnboardingCompleted
+
+        // Statistics preferences
+        override suspend fun updateStatisticsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateHistoryRetentionDays(days: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateExportFormat(format: ExportFormat): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateDashboardMetricsVisible(metrics: Set<String>): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateChartTimeRange(range: ChartTimeRange): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateNotificationsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateAllowDataImport(allow: Boolean): Result<Unit> = Result.Success(Unit)
     }
 }

@@ -8,6 +8,11 @@ import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
+import me.shadykhalifa.whispertop.domain.models.DefaultDashboardMetrics
+import me.shadykhalifa.whispertop.domain.models.fromString
 import me.shadykhalifa.whispertop.utils.Result
 
 class SecurePreferencesRepositoryImpl(
@@ -26,6 +31,24 @@ class SecurePreferencesRepositoryImpl(
         const val DEFAULT_WPM = 36 // Mobile-optimized default based on research
         const val MIN_WPM = 20
         const val MAX_WPM = 60
+        
+        // Statistics Preferences keys
+        const val KEY_STATISTICS_ENABLED = "statistics_enabled"
+        const val KEY_HISTORY_RETENTION_DAYS = "history_retention_days"
+        const val KEY_EXPORT_FORMAT = "export_format"
+        const val KEY_DASHBOARD_METRICS = "dashboard_metrics_visible"
+        const val KEY_CHART_TIME_RANGE = "chart_time_range"
+        const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
+        const val KEY_DATA_PRIVACY_MODE = "data_privacy_mode"
+        const val KEY_ALLOW_DATA_IMPORT = "allow_data_import"
+        
+        // Default values
+        const val DEFAULT_STATISTICS_ENABLED = true
+        const val DEFAULT_HISTORY_RETENTION_DAYS = 90
+        const val MIN_RETENTION_DAYS = 7
+        const val MAX_RETENTION_DAYS = 365
+        const val DEFAULT_NOTIFICATIONS_ENABLED = true
+        const val DEFAULT_ALLOW_DATA_IMPORT = true
     }
 
     private val masterKey = MasterKey.Builder(context)
@@ -242,6 +265,204 @@ class SecurePreferencesRepositoryImpl(
     override fun validateWpm(wpm: Int): Boolean {
         val isValid = wpm in MIN_WPM..MAX_WPM
         println("SecurePreferencesRepository: WPM validation - value=$wpm, range=$MIN_WPM-$MAX_WPM, isValid=$isValid")
+        return isValid
+    }
+    
+    // Statistics Preferences Implementation
+    
+    override suspend fun saveStatisticsEnabled(enabled: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putBoolean(KEY_STATISTICS_ENABLED, enabled)
+            }
+            println("SecurePreferencesRepository: Statistics enabled saved - $enabled")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save statistics enabled - ${e.message}")
+            Result.Error(Exception("Failed to save statistics enabled", e))
+        }
+    }
+    
+    override suspend fun getStatisticsEnabled(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val enabled = encryptedPrefs.getBoolean(KEY_STATISTICS_ENABLED, DEFAULT_STATISTICS_ENABLED)
+            Result.Success(enabled)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve statistics enabled", e))
+        }
+    }
+    
+    override suspend fun saveHistoryRetentionDays(days: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!validateHistoryRetentionDays(days)) {
+                val errorMsg = "Invalid retention days. Must be between $MIN_RETENTION_DAYS and $MAX_RETENTION_DAYS."
+                return@withContext Result.Error(IllegalArgumentException(errorMsg))
+            }
+            
+            encryptedPrefs.edit {
+                putInt(KEY_HISTORY_RETENTION_DAYS, days)
+            }
+            println("SecurePreferencesRepository: History retention days saved - $days")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save history retention days - ${e.message}")
+            Result.Error(Exception("Failed to save history retention days", e))
+        }
+    }
+    
+    override suspend fun getHistoryRetentionDays(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val days = encryptedPrefs.getInt(KEY_HISTORY_RETENTION_DAYS, DEFAULT_HISTORY_RETENTION_DAYS)
+            Result.Success(days)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve history retention days", e))
+        }
+    }
+    
+    override suspend fun saveExportFormat(format: ExportFormat): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putString(KEY_EXPORT_FORMAT, format.name)
+            }
+            println("SecurePreferencesRepository: Export format saved - ${format.name}")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save export format - ${e.message}")
+            Result.Error(Exception("Failed to save export format", e))
+        }
+    }
+    
+    override suspend fun getExportFormat(): Result<ExportFormat> = withContext(Dispatchers.IO) {
+        try {
+            val formatName = encryptedPrefs.getString(KEY_EXPORT_FORMAT, ExportFormat.JSON.name)
+            val format = ExportFormat.fromString(formatName ?: ExportFormat.JSON.name)
+            Result.Success(format)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve export format", e))
+        }
+    }
+    
+    override suspend fun saveDashboardMetricsVisible(metrics: Set<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val metricsString = metrics.joinToString(",")
+            encryptedPrefs.edit {
+                putString(KEY_DASHBOARD_METRICS, metricsString)
+            }
+            println("SecurePreferencesRepository: Dashboard metrics saved - ${metrics.size} metrics")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save dashboard metrics - ${e.message}")
+            Result.Error(Exception("Failed to save dashboard metrics", e))
+        }
+    }
+    
+    override suspend fun getDashboardMetricsVisible(): Result<Set<String>> = withContext(Dispatchers.IO) {
+        try {
+            val metricsString = encryptedPrefs.getString(KEY_DASHBOARD_METRICS, null)
+            val metrics = if (metricsString.isNullOrBlank()) {
+                DefaultDashboardMetrics.ALL_METRICS
+            } else {
+                metricsString.split(",").toSet()
+            }
+            Result.Success(metrics)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve dashboard metrics", e))
+        }
+    }
+    
+    override suspend fun saveChartTimeRange(range: ChartTimeRange): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putString(KEY_CHART_TIME_RANGE, range.name)
+            }
+            println("SecurePreferencesRepository: Chart time range saved - ${range.name}")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save chart time range - ${e.message}")
+            Result.Error(Exception("Failed to save chart time range", e))
+        }
+    }
+    
+    override suspend fun getChartTimeRange(): Result<ChartTimeRange> = withContext(Dispatchers.IO) {
+        try {
+            val rangeName = encryptedPrefs.getString(KEY_CHART_TIME_RANGE, ChartTimeRange.DAYS_14.name)
+            val range = ChartTimeRange.fromString(rangeName ?: ChartTimeRange.DAYS_14.name)
+            Result.Success(range)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve chart time range", e))
+        }
+    }
+    
+    override suspend fun saveNotificationsEnabled(enabled: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled)
+            }
+            println("SecurePreferencesRepository: Notifications enabled saved - $enabled")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save notifications enabled - ${e.message}")
+            Result.Error(Exception("Failed to save notifications enabled", e))
+        }
+    }
+    
+    override suspend fun getNotificationsEnabled(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val enabled = encryptedPrefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED)
+            Result.Success(enabled)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve notifications enabled", e))
+        }
+    }
+    
+    override suspend fun saveDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putString(KEY_DATA_PRIVACY_MODE, mode.name)
+            }
+            println("SecurePreferencesRepository: Data privacy mode saved - ${mode.name}")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save data privacy mode - ${e.message}")
+            Result.Error(Exception("Failed to save data privacy mode", e))
+        }
+    }
+    
+    override suspend fun getDataPrivacyMode(): Result<DataPrivacyMode> = withContext(Dispatchers.IO) {
+        try {
+            val modeName = encryptedPrefs.getString(KEY_DATA_PRIVACY_MODE, DataPrivacyMode.FULL.name)
+            val mode = DataPrivacyMode.fromString(modeName ?: DataPrivacyMode.FULL.name)
+            Result.Success(mode)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve data privacy mode", e))
+        }
+    }
+    
+    override suspend fun saveAllowDataImport(allow: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putBoolean(KEY_ALLOW_DATA_IMPORT, allow)
+            }
+            println("SecurePreferencesRepository: Allow data import saved - $allow")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save allow data import - ${e.message}")
+            Result.Error(Exception("Failed to save allow data import", e))
+        }
+    }
+    
+    override suspend fun getAllowDataImport(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val allow = encryptedPrefs.getBoolean(KEY_ALLOW_DATA_IMPORT, DEFAULT_ALLOW_DATA_IMPORT)
+            Result.Success(allow)
+        } catch (e: Exception) {
+            Result.Error(Exception("Failed to retrieve allow data import", e))
+        }
+    }
+    
+    override fun validateHistoryRetentionDays(days: Int): Boolean {
+        val isValid = days in MIN_RETENTION_DAYS..MAX_RETENTION_DAYS
+        println("SecurePreferencesRepository: Retention days validation - value=$days, range=$MIN_RETENTION_DAYS-$MAX_RETENTION_DAYS, isValid=$isValid")
         return isValid
     }
 }

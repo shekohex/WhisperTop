@@ -2,6 +2,10 @@ package me.shadykhalifa.whispertop.domain.repositories
 
 import kotlinx.coroutines.test.runTest
 import me.shadykhalifa.whispertop.data.security.SecurePreferencesRepositoryImpl
+import me.shadykhalifa.whispertop.domain.models.ExportFormat
+import me.shadykhalifa.whispertop.domain.models.ChartTimeRange
+import me.shadykhalifa.whispertop.domain.models.DataPrivacyMode
+import me.shadykhalifa.whispertop.domain.models.DefaultDashboardMetrics
 import me.shadykhalifa.whispertop.utils.Result
 import kotlin.test.*
 import me.shadykhalifa.whispertop.utils.TestConstants
@@ -93,6 +97,25 @@ class CustomEndpointValidationTest {
         override fun validateWpm(wpm: Int): Boolean {
             return wpm in 1..300
         }
+
+        // Statistics preferences
+        override suspend fun saveStatisticsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun getStatisticsEnabled(): Result<Boolean> = Result.Success(true)
+        override suspend fun saveHistoryRetentionDays(days: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun getHistoryRetentionDays(): Result<Int> = Result.Success(30)
+        override suspend fun saveExportFormat(format: ExportFormat): Result<Unit> = Result.Success(Unit)
+        override suspend fun getExportFormat(): Result<ExportFormat> = Result.Success(ExportFormat.JSON)
+        override suspend fun saveDashboardMetricsVisible(metrics: Set<String>): Result<Unit> = Result.Success(Unit)
+        override suspend fun getDashboardMetricsVisible(): Result<Set<String>> = Result.Success(DefaultDashboardMetrics.ESSENTIAL_METRICS)
+        override suspend fun saveChartTimeRange(range: ChartTimeRange): Result<Unit> = Result.Success(Unit)
+        override suspend fun getChartTimeRange(): Result<ChartTimeRange> = Result.Success(ChartTimeRange.DAYS_14)
+        override suspend fun saveNotificationsEnabled(enabled: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun getNotificationsEnabled(): Result<Boolean> = Result.Success(true)
+        override suspend fun saveDataPrivacyMode(mode: DataPrivacyMode): Result<Unit> = Result.Success(Unit)
+        override suspend fun getDataPrivacyMode(): Result<DataPrivacyMode> = Result.Success(DataPrivacyMode.FULL)
+        override suspend fun saveAllowDataImport(allow: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun getAllowDataImport(): Result<Boolean> = Result.Success(true)
+        override fun validateHistoryRetentionDays(days: Int): Boolean = days in 1..365
     }
 
     @Test
