@@ -17,6 +17,7 @@ import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.usecases.DurationTrackerUseCase
 import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -33,7 +34,7 @@ class RecordingManager(
     
     private var recordingJob: Job? = null
     private var timeoutJob: Job? = null
-    private var durationUpdateJob: Job? = null
+
     
     private val maxRecordingDurationMs = 25 * 60 * 1000L // 25 minutes for 25MB limit
     private val retryAttempts = 3
@@ -49,7 +50,7 @@ class RecordingManager(
                 val startTime = getCurrentTimeMillis()
                 _recordingState.value = RecordingState.Recording(startTime = startTime)
                 
-                startDurationUpdates(startTime)
+
                 startTimeoutJob()
                 
                 val startResult = audioRepository.startRecording()
@@ -78,7 +79,6 @@ class RecordingManager(
         }
         
         recordingJob?.cancel()
-        durationUpdateJob?.cancel()
         timeoutJob?.cancel()
         
         recordingJob = scope.launch {
@@ -106,7 +106,6 @@ class RecordingManager(
     
     fun cancelRecording() {
         recordingJob?.cancel()
-        durationUpdateJob?.cancel()
         timeoutJob?.cancel()
         
         scope.launch {
@@ -131,20 +130,9 @@ class RecordingManager(
         cancelRecording()
     }
     
-    private fun startDurationUpdates(startTime: Long) {
-        durationUpdateJob = scope.launch {
-            while (true) {
-                delay(100) // Update every 100ms
-                val currentState = _recordingState.value
-                if (currentState is RecordingState.Recording) {
-                    val duration = getCurrentTimeMillis() - startTime
-                    _recordingState.value = currentState.copy(duration = duration)
-                } else {
-                    break
-                }
-            }
-        }
-    }
+
+    
+
     
     private fun startTimeoutJob() {
         timeoutJob = scope.launch {
@@ -198,7 +186,6 @@ class RecordingManager(
     
     private suspend fun handleRecordingError(throwable: Throwable, retryable: Boolean) {
         recordingJob?.cancel()
-        durationUpdateJob?.cancel()
         timeoutJob?.cancel()
         
         try {
@@ -215,7 +202,6 @@ class RecordingManager(
     
     fun cleanup() {
         recordingJob?.cancel()
-        durationUpdateJob?.cancel()
         timeoutJob?.cancel()
         scope.cancel()
     }

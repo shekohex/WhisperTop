@@ -1573,7 +1573,7 @@
         "description": "Remove the coroutine and delay management from AudioRecordingViewModel by creating a DurationTrackerUseCase that emits Flow<Long> for recording duration, moving timing logic to proper domain layer architecture.",
         "details": "CRITICAL ARCHITECTURE VIOLATION: AudioRecordingViewModel directly manages coroutines and delays (lines 120-128) with startDurationTimer() method containing a while loop with kotlinx.coroutines.delay(100). This violates clean architecture - ViewModels must ONLY collect flows, not manage timing infrastructure.\n\nImplementation Steps:\n1. Create DurationTrackerUseCase in shared/src/commonMain/kotlin/.../domain/usecases/ that observes AudioRepository.recordingState flow\n2. Map RecordingState.Recording(duration) to emit duration values as Flow<Long>, emit 0L for non-recording states\n3. Add proper error handling and ensure flow completes when recording stops\n4. Remove startDurationTimer() method entirely from AudioRecordingViewModel (lines 120-128)\n5. Remove _recordingDuration StateFlow management from ViewModel - duration will come from use case\n6. Update observeServiceEvents() method to collect from DurationTrackerUseCase.execute() instead of manual timer\n7. Inject DurationTrackerUseCase into AudioRecordingViewModel constructor\n8. Register DurationTrackerUseCase in Koin dependency injection modules\n9. Update recordingDuration StateFlow to collect from use case flow instead of manual updates\n10. Ensure existing UI duration display continues working through proper flow-based architecture\n11. Remove all direct audioServiceManager.getRecordingDuration() calls from ViewModel\n12. The egregious while loop with delay(100) will be completely eliminated, replaced with clean reactive flow architecture",
         "testStrategy": "1. Verify DurationTrackerUseCase emits correct duration values during recording states and 0L when idle. 2. Test duration updates every 100ms through flow emissions without ViewModel managing any timers. 3. Confirm startDurationTimer() method is completely removed from AudioRecordingViewModel. 4. Test recording duration UI updates work correctly through new use case flow. 5. Verify no coroutine management or delay() calls remain in ViewModel. 6. Test that duration resets to 0 when recording stops through use case flow. 7. Run existing AudioRecordingViewModelTest to ensure no regressions in functionality. 8. Test complete recording workflow: start recording → duration updates → stop recording → duration reset. 9. Verify memory and performance - no timer leaks when ViewModel is destroyed.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           10,
           39,
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-24T01:45:54.869Z",
+      "updated": "2025-08-24T11:27:16.707Z",
       "description": "Tasks for master context"
     }
   }
