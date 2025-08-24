@@ -234,4 +234,74 @@ interface TranscriptionHistoryDao {
     
     @Query("SELECT * FROM transcription_history WHERE timestamp < :timestamp ORDER BY timestamp DESC")
     suspend fun getByTimestampBefore(timestamp: Long): List<TranscriptionHistoryEntity>
+    
+    // Retention and export tracking methods
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE (:startTime IS NULL OR timestamp >= :startTime) 
+        AND (:endTime IS NULL OR timestamp <= :endTime)
+        AND (:retentionPolicyId IS NULL OR retentionPolicyId = :retentionPolicyId)
+        ORDER BY timestamp DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getAllForExportChunk(
+        startTime: Long?, 
+        endTime: Long?, 
+        retentionPolicyId: String?,
+        limit: Int, 
+        offset: Int
+    ): List<TranscriptionHistoryEntity>
+    
+    @Query("UPDATE transcription_history SET exportCount = exportCount + 1, lastExported = :timestamp WHERE id IN (:ids)")
+    suspend fun markAsExported(ids: List<String>, timestamp: Long): Int
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE retentionPolicyId = :policyId
+        AND isProtected = 0
+        ORDER BY timestamp ASC
+    """)
+    suspend fun getByRetentionPolicy(policyId: String): List<TranscriptionHistoryEntity>
+    
+    @Query("""
+        SELECT * FROM transcription_history 
+        WHERE retentionPolicyId = :policyId
+        AND timestamp < :cutoffTime
+        AND isProtected = 0
+        ORDER BY timestamp ASC
+    """)
+    suspend fun getExpiredByRetentionPolicy(policyId: String, cutoffTime: Long): List<TranscriptionHistoryEntity>
+    
+    @Query("UPDATE transcription_history SET isProtected = :isProtected WHERE id IN (:ids)")
+    suspend fun setProtectionStatus(ids: List<String>, isProtected: Boolean): Int
+    
+    @Query("SELECT COUNT(*) FROM transcription_history WHERE retentionPolicyId = :policyId")
+    suspend fun getCountByRetentionPolicy(policyId: String): Long
+    
+    @Query("""
+        DELETE FROM transcription_history 
+        WHERE retentionPolicyId = :policyId 
+        AND timestamp < :cutoffTime 
+        AND isProtected = 0
+    """)
+    suspend fun deleteExpiredByRetentionPolicy(policyId: String, cutoffTime: Long): Int
+    
+    // Data summary methods for export UI
+    @Query("SELECT COUNT(*) FROM transcription_history")
+    suspend fun getTotalCount(): Long
+    
+    @Query("SELECT SUM(LENGTH(text) + LENGTH(COALESCE(audioFilePath, ''))) FROM transcription_history")
+    suspend fun getTotalSizeBytes(): Long
+    
+    @Query("SELECT MIN(timestamp) FROM transcription_history")
+    suspend fun getOldestTranscriptionDate(): Long?
+    
+    @Query("SELECT MAX(timestamp) FROM transcription_history")
+    suspend fun getNewestTranscriptionDate(): Long?
+    
+    @Query("SELECT COUNT(*) FROM transcription_history WHERE isProtected = 1")
+    suspend fun getProtectedCount(): Long
+    
+    @Query("UPDATE transcription_history SET retentionPolicyId = :policyId")
+    suspend fun updateAllRetentionPolicy(policyId: String): Int
 }

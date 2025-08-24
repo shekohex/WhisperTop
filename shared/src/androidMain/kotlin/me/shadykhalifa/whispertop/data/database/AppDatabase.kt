@@ -18,7 +18,7 @@ import me.shadykhalifa.whispertop.data.database.entities.SessionMetricsEntity
         UserStatisticsEntity::class,
         SessionMetricsEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -137,6 +137,53 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("""
                     CREATE INDEX IF NOT EXISTS idx_user_statistics_updated 
                     ON user_statistics(lastUpdated)
+                """.trimIndent())
+            }
+        }
+        
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add retention and export tracking fields to transcription_history table
+                database.execSQL("""
+                    ALTER TABLE transcription_history 
+                    ADD COLUMN retentionPolicyId TEXT DEFAULT NULL
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE transcription_history 
+                    ADD COLUMN isProtected INTEGER NOT NULL DEFAULT 0
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE transcription_history 
+                    ADD COLUMN exportCount INTEGER NOT NULL DEFAULT 0
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE transcription_history 
+                    ADD COLUMN lastExported INTEGER DEFAULT NULL
+                """.trimIndent())
+                
+                // Create indices for the new retention and export fields
+                database.execSQL("""
+                    CREATE INDEX idx_retention_policy 
+                    ON transcription_history(retentionPolicyId)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX idx_protected 
+                    ON transcription_history(isProtected)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX idx_last_exported 
+                    ON transcription_history(lastExported)
+                """.trimIndent())
+                
+                // Create composite index for retention queries
+                database.execSQL("""
+                    CREATE INDEX idx_retention_cleanup 
+                    ON transcription_history(retentionPolicyId, timestamp, isProtected)
                 """.trimIndent())
             }
         }

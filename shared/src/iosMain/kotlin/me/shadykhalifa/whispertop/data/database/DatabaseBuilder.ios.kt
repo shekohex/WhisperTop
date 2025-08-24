@@ -9,7 +9,7 @@ fun createDatabaseBuilder(): AppDatabase {
     return Room.databaseBuilder<AppDatabase>(
         name = dbFilePath,
     )
-    .addMigrations(AppDatabase.MIGRATION_1_2)
+    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
     .setDriver(BundledSQLiteDriver())
     .setQueryCoroutineContext(Dispatchers.IO)
     .build()

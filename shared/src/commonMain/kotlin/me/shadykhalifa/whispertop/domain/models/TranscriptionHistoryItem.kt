@@ -13,5 +13,13 @@ data class TranscriptionHistoryItem(
     val customPrompt: String?,
     val temperature: Float?,
     val language: String?,
-    val model: String?
+    val model: String?,
+    val wordCount: Int = 0,
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L,
+    // Retention and export tracking fields
+    val retentionPolicyId: String? = null,
+    val isProtected: Boolean = false,
+    val exportCount: Int = 0,
+    val lastExported: Long? = null
 )

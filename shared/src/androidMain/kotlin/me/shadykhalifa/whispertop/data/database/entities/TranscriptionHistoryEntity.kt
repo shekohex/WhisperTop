@@ -10,7 +10,10 @@ import kotlinx.serialization.Serializable
     tableName = "transcription_history",
     indices = [
         Index(value = ["timestamp"], name = "idx_timestamp"),
-        Index(value = ["text"], name = "idx_text_search")
+        Index(value = ["text"], name = "idx_text_search"),
+        Index(value = ["retentionPolicyId"], name = "idx_retention_policy"),
+        Index(value = ["isProtected"], name = "idx_protected"),
+        Index(value = ["lastExported"], name = "idx_last_exported")
     ]
 )
 @Serializable
@@ -28,5 +31,10 @@ data class TranscriptionHistoryEntity(
     val model: String? = null,
     val wordCount: Int = 0,
     val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
-    val updatedAt: Long = Clock.System.now().toEpochMilliseconds()
+    val updatedAt: Long = Clock.System.now().toEpochMilliseconds(),
+    // Retention and export tracking fields
+    val retentionPolicyId: String? = null,
+    val isProtected: Boolean = false,
+    val exportCount: Int = 0,
+    val lastExported: Long? = null
 )

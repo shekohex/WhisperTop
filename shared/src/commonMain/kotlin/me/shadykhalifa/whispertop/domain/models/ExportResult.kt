@@ -28,7 +28,13 @@ data class ExportFormat(
             mimeType = "text/csv"
         )
         
-        fun allFormats(): List<ExportFormat> = listOf(JSON, CSV)
+        val TXT = ExportFormat(
+            name = "TXT",
+            extension = "txt", 
+            mimeType = "text/plain"
+        )
+        
+        fun allFormats(): List<ExportFormat> = listOf(JSON, CSV, TXT)
     }
 }
 

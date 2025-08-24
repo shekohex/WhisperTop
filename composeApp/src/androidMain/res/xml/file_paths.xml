@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internal storage for exported transcriptions -->
+    <files-path
+        name="transcription_exports"
+        path="exports/" />
+    
+    <!-- Cache directory for temporary exports -->
+    <cache-path
+        name="temp_exports"
+        path="exports/" />
+    
+    <!-- External storage for user-accessible exports (API 29+) -->
+    <external-files-path
+        name="external_exports"
+        path="WhisperTop/Exports/" />
+</paths>
