@@ -37,6 +37,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
+import me.shadykhalifa.whispertop.presentation.ui.components.TrendChartComponent
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -135,6 +136,17 @@ fun DashboardScreen(
                     avgWordsPerMinute = uiState.statistics?.averageWordsPerMinute ?: 0.0,
                     avgWordsPerSession = uiState.statistics?.averageWordsPerSession ?: 0.0,
                     columns = statisticsColumns
+                )
+            }
+            
+            item(key = "trend_chart") {
+                var showSessions by remember { mutableStateOf(true) }
+                TrendChartComponent(
+                    trendData = uiState.trendData,
+                    showSessions = showSessions,
+                    onMetricToggle = { showSessionsMetric ->
+                        showSessions = showSessionsMetric
+                    }
                 )
             }
             

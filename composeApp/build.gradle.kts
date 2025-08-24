@@ -65,6 +65,8 @@ kotlin {
             implementation(libs.androidx.paging.compose)
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.room.ktx)
+            implementation(libs.vico.compose)
+            implementation(libs.vico.compose.m3)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
