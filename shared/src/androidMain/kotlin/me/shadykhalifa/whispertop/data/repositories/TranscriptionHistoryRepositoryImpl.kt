@@ -263,7 +263,7 @@ class TranscriptionHistoryRepositoryImpl(
         format: ExportFormat,
         dateRange: DateRange
     ): Flow<ExportResult> = flow {
-        emit(ExportResult.InProgress)
+        emit(ExportResult.InProgress(0.0f))
         
         try {
             val totalCount = dao.getExportCount(dateRange.startTime, dateRange.endTime)

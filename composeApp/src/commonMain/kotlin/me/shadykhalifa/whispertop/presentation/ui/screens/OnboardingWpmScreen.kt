@@ -31,7 +31,7 @@ import me.shadykhalifa.whispertop.presentation.viewmodels.AgeGroup
 import me.shadykhalifa.whispertop.presentation.ui.components.TypingTestComponent
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun OnboardingWpmScreen(
     onNavigateBack: () -> Unit,

@@ -6,7 +6,7 @@ import me.shadykhalifa.whispertop.utils.TimeUtils
 sealed class ExportResult {
     data class Success(val filePath: String, val itemCount: Int) : ExportResult()
     data class Error(val message: String, val throwable: Throwable? = null) : ExportResult()
-    data object InProgress : ExportResult()
+    data class InProgress(val progress: Float) : ExportResult()
 }
 
 @Serializable

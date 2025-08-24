@@ -21,7 +21,7 @@ import androidx.compose.runtime.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.collect
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -102,51 +102,52 @@ fun SettingsScreen(
             ) {
                 // OpenAI API Configuration
                 ApiConfigurationSection(
-                    apiKey = uiState.apiKey,
-                    customEndpoint = uiState.customEndpoint,
-                    isValid = uiState.isValid,
-                    timeout = uiState.timeout,
-                    onApiKeyChanged = viewModel::updateApiKey,
-                    onCustomEndpointChanged = viewModel::updateCustomEndpoint,
-                    onTimeoutChanged = viewModel::updateTimeout,
-                    onValidateCredentials = viewModel::validateCredentials,
-                    onResetToDefault = viewModel::resetToDefaults,
-                    onDeleteAllData = viewModel::deleteAllData,
-                    onToggleCustomEndpoint = viewModel::toggleCustomEndpoint,
-                    onToggleDebugMode = viewModel::toggleDebugMode,
-                    currentState = uiState,
-                    
-                    // New Model Selection parameters
-                    availableModels = modelSelectionState.availableModels,
-                    selectedModel = modelSelectionViewModel::selectModel,
-                    onRefreshModels = modelSelectionViewModel::refreshModels,
-                    onAddCustomModel = modelSelectionViewModel::addCustomModel,
-                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
-                    onSelectUseCaseRecommendation = modelSelectionViewModel::selectUseCaseRecommendation,
-                    onUpdateModelParameters = modelSelectionViewModel::updateModelParameters
+                    apiKey = uiState.settings.apiKey,
+                    apiKeyValue = uiState.apiKeyValue,
+                    apiEndpoint = uiState.apiEndpoint,
+                    isApiKeyVisible = uiState.isApiKeyVisible,
+                    validationErrors = uiState.validationErrors,
+                    testingConnection = uiState.testingConnection,
+                    connectionTestResult = uiState.connectionTestResult,
+                    showClearApiKeyDialog = uiState.showClearApiKeyDialog,
+                    onApiKeyChange = viewModel::updateApiKey,
+                    onApiKeyValueChange = viewModel::updateApiKeyValue,
+                    onApiEndpointChange = viewModel::updateApiEndpoint,
+                    onToggleApiKeyVisibility = viewModel::toggleApiKeyVisibility,
+                    onClearApiKey = viewModel::clearApiKey,
+                    onConfirmClearApiKey = viewModel::confirmClearApiKey,
+                    onDismissClearApiKeyDialog = viewModel::dismissClearApiKeyDialog,
+                    onValidateAndSave = viewModel::validateAndSaveApiKey,
+                    onTestConnection = viewModel::testConnection,
+                    onClearConnectionResult = viewModel::clearConnectionTestResult,
+                    isLoading = uiState.savingApiKey
                 )
 
                 // Data Privacy Section 
-                DataPrivacySection(
-                    retentionDays = uiState.retentionDays,
-                    autoDelete = uiState.autoDelete ?: false,
-                    onRetentionDaysChanged = viewModel::updateRetentionDays,
-                    onAutoDeleteChanged = viewModel::updateAutoDelete
+                PrivacyControlsSection(
+                    settings = uiState.settings,
+                    showClearAllDataDialog = uiState.showClearAllDataDialog,
+                    showPrivacyPolicyDialog = uiState.showPrivacyPolicyDialog,
+                    clearingAllData = uiState.clearingAllData,
+                    cleaningTempFiles = uiState.cleaningTempFiles,
+                    onToggleHapticFeedback = viewModel::toggleHapticFeedback,
+                    onToggleUsageAnalytics = viewModel::toggleUsageAnalytics,
+                    onToggleApiCallLogging = viewModel::toggleApiCallLogging,
+                    onToggleAutoCleanupTempFiles = viewModel::toggleAutoCleanupTempFiles,
+                    onUpdateTempFileRetentionDays = viewModel::updateTempFileRetentionDays,
+                    onShowClearAllDataDialog = viewModel::showClearAllDataDialog,
+                    onConfirmClearAllData = viewModel::confirmClearAllData,
+                    onDismissClearAllDataDialog = viewModel::dismissClearAllDataDialog,
+                    onCleanupTemporaryFiles = viewModel::cleanupTemporaryFiles,
+                    onShowPrivacyPolicyDialog = viewModel::showPrivacyPolicyDialog,
+                    onDismissPrivacyPolicyDialog = viewModel::dismissPrivacyPolicyDialog
                 )
 
-                // Enhanced Model Selection Section
-                EnhancedModelSelectionSection(
-                    settings = uiState,
-                    modelSelectionState = modelSelectionState,
-                    onModelSelected = modelSelectionViewModel::selectModel,
-                    onUseCaseRecommendationSelected = modelSelectionViewModel::selectUseCaseRecommendation,
-                    onAddCustomModel = modelSelectionViewModel::addCustomModel,
-                    onRemoveCustomModel = modelSelectionViewModel::removeCustomModel,
-                    onRefreshModels = modelSelectionViewModel::refreshModels,
-                    onUpdateModelParameters = modelSelectionViewModel::updateModelParameters,
-                    onTestModel = modelSelectionViewModel::testModel,
-                    onSaveModelConfiguration = modelSelectionViewModel::saveConfiguration,
-                    onResetModelConfiguration = modelSelectionViewModel::resetConfiguration
+                // Model Selection Section
+                ModelSelectionSection(
+                    selectedModel = uiState.settings.selectedModel,
+                    availableModels = uiState.availableModels,
+                    onModelSelected = viewModel::updateSelectedModel
                 )
 
                 // Loading indicator
@@ -281,10 +282,7 @@ private fun EnhancedModelSelectionSection(
     onModelSelected: (OpenAIModel) -> Unit,
     onUseCaseRecommendationSelected: (ModelUseCase) -> Unit,
     onAddCustomModel: () -> Unit,
-    onRemoveCustomModel: (String) -> Unit,
-    onCustomModelInputChange: (String) -> Unit,
-    onConfirmAddCustomModel: () -> Unit,
-    onCancelAddCustomModel: () -> Unit
+    onRemoveCustomModel: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -375,9 +373,9 @@ private fun EnhancedModelSelectionSection(
             if (modelSelectionState.showAddCustomModelDialog) {
                 CustomModelInput(
                     customModelName = modelSelectionState.customModelInput,
-                    onCustomModelNameChange = onCustomModelInputChange,
-                    onAddCustomModel = onConfirmAddCustomModel,
-                    onCancel = onCancelAddCustomModel,
+                    onCustomModelNameChange = { /* TODO */ },
+                    onAddCustomModel = { /* TODO */ },
+                    onCancel = { /* TODO */ },
                     isValid = modelSelectionState.customModelError == null,
                     modifier = Modifier.fillMaxWidth()
                 )

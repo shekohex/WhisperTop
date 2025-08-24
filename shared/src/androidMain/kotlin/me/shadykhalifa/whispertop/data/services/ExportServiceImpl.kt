@@ -51,7 +51,7 @@ class ExportServiceImpl(
         retentionPolicyId: String?,
         progressCallback: ((Int) -> Unit)?
     ): Flow<ExportResult> = flow {
-        emit(ExportResult.InProgress)
+        emit(ExportResult.InProgress(0.0f))
         
         try {
             // Get total count for progress tracking
@@ -136,7 +136,7 @@ class ExportServiceImpl(
         format: ExportFormat,
         progressCallback: ((Int) -> Unit)?
     ): Flow<ExportResult> = flow {
-        emit(ExportResult.InProgress)
+        emit(ExportResult.InProgress(0.0f))
         
         try {
             val transcriptions = mutableListOf<TranscriptionHistoryItem>()

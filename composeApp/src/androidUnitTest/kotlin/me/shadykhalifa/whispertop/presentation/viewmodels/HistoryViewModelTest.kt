@@ -230,7 +230,7 @@ class HistoryViewModelTest {
     @Test
     fun `export as JSON works correctly`() = runTest {
         mockRepository.exportResult = flowOf(
-            ExportResult.InProgress,
+            ExportResult.InProgress(0.5f),
             ExportResult.Success("export.json", 10)
         )
         
@@ -247,7 +247,7 @@ class HistoryViewModelTest {
     @Test
     fun `export as CSV works correctly`() = runTest {
         mockRepository.exportResult = flowOf(
-            ExportResult.InProgress,
+            ExportResult.InProgress(0.5f),
             ExportResult.Success("export.csv", 5)
         )
         
@@ -264,7 +264,7 @@ class HistoryViewModelTest {
     @Test
     fun `export handles error correctly`() = runTest {
         mockRepository.exportResult = flowOf(
-            ExportResult.InProgress,
+            ExportResult.InProgress(0.5f),
             ExportResult.Error("Export failed")
         )
         
@@ -279,7 +279,7 @@ class HistoryViewModelTest {
     @Test
     fun `export updates loading state correctly`() = runTest(testDispatcher) {
         mockRepository.exportResult = flow {
-            emit(ExportResult.InProgress)
+            emit(ExportResult.InProgress(0.5f))
             delay(100)
             emit(ExportResult.Success("export.json", 10))
         }

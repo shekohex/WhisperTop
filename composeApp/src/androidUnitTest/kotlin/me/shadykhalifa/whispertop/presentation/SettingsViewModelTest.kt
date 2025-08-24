@@ -13,6 +13,9 @@ import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
+import me.shadykhalifa.whispertop.domain.models.ErrorMapper
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.utils.Result
 import org.junit.After
 import org.junit.Before
@@ -34,6 +37,14 @@ class SettingsViewModelTest {
     
     @Mock
     private lateinit var securePreferencesRepository: SecurePreferencesRepository
+    
+    @Mock
+    private lateinit var errorMapper: ErrorMapper
+    
+    @Mock
+    private lateinit var errorNotificationService: ErrorNotificationService
+    
+    private lateinit var errorHandler: ViewModelErrorHandler
     
     private lateinit var viewModel: SettingsViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -66,7 +77,8 @@ class SettingsViewModelTest {
             whenever(securePreferencesRepository.getApiEndpoint()).thenReturn(Result.Success("https://api.openai.com/v1/"))
         }
         
-        viewModel = SettingsViewModel(settingsRepository, securePreferencesRepository)
+        errorHandler = ViewModelErrorHandler(errorMapper, errorNotificationService)
+        viewModel = SettingsViewModel(settingsRepository, securePreferencesRepository, errorHandler)
     }
     
     @After

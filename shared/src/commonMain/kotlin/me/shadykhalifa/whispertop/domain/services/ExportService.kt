@@ -23,6 +23,15 @@ interface ExportService {
     ): Flow<ExportResult>
     
     /**
+     * Export data with streaming progress updates - alias for exportTranscriptions
+     */
+    suspend fun exportData(
+        format: ExportFormat,
+        dateRange: DateRange,
+        includeProtectedData: Boolean = false
+    ): Flow<ExportResult> = exportTranscriptions(format, dateRange)
+    
+    /**
      * Export specific transcriptions by IDs
      */
     suspend fun exportTranscriptionsByIds(

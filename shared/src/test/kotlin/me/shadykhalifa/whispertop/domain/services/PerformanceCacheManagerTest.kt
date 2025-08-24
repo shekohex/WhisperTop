@@ -1,6 +1,7 @@
 package me.shadykhalifa.whispertop.domain.services
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.models.TranscriptionSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,12 +14,11 @@ class PerformanceCacheManagerTest {
     private fun createTestSession(id: String): TranscriptionSession {
         return TranscriptionSession(
             id = id,
-            audioFilePath = "/test/$id.wav",
-            transcriptionText = "Test transcription $id",
-            timestamp = System.currentTimeMillis(),
-            duration = 5000L,
-            language = "en",
-            model = "whisper-1"
+            timestamp = kotlinx.datetime.Clock.System.now(),
+            audioLengthMs = 5000L,
+            wordCount = 10,
+            characterCount = 50,
+            transcribedText = "Test transcription $id"
         )
     }
     
@@ -192,7 +192,7 @@ class PerformanceCacheManagerTest {
         val statsFlow = cache.observeStats()
         
         var receivedStats: me.shadykhalifa.whispertop.domain.models.CacheStats? = null
-        val job = kotlinx.coroutines.launch {
+        val job = launch {
             statsFlow.collect { stats ->
                 receivedStats = stats
             }

@@ -14,6 +14,8 @@ data class RetentionPolicy(
     val isDefault: Boolean = false,
     val isProtected: Boolean = false
 ) {
+    val displayName: String get() = name
+    
     companion object {
         val SEVEN_DAYS = RetentionPolicy(
             id = "retention_7_days",

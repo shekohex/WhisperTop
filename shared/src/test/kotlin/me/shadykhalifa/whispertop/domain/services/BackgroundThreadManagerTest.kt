@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.domain.services
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -145,7 +146,7 @@ class BackgroundThreadManagerTest {
         val metricsFlow = manager.observeTaskMetrics()
         
         var receivedMetrics: List<TaskMetrics>? = null
-        val job = kotlinx.coroutines.launch {
+        val job = launch {
             metricsFlow.collect { metrics ->
                 receivedMetrics = metrics
             }
