@@ -20,12 +20,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import androidx.navigation.NavType
 import me.shadykhalifa.whispertop.presentation.ui.components.BottomNavigationComponent
 import me.shadykhalifa.whispertop.presentation.ui.screens.AndroidHomeScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.HistoryScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.PermissionsDashboardScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.SettingsScreen
+import me.shadykhalifa.whispertop.presentation.ui.screens.TranscriptionDetailScreen
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
 import org.koin.compose.koinInject
 
@@ -135,6 +138,9 @@ fun MainNavGraph(
                                 launchSingleTop = true
                             }
                         }
+                    },
+                    onNavigateToDetail = { transcriptionId ->
+                        navController.navigate("transcription_detail/$transcriptionId")
                     }
                 )
             }
@@ -171,6 +177,19 @@ fun MainNavGraph(
                                 launchSingleTop = true
                             }
                         }
+                    }
+                )
+            }
+            
+            composable(
+                route = "transcription_detail/{transcriptionId}",
+                arguments = listOf(navArgument("transcriptionId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val transcriptionId = backStackEntry.arguments?.getString("transcriptionId") ?: ""
+                TranscriptionDetailScreen(
+                    transcriptionId = transcriptionId,
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

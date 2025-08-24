@@ -39,6 +39,7 @@ import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.HistoryViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.TranscriptionDetailViewModel
 import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.data.database.createDatabaseBuilder
 import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
@@ -123,6 +124,12 @@ val androidAppModule = module {
     viewModel { 
         MainNavigationViewModel(
             savedStateHandle = get()
+        )
+    }
+    viewModel { 
+        TranscriptionDetailViewModel(
+            transcriptionHistoryRepository = get(),
+            errorHandler = get()
         )
     }
 }
