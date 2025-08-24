@@ -38,6 +38,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
 import me.shadykhalifa.whispertop.presentation.ui.components.TrendChartComponent
+import me.shadykhalifa.whispertop.presentation.ui.components.ShimmerDashboardStats
+import me.shadykhalifa.whispertop.presentation.ui.components.ShimmerChart
+import me.shadykhalifa.whispertop.presentation.ui.components.ShimmerTranscriptionCard
+import me.shadykhalifa.whispertop.presentation.ui.components.ShimmerBox
+import me.shadykhalifa.whispertop.presentation.ui.components.AnimatedErrorState
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -51,6 +56,16 @@ fun DashboardScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
+    
+    // Enhanced pull-to-refresh with custom spring animation
+    val refreshProgress by animateFloatAsState(
+        targetValue = if (uiState.isRefreshing) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "refreshProgress"
+    )
     
     // Calculate responsive layout parameters
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -613,15 +628,15 @@ private fun DashboardShimmerContent(
         }
         
         item {
-            ShimmerMetricsSection(columns = columns)
+            ShimmerDashboardStats(columns = columns)
         }
         
         item {
-            ShimmerStatisticsGrid(columns = columns)
+            ShimmerChart(height = 200.dp)
         }
         
         items(3) {
-            ShimmerRecentActivityItem()
+            ShimmerTranscriptionCard()
         }
     }
 }
@@ -630,204 +645,22 @@ private fun DashboardShimmerContent(
 private fun ShimmerHeaderContent() {
     Column {
         ShimmerBox(
-            width = 200.dp,
-            height = 32.dp
+            modifier = Modifier
+                .width(200.dp)
+                .height(32.dp)
         )
         
         Spacer(modifier = Modifier.height(4.dp))
         
         ShimmerBox(
-            width = 280.dp,
-            height = 20.dp
+            modifier = Modifier
+                .width(280.dp)
+                .height(20.dp)
         )
     }
 }
 
-@Composable
-private fun ShimmerMetricsSection(columns: Int) {
-    Column {
-        ShimmerBox(
-            width = 180.dp,
-            height = 24.dp
-        )
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            modifier = Modifier.height(if (columns > 2) 200.dp else 320.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(4) {
-                ShimmerMetricCard()
-            }
-        }
-    }
-}
 
-@Composable
-private fun ShimmerStatisticsGrid(columns: Int) {
-    Column {
-        ShimmerBox(
-            width = 160.dp,
-            height = 24.dp
-        )
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            modifier = Modifier.height(if (columns > 2) 160.dp else 240.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(4) {
-                ShimmerStatisticCard()
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShimmerMetricCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(150.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            ShimmerBox(
-                width = 24.dp,
-                height = 24.dp
-            )
-            
-            Column {
-                ShimmerBox(
-                    width = 80.dp,
-                    height = 28.dp
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                ShimmerBox(
-                    width = 60.dp,
-                    height = 16.dp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShimmerStatisticCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            ShimmerBox(
-                width = 20.dp,
-                height = 20.dp
-            )
-            
-            Column {
-                ShimmerBox(
-                    width = 70.dp,
-                    height = 20.dp
-                )
-                
-                ShimmerBox(
-                    width = 50.dp,
-                    height = 14.dp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShimmerRecentActivityItem() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ShimmerBox(
-                width = 24.dp,
-                height = 24.dp
-            )
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                ShimmerBox(
-                    width = 150.dp,
-                    height = 16.dp
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                ShimmerBox(
-                    width = 80.dp,
-                    height = 14.dp
-                )
-            }
-            
-            ShimmerBox(
-                width = 60.dp,
-                height = 14.dp
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShimmerBox(
-    width: Dp,
-    height: Dp,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-    
-    Box(
-        modifier = modifier
-            .size(width, height)
-            .clip(RoundedCornerShape(4.dp))
-            .background(
-                MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
-            )
-    )
-}
 
 @Composable
 private fun ErrorStateContent(
@@ -835,55 +668,9 @@ private fun ErrorStateContent(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    AnimatedErrorState(
+        message = message,
+        onRetry = onRetry,
         modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.ErrorOutline,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "Something went wrong",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.semantics { 
-                contentDescription = "Retry loading dashboard data" 
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Text("Retry")
-        }
-    }
+    )
 }

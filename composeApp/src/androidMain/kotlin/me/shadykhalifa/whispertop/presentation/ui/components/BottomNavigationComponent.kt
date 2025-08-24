@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import me.shadykhalifa.whispertop.presentation.navigation.NavigationTab
+import me.shadykhalifa.whispertop.presentation.ui.components.bounceClick
 
 @Composable
 fun BottomNavigationComponent(
@@ -43,6 +44,7 @@ fun BottomNavigationComponent(
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onTabSelected(tab) },
+                modifier = Modifier.bounceClick(scaleDown = 0.92f),
                 icon = {
                     TabIcon(
                         tab = tab,

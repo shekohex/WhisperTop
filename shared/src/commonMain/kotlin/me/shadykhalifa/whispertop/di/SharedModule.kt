@@ -8,9 +8,8 @@ import me.shadykhalifa.whispertop.data.remote.createHttpClient
 import me.shadykhalifa.whispertop.data.repositories.AudioRepositoryImpl
 import me.shadykhalifa.whispertop.data.repositories.SettingsRepositoryImpl
 import me.shadykhalifa.whispertop.data.repositories.TranscriptionRepositoryImpl
-// TODO: These repository implementations need to be created
-// import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
-// import me.shadykhalifa.whispertop.data.repositories.UserStatisticsRepositoryImpl
+// TranscriptionHistoryRepositoryImpl and UserStatisticsRepositoryImpl are platform-specific (androidMain)
+// and will be registered in platform modules
 import me.shadykhalifa.whispertop.data.services.AudioCacheServiceImpl
 import me.shadykhalifa.whispertop.data.services.AudioRecorderServiceImpl
 import me.shadykhalifa.whispertop.data.services.FileReaderServiceImpl
@@ -131,7 +130,9 @@ val sharedModule = module {
     single<SettingsRepository> { SettingsRepositoryImpl(get(), get<SecurePreferencesRepository>()) }
     singleOf(::AudioRepositoryImpl) { bind<AudioRepository>() }
     singleOf(::TranscriptionRepositoryImpl) { bind<TranscriptionRepository>() }
-    // Database repositories will be registered in Android module after database components
+    // Note: Database-dependent repositories need to be registered in platform modules
+    // singleOf(::TranscriptionHistoryRepositoryImpl) { bind<TranscriptionHistoryRepository>() }
+    // singleOf(::UserStatisticsRepositoryImpl) { bind<UserStatisticsRepository>() }
     
     // CoroutineScope for managers
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
@@ -141,23 +142,26 @@ val sharedModule = module {
     single<PerformanceCacheManager> { PerformanceCacheManagerImpl() }
     // MemoryProfiler is platform-specific and provided in platform modules
     single<PerformanceMonitor> { PerformanceMonitorImpl() }
-    single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
-    single<LazyHistoryLoader> { 
-        LazyHistoryLoaderImpl(
-            historyRepository = get<TranscriptionHistoryRepository>(),
-            performanceMonitor = get(),
-            backgroundThreadManager = get()
-        )
-    }
-    single<CacheEvictionPolicyManager> {
-        CacheEvictionPolicyManagerImpl(
-            performanceCacheManager = get(),
-            statisticsCacheService = get(),
-            memoryProfiler = get(),
-            backgroundThreadManager = get(),
-            coroutineScope = get()
-        )
-    }
+    // StatisticsCacheService temporarily disabled due to missing StatisticsRepository
+    // single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
+    // LazyHistoryLoader temporarily disabled due to missing TranscriptionHistoryRepository
+    // single<LazyHistoryLoader> { 
+    //     LazyHistoryLoaderImpl(
+    //         historyRepository = get<TranscriptionHistoryRepository>(),
+    //         performanceMonitor = get(),
+    //         backgroundThreadManager = get()
+    //     )
+    // }
+    // CacheEvictionPolicyManager temporarily disabled due to missing dependencies
+    // single<CacheEvictionPolicyManager> {
+    //     CacheEvictionPolicyManagerImpl(
+    //         performanceCacheManager = get(),
+    //         statisticsCacheService = get(),
+    //         memoryProfiler = get(),
+    //         backgroundThreadManager = get(),
+    //         coroutineScope = get()
+    //     )
+    // }
     
     // Managers  
     single { RecordingManager(get()) }
@@ -181,6 +185,7 @@ val sharedModule = module {
     factory { RecordingViewModel(get(), get(), get(), get<ViewModelErrorHandler>()) }
     factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
     factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
-    factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
+    // DashboardViewModel temporarily disabled due to missing dependencies
+    // factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
     factory { OnboardingWpmViewModel(get<SettingsRepository>(), get<ViewModelErrorHandler>()) }
 }

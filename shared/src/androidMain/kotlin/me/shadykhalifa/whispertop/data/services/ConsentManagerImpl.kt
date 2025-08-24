@@ -179,7 +179,7 @@ class ConsentManagerImpl(
             )
         )
         
-            Result.Success(exportData)
+        return Result.Success(exportData)
         } catch (exception: Exception) {
             Result.Error(exception)
         }

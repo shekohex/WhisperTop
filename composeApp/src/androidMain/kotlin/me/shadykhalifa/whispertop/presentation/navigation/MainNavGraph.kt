@@ -31,6 +31,7 @@ import me.shadykhalifa.whispertop.presentation.ui.screens.SettingsScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.TranscriptionDetailScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.OnboardingWpmScreen
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
+import me.shadykhalifa.whispertop.presentation.navigation.NavigationTransitions
 import org.koin.compose.koinInject
 
 @Composable
@@ -88,30 +89,10 @@ fun MainNavGraph(
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(paddingValues),
-            enterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
-            },
-            exitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { -it },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
-            },
-            popEnterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { -it },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
-            },
-            popExitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { it },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
-            }
+            enterTransition = NavigationTransitions.forwardTransition(),
+            exitTransition = NavigationTransitions.forwardExitTransition(),
+            popEnterTransition = NavigationTransitions.backwardTransition(),
+            popExitTransition = NavigationTransitions.backwardExitTransition()
         ) {
             composable(
                 route = NavigationTab.Home.route,
@@ -150,7 +131,11 @@ fun MainNavGraph(
             
             composable(
                 route = NavigationTab.Settings.route,
-                deepLinks = listOf(navDeepLink { uriPattern = "whispertop://settings" })
+                deepLinks = listOf(navDeepLink { uriPattern = "whispertop://settings" }),
+                enterTransition = NavigationTransitions.modalEnterTransition(),
+                exitTransition = NavigationTransitions.modalExitTransition(),
+                popEnterTransition = NavigationTransitions.backwardTransition(),
+                popExitTransition = NavigationTransitions.backwardExitTransition()
             ) {
                 SettingsScreen(
                     onNavigateBack = {
@@ -168,7 +153,11 @@ fun MainNavGraph(
             
             composable(
                 route = NavigationTab.Permissions.route,
-                deepLinks = listOf(navDeepLink { uriPattern = "whispertop://permissions" })
+                deepLinks = listOf(navDeepLink { uriPattern = "whispertop://permissions" }),
+                enterTransition = NavigationTransitions.bottomSheetEnterTransition(),
+                exitTransition = NavigationTransitions.bottomSheetExitTransition(),
+                popEnterTransition = NavigationTransitions.backwardTransition(),
+                popExitTransition = NavigationTransitions.backwardExitTransition()
             ) {
                 PermissionsDashboardScreen(
                     onNavigateBack = {
@@ -186,7 +175,11 @@ fun MainNavGraph(
             
             composable(
                 route = "transcription_detail/{transcriptionId}",
-                arguments = listOf(navArgument("transcriptionId") { type = NavType.StringType })
+                arguments = listOf(navArgument("transcriptionId") { type = NavType.StringType }),
+                enterTransition = NavigationTransitions.sharedElementEnterTransition(),
+                exitTransition = NavigationTransitions.sharedElementExitTransition(),
+                popEnterTransition = NavigationTransitions.backwardTransition(),
+                popExitTransition = NavigationTransitions.backwardExitTransition()
             ) { backStackEntry ->
                 val transcriptionId = backStackEntry.arguments?.getString("transcriptionId") ?: ""
                 TranscriptionDetailScreen(

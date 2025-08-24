@@ -1,14 +1,22 @@
 package me.shadykhalifa.whispertop.di
 
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Clock
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSource
 import me.shadykhalifa.whispertop.data.models.AppSettingsEntity
 import me.shadykhalifa.whispertop.data.models.AudioFileEntity
-import me.shadykhalifa.whispertop.domain.models.AudioFile
+import me.shadykhalifa.whispertop.domain.models.*
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
+import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
+import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
+import me.shadykhalifa.whispertop.domain.repositories.StatisticsRepository
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
+import me.shadykhalifa.whispertop.domain.services.MemoryProfiler
 import me.shadykhalifa.whispertop.utils.Result
 import org.koin.dsl.module
 
@@ -111,9 +119,18 @@ class MockSecurePreferencesRepository : SecurePreferencesRepository {
     }
 }
 
+class MockMemoryProfiler : MemoryProfiler {
+    override fun getCurrentMemoryUsage(): Long = 1024L * 1024L // 1MB
+    override fun getMaxMemoryUsage(): Long = 1024L * 1024L * 100L // 100MB  
+    override fun logMemoryUsage(tag: String) {}
+    override fun isLowMemory(): Boolean = false
+}
+
 val mockPlatformModule = module {
     single<PreferencesDataSource> { MockPreferencesDataSource() }
     single<AudioRecorderService> { MockAudioRecorderService() }
     single<FileReaderService> { MockFileReaderService() }
     single<SecurePreferencesRepository> { MockSecurePreferencesRepository() }
+    single<MemoryProfiler> { MockMemoryProfiler() }
+    // Complex repository mocks removed - tests should use mockk() directly
 }
