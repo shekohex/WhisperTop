@@ -33,7 +33,8 @@ data class OnboardingPermissionState(
     ),
     val foregroundService: IndividualPermissionState = IndividualPermissionState(
         android.Manifest.permission.FOREGROUND_SERVICE,
-        PermissionState.NotRequested
+        PermissionState.NotRequested,
+        isRequired = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P
     ),
     val foregroundServiceMicrophone: IndividualPermissionState = IndividualPermissionState(
         android.Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,

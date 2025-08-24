@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import me.shadykhalifa.whispertop.R
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.service.AudioRecordingService
+import java.util.Locale
 
 /**
  * Enhanced notification manager for recording progress and feedback
@@ -280,6 +281,6 @@ class RecordingNotificationManager(private val context: Context) {
     private fun formatDuration(durationMs: Long): String {
         val seconds = (durationMs / 1000) % 60
         val minutes = (durationMs / (1000 * 60)) % 60
-        return String.format("%d:%02d", minutes, seconds)
+        return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
     }
 }

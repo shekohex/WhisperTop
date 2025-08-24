@@ -254,7 +254,11 @@ class HapticFeedbackManager(private val context: Context) {
             @Suppress("DEPRECATION")
             vibrator?.vibrate(longArrayOf(0, 50, 30, 75, 30, 100), -1)
         }
-        view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        } else {
+            view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        }
     }
     
     private fun performErrorFeedback(view: View?) {
@@ -271,7 +275,11 @@ class HapticFeedbackManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(longArrayOf(0, 100, 100, 100, 100, 100), -1)
             }
-            view?.performHapticFeedback(HapticFeedbackConstants.REJECT)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                view?.performHapticFeedback(HapticFeedbackConstants.REJECT)
+            } else {
+                view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            }
         } catch (e: Exception) {
             // Ignore vibration errors - device might not support it
         }

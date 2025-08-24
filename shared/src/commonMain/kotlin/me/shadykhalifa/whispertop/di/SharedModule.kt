@@ -114,9 +114,9 @@ val sharedModule = module {
     
     // Error Handling Services
     singleOf(::RetryServiceImpl) { bind<RetryService>() }
-    singleOf(::ErrorLoggingServiceImpl) { bind<ErrorLoggingService>() }
+    single<ErrorLoggingService> { ErrorLoggingServiceImpl() }
     singleOf(::ErrorNotificationServiceImpl) { bind<ErrorNotificationService>() }
-    singleOf(::ErrorMapperImpl) { bind<ErrorMapper>() }
+    single<ErrorMapper> { ErrorMapperImpl(get()) }
     singleOf(::ViewModelErrorHandler)
     singleOf(::ConnectionStatusServiceImpl) { bind<ConnectionStatusService>() }
     

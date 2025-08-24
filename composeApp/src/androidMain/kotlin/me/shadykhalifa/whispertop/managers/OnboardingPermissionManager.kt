@@ -65,7 +65,13 @@ class OnboardingPermissionManager : KoinComponent {
                 Manifest.permission.POST_NOTIFICATIONS,
                 isRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             ),
-            foregroundService = checkIndividualPermission(Manifest.permission.FOREGROUND_SERVICE),
+            foregroundService = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                checkIndividualPermission(Manifest.permission.FOREGROUND_SERVICE)
+            } else IndividualPermissionState(
+                Manifest.permission.FOREGROUND_SERVICE,
+                PermissionState.Granted,
+                isRequired = false
+            ),
             foregroundServiceMicrophone = checkIndividualPermission(
                 Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,
                 isRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
@@ -122,7 +128,11 @@ class OnboardingPermissionManager : KoinComponent {
     }
     
     fun requestAudioPermission() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.FOREGROUND_SERVICE)
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            permissions.add(Manifest.permission.FOREGROUND_SERVICE)
+        }
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)

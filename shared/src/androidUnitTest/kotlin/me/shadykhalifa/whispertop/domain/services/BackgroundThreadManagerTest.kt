@@ -3,6 +3,7 @@ package me.shadykhalifa.whispertop.domain.services
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -30,6 +31,9 @@ class BackgroundThreadManagerTest {
             executed = true
         }
         
+        // Give the task a chance to start
+        yield()
+        
         // Task should be running
         assertEquals(1, manager.getActiveTaskCount())
         
@@ -45,12 +49,15 @@ class BackgroundThreadManagerTest {
         val manager = BackgroundThreadManagerImpl()
         
         val job1 = manager.launchTask(ThreadType.DATABASE_IO, "db-task") {
-            delay(200)
+            delay(Long.MAX_VALUE) // Never-ending task for testing
         }
         
         val job2 = manager.launchTask(ThreadType.COMPUTATION, "comp-task") {
-            delay(200)
+            delay(Long.MAX_VALUE) // Never-ending task for testing
         }
+        
+        // Give the tasks a chance to start
+        yield()
         
         assertEquals(2, manager.getActiveTaskCount())
         assertEquals(1, manager.getActiveTaskCountByType(ThreadType.DATABASE_IO))

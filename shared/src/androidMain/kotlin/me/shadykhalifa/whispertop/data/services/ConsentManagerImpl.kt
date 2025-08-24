@@ -3,7 +3,7 @@ package me.shadykhalifa.whispertop.data.services
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -33,12 +33,14 @@ class ConsentManagerImpl(
         const val CURRENT_CONSENT_VERSION = "1.0"
     }
     
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    private val masterKeyAlias = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
     
     private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
         PREFS_NAME,
         masterKeyAlias,
-        context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )

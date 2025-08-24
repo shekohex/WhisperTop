@@ -133,7 +133,7 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
         
         if (isDebugBuild) {
             Log.w(tag, "DEBUG BUILD: Enabling destructive migration fallback")
-            builder.fallbackToDestructiveMigration()
+            builder.fallbackToDestructiveMigration(true)
         } else {
             Log.i(tag, "PRODUCTION BUILD: Destructive migration disabled for data safety")
             // In production, we must handle migrations properly to avoid data loss

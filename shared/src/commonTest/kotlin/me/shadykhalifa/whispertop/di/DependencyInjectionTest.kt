@@ -1,6 +1,10 @@
 package me.shadykhalifa.whispertop.di
 
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import me.shadykhalifa.whispertop.data.local.PreferencesDataSource
 import me.shadykhalifa.whispertop.domain.services.AudioRecorderService
 import me.shadykhalifa.whispertop.domain.services.FileReaderService
@@ -24,6 +28,7 @@ class DependencyInjectionTest : KoinTest {
     
     @BeforeTest
     fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         startKoin {
             modules(listOf(sharedModule, mockPlatformModule))
         }
@@ -32,6 +37,7 @@ class DependencyInjectionTest : KoinTest {
     @AfterTest
     fun tearDown() {
         stopKoin()
+        Dispatchers.resetMain()
     }
     
     @Test

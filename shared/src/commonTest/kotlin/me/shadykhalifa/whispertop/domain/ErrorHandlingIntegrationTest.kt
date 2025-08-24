@@ -3,11 +3,16 @@ package me.shadykhalifa.whispertop.domain
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import me.shadykhalifa.whispertop.domain.models.*
 import me.shadykhalifa.whispertop.domain.services.ErrorLoggingService
 import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 import me.shadykhalifa.whispertop.presentation.viewmodels.BaseViewModel
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,10 +27,16 @@ class ErrorHandlingIntegrationTest {
     
     @BeforeTest
     fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         errorLoggingService = mockk(relaxed = true)
         errorNotificationService = mockk(relaxed = true)
         errorMapper = ErrorMapperImpl(errorLoggingService)
         viewModelErrorHandler = ViewModelErrorHandler(errorMapper, errorNotificationService)
+    }
+    
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
     
     @Test

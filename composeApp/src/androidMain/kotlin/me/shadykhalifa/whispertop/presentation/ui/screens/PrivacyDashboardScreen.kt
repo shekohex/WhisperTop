@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.presentation.viewmodels.PrivacyViewModel
 import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -390,7 +391,7 @@ private fun AuditInfoSection(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Success rate: ${String.format("%.1f", auditStats.successRate * 100)}%",
+                        text = "Success rate: ${String.format(Locale.getDefault(), "%.1f", auditStats.successRate * 100)}%",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (auditStats.lastOperation != null) {
@@ -451,9 +452,9 @@ private fun formatBytes(bytes: Long): String {
     val gb = mb * 1024
 
     return when {
-        bytes >= gb -> String.format("%.1f GB", bytes.toDouble() / gb)
-        bytes >= mb -> String.format("%.1f MB", bytes.toDouble() / mb)
-        bytes >= kb -> String.format("%.1f KB", bytes.toDouble() / kb)
+        bytes >= gb -> String.format(Locale.getDefault(), "%.1f GB", bytes.toDouble() / gb)
+        bytes >= mb -> String.format(Locale.getDefault(), "%.1f MB", bytes.toDouble() / mb)
+        bytes >= kb -> String.format(Locale.getDefault(), "%.1f KB", bytes.toDouble() / kb)
         else -> "$bytes bytes"
     }
 }

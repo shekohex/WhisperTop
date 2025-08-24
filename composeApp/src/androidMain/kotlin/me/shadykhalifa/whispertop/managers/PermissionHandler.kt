@@ -28,7 +28,9 @@ class PermissionHandler : KoinComponent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        add(Manifest.permission.FOREGROUND_SERVICE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            add(Manifest.permission.FOREGROUND_SERVICE)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             add(Manifest.permission.FOREGROUND_SERVICE_MICROPHONE)
         }
@@ -173,10 +175,14 @@ class PermissionHandler : KoinComponent {
     }
     
     fun hasForegroundServicePermission(): Boolean {
-        val foregroundServiceGranted = ContextCompat.checkSelfPermission(
-            context, 
-            Manifest.permission.FOREGROUND_SERVICE
-        ) == PackageManager.PERMISSION_GRANTED
+        val foregroundServiceGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ContextCompat.checkSelfPermission(
+                context, 
+                Manifest.permission.FOREGROUND_SERVICE
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Not required on older versions
+        }
         
         val microphoneServiceGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ContextCompat.checkSelfPermission(

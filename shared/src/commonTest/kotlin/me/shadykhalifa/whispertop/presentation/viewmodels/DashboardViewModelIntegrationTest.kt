@@ -4,11 +4,14 @@ import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
@@ -25,6 +28,7 @@ import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
 import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 import me.shadykhalifa.whispertop.utils.Result
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,6 +51,7 @@ class DashboardViewModelIntegrationTest {
     
     @BeforeTest
     fun setup() {
+        Dispatchers.setMain(testDispatcher)
         userStatisticsRepository = mockk()
         transcriptionHistoryRepository = mockk()
         settingsRepository = mockk()
@@ -62,6 +67,11 @@ class DashboardViewModelIntegrationTest {
         coEvery { transcriptionHistoryRepository.getRecentTranscriptionSessions(any()) } returns Result.Success(createTestTranscriptionSessions())
         coEvery { transcriptionHistoryRepository.getDailyUsage(any(), any()) } returns Result.Success(createTestDailyUsage())
         coEvery { settingsRepository.settings } returns settingsFlow
+    }
+    
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
     
     private fun createViewModel(): DashboardViewModel {

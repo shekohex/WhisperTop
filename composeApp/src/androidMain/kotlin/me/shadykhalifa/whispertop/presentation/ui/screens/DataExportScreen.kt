@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import me.shadykhalifa.whispertop.presentation.ui.components.export.FormatSelectionDialog
 import me.shadykhalifa.whispertop.presentation.ui.components.export.DateRangePickerDialog
 import me.shadykhalifa.whispertop.presentation.ui.components.export.RetentionPolicyDialog
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -473,9 +474,9 @@ private fun formatBytes(bytes: Long): String {
     val gb = mb * 1024
 
     return when {
-        bytes >= gb -> String.format("%.1f GB", bytes.toDouble() / gb)
-        bytes >= mb -> String.format("%.1f MB", bytes.toDouble() / mb)
-        bytes >= kb -> String.format("%.1f KB", bytes.toDouble() / kb)
+        bytes >= gb -> String.format(Locale.getDefault(), "%.1f GB", bytes.toDouble() / gb)
+        bytes >= mb -> String.format(Locale.getDefault(), "%.1f MB", bytes.toDouble() / mb)
+        bytes >= kb -> String.format(Locale.getDefault(), "%.1f KB", bytes.toDouble() / kb)
         else -> "$bytes bytes"
     }
 }
