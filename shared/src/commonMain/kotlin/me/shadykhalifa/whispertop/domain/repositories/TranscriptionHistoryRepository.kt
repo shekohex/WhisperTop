@@ -2,6 +2,7 @@ package me.shadykhalifa.whispertop.domain.repositories
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 import me.shadykhalifa.whispertop.domain.models.ExportResult
 import me.shadykhalifa.whispertop.domain.models.ExportFormat
 import me.shadykhalifa.whispertop.domain.models.DateRange
@@ -9,6 +10,8 @@ import me.shadykhalifa.whispertop.domain.models.SortOption
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistory
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
 import me.shadykhalifa.whispertop.domain.models.TranscriptionStatistics
+import me.shadykhalifa.whispertop.domain.models.TranscriptionSession
+import me.shadykhalifa.whispertop.domain.models.DailyUsage
 import me.shadykhalifa.whispertop.utils.Result
 
 interface TranscriptionHistoryRepository {
@@ -88,4 +91,9 @@ interface TranscriptionHistoryRepository {
         format: ExportFormat,
         dateRange: DateRange = DateRange.all()
     ): Flow<ExportResult>
+    
+    // Dashboard-specific methods for DashboardViewModel
+    suspend fun getRecentTranscriptionSessions(limit: Int): Result<List<TranscriptionSession>>
+    
+    suspend fun getDailyUsage(startDate: LocalDate, endDate: LocalDate): Result<List<DailyUsage>>
 }

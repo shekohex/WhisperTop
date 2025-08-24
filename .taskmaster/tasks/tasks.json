@@ -1719,7 +1719,7 @@
         "description": "Create comprehensive DashboardViewModel that manages user statistics, recent transcriptions, and trend data with real-time updates and performance calculations.",
         "details": "Create DashboardViewModel extending BaseViewModel with DashboardUiState data class containing statistics (StateFlow<UserStatistics>), recentTranscriptions (StateFlow<List<TranscriptionSession>>), and trendData (StateFlow<List<DailyUsage>>). Implement calculateTimeSaved() using typing WPM (average 40 WPM) vs speaking time from audio duration. Add real-time statistics updates by observing MetricsCollector events and TranscriptionRepository changes. Create background calculation coroutines for averages, totals, and efficiency multipliers using viewModelScope. Implement atomic statistics updates with mutex synchronization. Add caching layer for expensive calculations (daily/weekly aggregations). Create efficiency multiplier calculation comparing speaking speed vs typing speed. Integrate with existing SettingsRepository for user preferences and MetricsCollector for performance data. Handle configuration changes and memory cleanup properly.",
         "testStrategy": "Unit tests for statistics calculations, time saved calculations, and efficiency multiplier logic. Test StateFlow emissions and real-time updates using turbine. Verify coroutine behavior and background calculations with TestCoroutineDispatcher. Test atomic updates with concurrent access scenarios. Mock MetricsCollector and repositories for isolated testing. Integration tests for ViewModel lifecycle and dependency injection. UI tests to verify dashboard data display and real-time updates.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           10,
           13,
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-24T00:50:44.165Z",
+      "updated": "2025-08-24T01:13:16.864Z",
       "description": "Tasks for master context"
     }
   }

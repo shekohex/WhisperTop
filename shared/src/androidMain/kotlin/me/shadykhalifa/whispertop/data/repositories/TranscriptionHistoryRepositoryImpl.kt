@@ -7,6 +7,7 @@ import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.shadykhalifa.whispertop.data.database.dao.TranscriptionHistoryDao
@@ -19,6 +20,11 @@ import me.shadykhalifa.whispertop.domain.models.SortOption
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistory
 import me.shadykhalifa.whispertop.domain.models.TranscriptionHistoryItem
 import me.shadykhalifa.whispertop.domain.models.TranscriptionStatistics
+import me.shadykhalifa.whispertop.domain.models.TranscriptionSession
+import me.shadykhalifa.whispertop.domain.models.DailyUsage
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
 import me.shadykhalifa.whispertop.utils.Result
 import java.util.UUID
@@ -365,5 +371,51 @@ class TranscriptionHistoryRepositoryImpl(
     
     override suspend fun deleteTranscriptionsOlderThan(cutoffTime: Long): Result<Int> = execute {
         dao.deleteOlderThan(cutoffTime)
+    }
+    
+    override suspend fun getRecentTranscriptionSessions(limit: Int): Result<List<TranscriptionSession>> = execute {
+        val items = dao.getRecent(limit).map { it.toDomainModel() }
+        items.map { it.toTranscriptionSession() }
+    }
+    
+    override suspend fun getDailyUsage(startDate: kotlinx.datetime.LocalDate, endDate: kotlinx.datetime.LocalDate): Result<List<DailyUsage>> = execute {
+        val startTimestamp = startDate.toEpochDays() * 24 * 60 * 60 * 1000L
+        val endTimestamp = (endDate.toEpochDays() + 1) * 24 * 60 * 60 * 1000L
+        
+        // Use the existing flow method to get the data
+        val entities = dao.getByDateRangeFlow(startTimestamp, endTimestamp).first()
+        val items = entities.map { it.toDomainModel() }
+        
+        // Group by date and calculate daily usage
+        val dailyMap = mutableMapOf<kotlinx.datetime.LocalDate, MutableList<TranscriptionHistoryItem>>()
+        
+        items.forEach { item ->
+            val date = kotlinx.datetime.Instant.fromEpochMilliseconds(item.timestamp)
+                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                .date
+            
+            dailyMap.getOrPut(date) { mutableListOf() }.add(item)
+        }
+        
+        // Convert to DailyUsage objects
+        dailyMap.map { (date, dailyItems) ->
+            DailyUsage(
+                date = date,
+                sessionsCount = dailyItems.size,
+                wordsTranscribed = dailyItems.sumOf { it.text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size.toLong() },
+                totalTimeMs = dailyItems.sumOf { ((it.duration ?: 0f) * 1000).toLong() }
+            )
+        }.sortedBy { it.date }
+    }
+    
+    private fun TranscriptionHistoryItem.toTranscriptionSession(): TranscriptionSession {
+        return TranscriptionSession(
+            id = this.id,
+            timestamp = Instant.fromEpochMilliseconds(this.timestamp),
+            audioLengthMs = ((this.duration ?: 0f) * 1000).toLong(),
+            wordCount = this.text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size,
+            characterCount = this.text.length,
+            transcribedText = this.text
+        )
     }
 }

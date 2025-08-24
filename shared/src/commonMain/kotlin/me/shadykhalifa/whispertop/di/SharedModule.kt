@@ -62,6 +62,7 @@ import me.shadykhalifa.whispertop.domain.usecases.StatisticsCalculatorUseCaseImp
 import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
 import me.shadykhalifa.whispertop.data.local.ModelSelectionPreferencesManager
 // TODO: AppDatabase needs to be created or moved to androidMain
 // import me.shadykhalifa.whispertop.data.database.AppDatabase
@@ -138,4 +139,5 @@ val sharedModule = module {
     factory { RecordingViewModel(get(), get(), get(), get<ViewModelErrorHandler>()) }
     factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
     factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
+    factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
 }
