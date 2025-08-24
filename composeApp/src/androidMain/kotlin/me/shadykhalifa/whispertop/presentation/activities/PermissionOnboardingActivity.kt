@@ -19,13 +19,16 @@ import me.shadykhalifa.whispertop.MainActivity
 import me.shadykhalifa.whispertop.managers.OnboardingPermissionManager
 import me.shadykhalifa.whispertop.presentation.ui.screens.OnboardingScreen
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingViewModel
+import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import kotlinx.coroutines.runBlocking
 
 class PermissionOnboardingActivity : ComponentActivity() {
     
     private val onboardingViewModel: OnboardingViewModel by viewModel()
     private val permissionManager: OnboardingPermissionManager by inject()
+    private val settingsRepository: SettingsRepository by inject()
     
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -91,9 +94,17 @@ class PermissionOnboardingActivity : ComponentActivity() {
         val sharedPrefs = getSharedPreferences("whispertop_prefs", MODE_PRIVATE)
         sharedPrefs.edit().putBoolean("onboarding_completed", true).apply()
         
-        // Navigate to main activity
+        // Check if WPM onboarding should be shown next
+        val shouldShowWmpOnboarding: Boolean = runBlocking {
+            !settingsRepository.isWpmOnboardingCompleted()
+        }
+        
+        // Navigate to main activity with appropriate flags
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            if (shouldShowWmpOnboarding) {
+                putExtra("show_wpm_onboarding", true)
+            }
         }
         startActivity(intent)
         finish()

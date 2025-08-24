@@ -18,6 +18,11 @@ class SecurePreferencesRepositoryImpl : SecurePreferencesRepository {
         const val DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/"
         const val API_KEY_PREFIX = "sk-"
         const val API_KEY_MIN_LENGTH = 51
+        const val KEY_WPM = "user_wpm"
+        const val KEY_WPM_ONBOARDING_COMPLETED = "wmp_onboarding_completed"
+        const val DEFAULT_WPM = 36 // Mobile-optimized default based on research
+        const val MIN_WPM = 20
+        const val MAX_WPM = 60
     }
 
     override suspend fun saveApiKey(apiKey: String): Result<Unit> = withContext(Dispatchers.Default) {
@@ -160,6 +165,69 @@ class SecurePreferencesRepositoryImpl : SecurePreferencesRepository {
         println("SecurePreferencesRepository (iOS): Endpoint detection - " +
                 "endpoint='$endpoint', isOpenAI=$isOpenAI")
         return isOpenAI
+    }
+    
+    override suspend fun saveWpm(wpm: Int): Result<Unit> = withContext(Dispatchers.Default) {
+        try {
+            println("SecurePreferencesRepository (iOS): Saving WPM - value=$wpm")
+            
+            if (!validateWpm(wpm)) {
+                val errorMsg = "Invalid WPM value. Must be between $MIN_WPM and $MAX_WPM."
+                println("SecurePreferencesRepository (iOS): WPM validation failed - $errorMsg")
+                return@withContext Result.Error(IllegalArgumentException(errorMsg))
+            }
+            
+            NSUserDefaults.standardUserDefaults.setInteger(wpm.toLong(), KEY_WPM)
+            NSUserDefaults.standardUserDefaults.synchronize()
+            
+            println("SecurePreferencesRepository (iOS): WPM saved successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository (iOS): Failed to save WPM - ${e.message}")
+            Result.Error(Exception("Failed to save WPM", e))
+        }
+    }
+    
+    override suspend fun getWpm(): Result<Int> = withContext(Dispatchers.Default) {
+        try {
+            val wpm = NSUserDefaults.standardUserDefaults.integerForKey(KEY_WPM).let {
+                if (it == 0L) DEFAULT_WPM else it.toInt()
+            }
+            println("SecurePreferencesRepository (iOS): Retrieved WPM - value=$wpm")
+            Result.Success(wpm)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository (iOS): Failed to retrieve WPM - ${e.message}")
+            Result.Error(Exception("Failed to retrieve WPM", e))
+        }
+    }
+    
+    override suspend fun saveWpmOnboardingCompleted(completed: Boolean): Result<Unit> = withContext(Dispatchers.Default) {
+        try {
+            NSUserDefaults.standardUserDefaults.setBool(completed, KEY_WPM_ONBOARDING_COMPLETED)
+            NSUserDefaults.standardUserDefaults.synchronize()
+            println("SecurePreferencesRepository (iOS): WPM onboarding completion status saved - $completed")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository (iOS): Failed to save WPM onboarding status - ${e.message}")
+            Result.Error(Exception("Failed to save WPM onboarding status", e))
+        }
+    }
+    
+    override suspend fun isWpmOnboardingCompleted(): Result<Boolean> = withContext(Dispatchers.Default) {
+        try {
+            val completed = NSUserDefaults.standardUserDefaults.boolForKey(KEY_WPM_ONBOARDING_COMPLETED)
+            println("SecurePreferencesRepository (iOS): WPM onboarding completion status - $completed")
+            Result.Success(completed)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository (iOS): Failed to check WPM onboarding status - ${e.message}")
+            Result.Error(Exception("Failed to check WPM onboarding status", e))
+        }
+    }
+    
+    override fun validateWpm(wpm: Int): Boolean {
+        val isValid = wpm in MIN_WPM..MAX_WPM
+        println("SecurePreferencesRepository (iOS): WPM validation - value=$wpm, range=$MIN_WPM-$MAX_WPM, isValid=$isValid")
+        return isValid
     }
 
     private fun saveToKeychain(key: String, value: String): OSStatus {

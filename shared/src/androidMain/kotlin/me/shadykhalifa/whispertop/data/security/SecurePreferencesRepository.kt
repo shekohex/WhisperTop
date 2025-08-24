@@ -21,6 +21,11 @@ class SecurePreferencesRepositoryImpl(
         const val DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/"
         const val API_KEY_PREFIX = "sk-"
         const val API_KEY_MIN_LENGTH = 51
+        const val KEY_WPM = "user_wpm"
+        const val KEY_WPM_ONBOARDING_COMPLETED = "wpm_onboarding_completed"
+        const val DEFAULT_WPM = 36 // Mobile-optimized default based on research
+        const val MIN_WPM = 20
+        const val MAX_WPM = 60
     }
 
     private val masterKey = MasterKey.Builder(context)
@@ -174,6 +179,69 @@ class SecurePreferencesRepositoryImpl(
                 "matchesPattern=$matchesPattern, " +
                 "isValid=$isValid")
         
+        return isValid
+    }
+    
+    override suspend fun saveWpm(wpm: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            println("SecurePreferencesRepository: Saving WPM - value=$wpm")
+            
+            if (!validateWpm(wpm)) {
+                val errorMsg = "Invalid WPM value. Must be between $MIN_WPM and $MAX_WPM."
+                println("SecurePreferencesRepository: WPM validation failed - $errorMsg")
+                return@withContext Result.Error(IllegalArgumentException(errorMsg))
+            }
+            
+            encryptedPrefs.edit {
+                putInt(KEY_WPM, wpm)
+            }
+            
+            println("SecurePreferencesRepository: WPM saved successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save WPM - ${e.message}")
+            Result.Error(Exception("Failed to save WPM", e))
+        }
+    }
+    
+    override suspend fun getWpm(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val wpm = encryptedPrefs.getInt(KEY_WPM, DEFAULT_WPM)
+            println("SecurePreferencesRepository: Retrieved WPM - value=$wpm")
+            Result.Success(wpm)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to retrieve WPM - ${e.message}")
+            Result.Error(Exception("Failed to retrieve WPM", e))
+        }
+    }
+    
+    override suspend fun saveWpmOnboardingCompleted(completed: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.edit {
+                putBoolean(KEY_WPM_ONBOARDING_COMPLETED, completed)
+            }
+            println("SecurePreferencesRepository: WPM onboarding completion status saved - $completed")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to save WPM onboarding status - ${e.message}")
+            Result.Error(Exception("Failed to save WPM onboarding status", e))
+        }
+    }
+    
+    override suspend fun isWpmOnboardingCompleted(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val completed = encryptedPrefs.getBoolean(KEY_WPM_ONBOARDING_COMPLETED, false)
+            println("SecurePreferencesRepository: WPM onboarding completion status - $completed")
+            Result.Success(completed)
+        } catch (e: Exception) {
+            println("SecurePreferencesRepository: Failed to check WPM onboarding status - ${e.message}")
+            Result.Error(Exception("Failed to check WPM onboarding status", e))
+        }
+    }
+    
+    override fun validateWpm(wpm: Int): Boolean {
+        val isValid = wpm in MIN_WPM..MAX_WPM
+        println("SecurePreferencesRepository: WPM validation - value=$wpm, range=$MIN_WPM-$MAX_WPM, isValid=$isValid")
         return isValid
     }
 }

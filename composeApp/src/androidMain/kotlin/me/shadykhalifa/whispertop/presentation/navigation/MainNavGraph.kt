@@ -29,6 +29,7 @@ import me.shadykhalifa.whispertop.presentation.ui.screens.HistoryScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.PermissionsDashboardScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.SettingsScreen
 import me.shadykhalifa.whispertop.presentation.ui.screens.TranscriptionDetailScreen
+import me.shadykhalifa.whispertop.presentation.ui.screens.OnboardingWpmScreen
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
 import org.koin.compose.koinInject
 
@@ -37,6 +38,7 @@ fun MainNavGraph(
     navController: NavHostController = rememberNavController(),
     requestPermissions: Boolean = false,
     showSettings: Boolean = false,
+    showWpmOnboarding: Boolean = false,
     mainNavViewModel: MainNavigationViewModel = koinInject()
 ) {
     val navigationState by mainNavViewModel.uiState.collectAsStateWithLifecycle()
@@ -45,6 +47,7 @@ fun MainNavGraph(
     val startDestination = when {
         requestPermissions -> NavigationTab.Permissions.route
         showSettings -> NavigationTab.Settings.route
+        showWpmOnboarding -> "wpm_onboarding"
         else -> NavigationTab.Home.route
     }
     
@@ -190,6 +193,25 @@ fun MainNavGraph(
                     transcriptionId = transcriptionId,
                     onNavigateBack = {
                         navController.popBackStack()
+                    }
+                )
+            }
+            
+            composable(
+                route = "wpm_onboarding",
+                deepLinks = listOf(navDeepLink { uriPattern = "whispertop://wpm_onboarding" })
+            ) {
+                OnboardingWpmScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onCompleteOnboarding = {
+                        navController.navigate(NavigationTab.Home.route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

@@ -724,6 +724,29 @@ class SettingsViewModel(
         }
     }
     
+    fun updateWordsPerMinute(wpm: Int) {
+        launchSafely(
+            onError = { throwable ->
+                handleError(throwable, "Failed to update WPM")
+            }
+        ) {
+            when (val result = settingsRepository.updateWordsPerMinute(wpm)) {
+                is Result.Success -> {
+                    // Update local state immediately for responsive UI
+                    val currentSettings = _uiState.value.settings
+                    val updatedSettings = currentSettings.copy(wordsPerMinute = wpm)
+                    _uiState.value = _uiState.value.copy(settings = updatedSettings)
+                }
+                is Result.Error -> {
+                    handleError(result.exception)
+                }
+                is Result.Loading -> {
+                    // Loading state handled by base class
+                }
+            }
+        }
+    }
+    
     private fun isOpenAIEndpoint(endpoint: String): Boolean {
         return endpoint.contains("api.openai.com") || 
                endpoint.contains("openai.azure.com") ||

@@ -8,10 +8,12 @@ import me.shadykhalifa.whispertop.data.models.toEntity
 import me.shadykhalifa.whispertop.domain.models.AppSettings
 import me.shadykhalifa.whispertop.domain.models.Theme
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.utils.Result
 
 class SettingsRepositoryImpl(
-    private val preferencesDataSource: PreferencesDataSource
+    private val preferencesDataSource: PreferencesDataSource,
+    private val securePreferencesRepository: SecurePreferencesRepository
 ) : BaseRepository(), SettingsRepository {
 
     override val settings: Flow<AppSettings> = preferencesDataSource.getSettingsFlow()
@@ -105,5 +107,29 @@ class SettingsRepositoryImpl(
 
     override suspend fun cleanupTemporaryFiles(): Result<Unit> = execute {
         preferencesDataSource.clearLastRecording()
+    }
+    
+    override suspend fun updateWordsPerMinute(wpm: Int): Result<Unit> {
+        return securePreferencesRepository.saveWpm(wpm)
+    }
+    
+    override suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit> {
+        return securePreferencesRepository.saveWpmOnboardingCompleted(completed)
+    }
+    
+    override suspend fun getWordsPerMinute(): Int {
+        return when (val result = securePreferencesRepository.getWpm()) {
+            is Result.Success -> result.data
+            is Result.Error -> 36 // Return default on error
+            is Result.Loading -> 36 // Return default during loading
+        }
+    }
+    
+    override suspend fun isWpmOnboardingCompleted(): Boolean {
+        return when (val result = securePreferencesRepository.isWpmOnboardingCompleted()) {
+            is Result.Success -> result.data
+            is Result.Error -> false // Return false on error
+            is Result.Loading -> false // Return false during loading
+        }
     }
 }

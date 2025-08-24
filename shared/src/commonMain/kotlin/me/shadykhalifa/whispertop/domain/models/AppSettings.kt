@@ -43,7 +43,10 @@ data class AppSettings(
     val enableAppUsageTracking: Boolean = false,
     val hashTranscriptionText: Boolean = false,
     val maxTranscriptionRetentionDays: Int = 30,
-    val autoDeleteTranscriptions: Boolean = true
+    val autoDeleteTranscriptions: Boolean = true,
+    // WPM Configuration settings
+    val wordsPerMinute: Int = 36, // Mobile-optimized default based on research
+    val wpmOnboardingCompleted: Boolean = false
 ) {
     /**
      * Determines if the current baseUrl is an OpenAI endpoint

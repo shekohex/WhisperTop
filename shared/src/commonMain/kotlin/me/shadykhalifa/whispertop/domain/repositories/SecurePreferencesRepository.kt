@@ -10,4 +10,11 @@ interface SecurePreferencesRepository {
     suspend fun saveApiEndpoint(endpoint: String): Result<Unit>
     suspend fun getApiEndpoint(): Result<String>
     fun validateApiKey(apiKey: String, isOpenAIEndpoint: Boolean = true): Boolean
+    
+    // WPM Configuration methods
+    suspend fun saveWpm(wpm: Int): Result<Unit>
+    suspend fun getWpm(): Result<Int>
+    suspend fun saveWpmOnboardingCompleted(completed: Boolean): Result<Unit>
+    suspend fun isWpmOnboardingCompleted(): Result<Boolean>
+    fun validateWpm(wpm: Int): Boolean
 }

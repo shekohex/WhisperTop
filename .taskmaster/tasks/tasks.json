@@ -1882,7 +1882,7 @@
         "description": "Build comprehensive onboarding experience for first-time users to configure typing speed with age-based suggestions, manual input validation, typing test option, and settings integration.",
         "details": "Create OnboardingWpmScreen as a Compose screen with step-by-step flow for WPM configuration. Implement age-based WPM suggestions using predefined ranges (10-19: 40 WPM, 20-29: 37 WPM, 30-39: 32 WPM, 40-49: 29 WPM, 50+: 26 WPM). Add manual WPM input with TextField validation ensuring range 20-60 WPM with error states and helper text. Create optional typing speed test feature with TypingTestComponent measuring actual WPM over 60-second duration using sample text passages. Implement WPM storage in encrypted preferences using SecurePreferencesRepository with migration logic for existing users defaulting to 36 WPM. Add WPM configuration section to SettingsScreen with slider/input controls for post-onboarding adjustments. Create educational tooltips explaining how WPM affects time saved calculations in dashboard statistics. Implement smooth navigation transitions between onboarding steps using Navigation Compose with slide animations. Add OnboardingWpmViewModel extending BaseViewModel to manage state, validation, and WPM storage operations.",
         "testStrategy": "Unit tests for WPM validation logic, age-based suggestion calculations, and typing test WPM measurement accuracy. Test SecurePreferencesRepository WPM storage and retrieval with encryption verification. Verify migration logic correctly sets 36 WPM default for existing users without losing other preferences. Compose UI tests for onboarding flow navigation, form validation states, and settings screen WPM controls. Integration tests verifying WPM values properly affect time saved calculations in dashboard statistics. Test typing speed test accuracy with simulated typing events and timer functionality.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           13,
           16,
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-24T12:18:28.708Z",
+      "updated": "2025-08-24T12:43:39.607Z",
       "description": "Tasks for master context"
     }
   }

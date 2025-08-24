@@ -64,6 +64,7 @@ import me.shadykhalifa.whispertop.presentation.viewmodels.RecordingViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingWpmViewModel
 import me.shadykhalifa.whispertop.data.local.ModelSelectionPreferencesManager
 // TODO: AppDatabase needs to be created or moved to androidMain
 // import me.shadykhalifa.whispertop.data.database.AppDatabase
@@ -111,7 +112,7 @@ val sharedModule = module {
     // single { get<AppDatabase>().userStatisticsDao() }
     
     // Repositories - Now depend on service interfaces instead of platform-specific implementations
-    singleOf(::SettingsRepositoryImpl) { bind<SettingsRepository>() }
+    single<SettingsRepository> { SettingsRepositoryImpl(get(), get<SecurePreferencesRepository>()) }
     singleOf(::AudioRepositoryImpl) { bind<AudioRepository>() }
     singleOf(::TranscriptionRepositoryImpl) { bind<TranscriptionRepository>() }
     // Database repositories will be registered in Android module after database components
@@ -142,4 +143,5 @@ val sharedModule = module {
     factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
     factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
     factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
+    factory { OnboardingWpmViewModel(get<SettingsRepository>(), get<ViewModelErrorHandler>()) }
 }

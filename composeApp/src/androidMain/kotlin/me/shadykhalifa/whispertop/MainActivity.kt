@@ -17,14 +17,18 @@ import me.shadykhalifa.whispertop.di.initKoin
 import me.shadykhalifa.whispertop.di.providePlatformModule
 import me.shadykhalifa.whispertop.managers.OverlayInitializationManager
 import me.shadykhalifa.whispertop.presentation.activities.PermissionOnboardingActivity
+import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
+import me.shadykhalifa.whispertop.utils.Result
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import me.shadykhalifa.whispertop.workers.DataCleanupWorker
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     
     private val overlayInitManager: OverlayInitializationManager by inject()
+    private val settingsRepository: SettingsRepository by inject()
     
     companion object {
         private const val TAG = "MainActivity"
@@ -36,17 +40,24 @@ class MainActivity : ComponentActivity() {
 
         val requestPermissions = intent?.getBooleanExtra("request_permissions", false) ?: false
         val showSettings = intent?.getBooleanExtra("show_settings", false) ?: false
-
-        // Check if onboarding should be shown (skip if showing settings directly)
+        
+        // Check if permission onboarding should be shown first
         if (!showSettings && PermissionOnboardingActivity.shouldShowOnboarding(this)) {
             val intent = Intent(this, PermissionOnboardingActivity::class.java)
             startActivity(intent)
             finish()
             return
         }
+        
+        // Check if WPM onboarding should be shown (after permission onboarding)
+        val shouldShowWpmOnboarding = !showSettings && shouldShowWpmOnboarding()
 
         setContent {
-            App(requestPermissions = requestPermissions, showSettings = showSettings)
+            App(
+                requestPermissions = requestPermissions, 
+                showSettings = showSettings,
+                showWpmOnboarding = shouldShowWpmOnboarding
+            )
         }
         
         // Initialize overlay after onboarding is complete
@@ -74,6 +85,12 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         // Clean up overlay when activity is destroyed
         overlayInitManager.cleanup()
+    }
+    
+    private fun shouldShowWpmOnboarding(): Boolean {
+        return runBlocking {
+            !settingsRepository.isWpmOnboardingCompleted()
+        }
     }
     
     private fun initializeOverlay() {

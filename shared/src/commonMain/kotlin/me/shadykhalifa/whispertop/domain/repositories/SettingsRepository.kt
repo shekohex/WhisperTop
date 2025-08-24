@@ -20,4 +20,10 @@ interface SettingsRepository {
     suspend fun clearApiKey(): Result<Unit>
     suspend fun clearAllData(): Result<Unit>
     suspend fun cleanupTemporaryFiles(): Result<Unit>
+    
+    // WPM Configuration methods
+    suspend fun updateWordsPerMinute(wpm: Int): Result<Unit>
+    suspend fun updateWpmOnboardingCompleted(completed: Boolean): Result<Unit>
+    suspend fun getWordsPerMinute(): Int
+    suspend fun isWpmOnboardingCompleted(): Boolean
 }

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.shadykhalifa.whispertop.domain.models.AppSettings
@@ -72,15 +73,105 @@ fun SettingsScreen(
             viewModel.clearError()
         }
     }
+}
+
+@Composable
+private fun WpmConfigurationSection(
+    currentWpm: Int,
+    onWpmChanged: (Int) -> Unit
+) {
+    var wpmInput by remember(currentWpm) { mutableStateOf(currentWpm.toString()) }
     
-    LaunchedEffect(modelSelectionState.error) {
-        modelSelectionState.error?.let { message ->
-            snackbarHostState.showSnackbar(
-                message = message,
-                duration = SnackbarDuration.Short
-            )
-            modelSelectionViewModel.clearModelSelectionError()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Typing Speed",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Used to calculate time saved by speech-to-text",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
         }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // WPM Display Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "$currentWpm WPM",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Words Per Minute",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // WPM Slider
+        Text(
+            text = "Adjust typing speed (20-60 WPM)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        
+        Slider(
+            value = currentWpm.toFloat(),
+            onValueChange = { value ->
+                val newWpm = value.toInt()
+                onWpmChanged(newWpm)
+            },
+            valueRange = 20f..60f,
+            steps = 40,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "20 WPM\nBeginner",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "60 WPM\nExpert",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
     }
 
     Scaffold(
@@ -181,6 +272,14 @@ fun SettingsScreen(
                     selectedTheme = uiState.settings.theme,
                     availableThemes = uiState.availableThemes,
                     onThemeSelected = viewModel::updateTheme
+                )
+                
+                HorizontalDivider()
+                
+                // WPM Configuration Section
+                WpmConfigurationSection(
+                    currentWpm = uiState.settings.wordsPerMinute,
+                    onWpmChanged = viewModel::updateWordsPerMinute
                 )
                 
                 HorizontalDivider()
