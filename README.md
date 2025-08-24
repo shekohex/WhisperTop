@@ -6,14 +6,15 @@ WhisperTop is an Android overlay application that enables quick and accurate spe
 
 ## Overview
 
-WhisperTop provides seamless speech-to-text functionality through a system-wide overlay that doesn't interfere with your existing keyboard or input methods. The app uses OpenAI's Whisper API for high-quality transcription, supporting multiple models including Whisper 3 Turbo and GPT-4o.
+WhisperTop provides seamless speech-to-text functionality through a system-wide overlay that doesn't interfere with your existing keyboard or input methods. Built with **Kotlin Multiplatform** and **Clean Architecture**, the app uses OpenAI's Whisper API for high-quality transcription, supporting multiple models including Whisper 3 Turbo and GPT-4o.
 
 **Key Benefits:**
-- Works in any app without replacing your keyboard
-- Privacy-first: uses your own OpenAI API key
-- No data retention or logging
-- Fast, accurate transcription with multi-language support
-- Customizable floating interface
+- 🎤 Works in any app without replacing your keyboard
+- 🛡️ Privacy-first: uses your own OpenAI API key
+- 📱 Cross-platform architecture ready for iOS
+- ⚡ Fast, accurate transcription with multi-language support
+- 🎨 Material You design with dynamic theming
+- ♿ Full accessibility compliance (WCAG 2.1 AA)
 
 ## Features
 
@@ -173,18 +174,37 @@ cd WhisperTop
 ```
 
 ### Architecture Overview
-The project follows Clean Architecture principles with three main layers:
+The project follows **Clean Architecture** principles with **Kotlin Multiplatform** for cross-platform compatibility:
 
-- **Domain Layer**: Core business logic and use cases
-- **Data Layer**: API clients, repositories, and data storage
-- **Presentation Layer**: Android UI, services, and view models
+#### Architecture Layers
+- **Domain Layer** (`shared/src/commonMain/kotlin/.../domain/`): Core business logic, use cases, and domain models
+- **Data Layer** (`shared/src/commonMain/kotlin/.../data/`): API clients, repositories, and data storage implementations  
+- **Presentation Layer** (`composeApp/src/androidMain/kotlin/.../`): Android UI, services, and view models
 
-Key components:
-- **AudioRecordingService**: Foreground service for microphone capture
-- **OverlayService**: System overlay management for floating UI
-- **WhisperTopAccessibilityService**: Text insertion via accessibility API
-- **Room Database**: Complete transcription history storage with repositories and DAOs
-- **Statistics Tracking**: User usage analytics and transcription metrics
+#### Key Components
+- **AudioRecordingService**: Foreground service for microphone capture with wake lock management
+- **OverlayService**: System overlay management for floating microphone button
+- **WhisperTopAccessibilityService**: Text insertion via Android accessibility API
+- **Room Database**: SQLite database with encryption for transcription history and statistics
+- **Ktor HTTP Client**: Cross-platform networking for OpenAI API integration
+- **Statistics Engine**: Comprehensive usage analytics and performance tracking
+- **Koin Dependency Injection**: Cross-platform DI with platform-specific modules
+
+#### Multiplatform Structure
+- **Common Code** (`shared/`): Business logic, domain models, and API clients
+- **Android Implementation** (`composeApp/`): Android-specific UI and platform services
+- **iOS Readiness** (`iosApp/`): iOS app structure prepared for future implementation
+
+#### Migration Information
+The project has undergone significant architectural improvements:
+
+1. **Source Directory Migration**: Deprecated Android-style directories have been migrated to Kotlin Multiplatform structure
+2. **Clean Architecture Adoption**: Strict separation of concerns with proper dependency injection
+3. **Database Architecture**: Room database with SQLCipher encryption and comprehensive migration support (v1→v4)
+4. **Testing Infrastructure**: 83.1% test coverage with property-based testing and mutation testing
+5. **Documentation Standards**: Comprehensive KDoc documentation with Dokka API generation
+
+For detailed migration guides and cross-platform considerations, see the [Migration Documentation](docs/migration/README.md).
 
 ## Roadmap
 

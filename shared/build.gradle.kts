@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.ksp)
     alias(libs.plugins.jacoco)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -173,4 +174,54 @@ tasks.register<JacocoReport>("jacocoSharedTestReport") {
     executionData.setFrom(fileTree(layout.buildDirectory.get()).include(
         "**/*.exec"
     ))
+}
+
+// Dokka Configuration for API Documentation
+tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
+    moduleName.set("WhisperTop Shared")
+    
+    dokkaSourceSets {
+        named("commonMain") {
+            displayName.set("Common")
+            includes.from("docs/api/module.md")
+            
+            sourceLink {
+                localDirectory.set(file("src/commonMain/kotlin"))
+                remoteUrl.set(uri("https://github.com/shekohex/WhisperTop/tree/main/shared/src/commonMain/kotlin").toURL())
+                remoteLineSuffix.set("#L")
+            }
+            
+            externalDocumentationLink {
+                url.set(uri("https://kotlinlang.org/api/kotlinx.coroutines/").toURL())
+            }
+            
+            externalDocumentationLink {
+                url.set(uri("https://kotlinlang.org/api/kotlinx.serialization/").toURL())
+            }
+            
+            externalDocumentationLink {
+                url.set(uri("https://kotlinlang.org/api/kotlinx-datetime/").toURL())
+            }
+        }
+        
+        named("androidMain") {
+            displayName.set("Android")
+            
+            sourceLink {
+                localDirectory.set(file("src/androidMain/kotlin"))
+                remoteUrl.set(uri("https://github.com/shekohex/WhisperTop/tree/main/shared/src/androidMain/kotlin").toURL())
+                remoteLineSuffix.set("#L")
+            }
+        }
+        
+        named("iosMain") {
+            displayName.set("iOS")
+            
+            sourceLink {
+                localDirectory.set(file("src/iosMain/kotlin"))
+                remoteUrl.set(uri("https://github.com/shekohex/WhisperTop/tree/main/shared/src/iosMain/kotlin").toURL())
+                remoteLineSuffix.set("#L")
+            }
+        }
+    }
 }
