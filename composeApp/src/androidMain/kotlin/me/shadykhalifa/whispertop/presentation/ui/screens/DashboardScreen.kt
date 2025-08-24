@@ -1,0 +1,877 @@
+package me.shadykhalifa.whispertop.presentation.ui.screens
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
+import org.koin.compose.koinInject
+import kotlin.math.roundToInt
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardScreen(
+    modifier: Modifier = Modifier,
+    dashboardViewModel: DashboardViewModel = koinInject()
+) {
+    val uiState by dashboardViewModel.uiState.collectAsStateWithLifecycle()
+    val pullToRefreshState = rememberPullToRefreshState()
+    val configuration = LocalConfiguration.current
+    val context = LocalContext.current
+    
+    // Calculate responsive layout parameters
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val screenWidthDp = configuration.screenWidthDp
+    val isTablet = screenWidthDp >= 600
+    
+    // Determine grid columns based on screen size and orientation
+    val metricsColumns = remember(isLandscape, isTablet, screenWidthDp) {
+        when {
+            isTablet && isLandscape -> 4
+            isTablet -> 3
+            isLandscape -> 3
+            else -> 2
+        }
+    }
+    
+    val statisticsColumns = remember(isLandscape, isTablet, screenWidthDp) {
+        when {
+            isTablet -> 4
+            isLandscape -> 3
+            else -> 2
+        }
+    }
+    
+    // Responsive padding
+    val horizontalPadding = remember(isTablet) {
+        if (isTablet) 24.dp else 16.dp
+    }
+    
+    // Derived state for expensive calculations
+    val speakingTimeMinutes = remember(uiState.statistics?.totalSpeakingTimeMs) {
+        derivedStateOf { (uiState.statistics?.totalSpeakingTimeMs ?: 0L) / 60000.0 }
+    }.value
+    
+    val typingTimeMinutes = remember(uiState.statistics?.totalWords) {
+        derivedStateOf { calculateTypingTime(uiState.statistics?.totalWords ?: 0L) }
+    }.value
+    
+    val recentTranscriptionsForDisplay = remember(uiState.recentTranscriptions) {
+        derivedStateOf { uiState.recentTranscriptions.take(5) }
+    }.value
+    
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = { dashboardViewModel.refreshData() },
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("dashboard_content"),
+        state = pullToRefreshState
+    ) {
+        if (uiState.isLoading && uiState.statistics == null) {
+            // Show loading shimmer for initial load
+            DashboardShimmerContent(
+                columns = metricsColumns,
+                horizontalPadding = horizontalPadding
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+            item(key = "header") {
+                DashboardHeader()
+            }
+            
+            item(key = "productivity_metrics") {
+                ProductivityMetricsSection(
+                    speakingTimeMinutes = speakingTimeMinutes,
+                    typingTimeMinutes = typingTimeMinutes,
+                    timeSavedMinutes = uiState.timeSavedTotal,
+                    efficiencyMultiplier = uiState.efficiencyMultiplier,
+                    columns = metricsColumns
+                )
+            }
+            
+            item(key = "statistics_grid") {
+                StatisticsGrid(
+                    totalWords = uiState.totalWordsTranscribed,
+                    totalSessions = uiState.statistics?.totalSessions ?: 0,
+                    avgWordsPerMinute = uiState.statistics?.averageWordsPerMinute ?: 0.0,
+                    avgWordsPerSession = uiState.statistics?.averageWordsPerSession ?: 0.0,
+                    columns = statisticsColumns
+                )
+            }
+            
+            if (uiState.recentTranscriptions.isNotEmpty()) {
+                item(key = "recent_activity_header") {
+                    Text(
+                        text = "Recent Activity",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                
+                items(
+                    items = recentTranscriptionsForDisplay,
+                    key = { it.id }
+                ) { session ->
+                    RecentActivityItem(session = session)
+            }
+            }
+        }
+    }
+}
+}
+
+@Composable
+private fun DashboardHeader() {
+    val currentTime = remember {
+        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    }
+    val greeting = when (currentTime.hour) {
+        in 5..11 -> "Good morning"
+        in 12..17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+    
+    Column(
+        modifier = Modifier.semantics { 
+            contentDescription = "Dashboard header with greeting and current date" 
+        }
+    ) {
+        Text(
+            text = greeting,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = "Here's your productivity overview",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun ProductivityMetricsSection(
+    speakingTimeMinutes: Double,
+    typingTimeMinutes: Double,
+    timeSavedMinutes: Double,
+    efficiencyMultiplier: Float,
+    columns: Int = 2
+) {
+    Column {
+        Text(
+            text = "Productivity Metrics",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.height(if (columns > 2) 200.dp else 320.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                MetricCard(
+                    title = "Speaking Time",
+                    value = formatTime(speakingTimeMinutes),
+                    icon = Icons.Default.Mic,
+                    iconColor = Color(0xFF4CAF50), // Green
+                    animatedValue = speakingTimeMinutes.roundToInt()
+                )
+            }
+            
+            item {
+                MetricCard(
+                    title = "Typing Time",
+                    value = formatTime(typingTimeMinutes),
+                    icon = Icons.Default.Keyboard,
+                    iconColor = Color(0xFFFF9800), // Orange
+                    animatedValue = typingTimeMinutes.roundToInt()
+                )
+            }
+            
+            item {
+                MetricCard(
+                    title = "Time Saved",
+                    value = formatTime(timeSavedMinutes),
+                    icon = Icons.Default.Schedule,
+                    iconColor = Color(0xFF2196F3), // Blue
+                    animatedValue = timeSavedMinutes.roundToInt()
+                )
+            }
+            
+            item {
+                MetricCard(
+                    title = "Efficiency",
+                    value = "${(efficiencyMultiplier * 100).roundToInt()}%",
+                    icon = Icons.Default.Timeline,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    animatedValue = (efficiencyMultiplier * 100).roundToInt()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatisticsGrid(
+    totalWords: Long,
+    totalSessions: Int,
+    avgWordsPerMinute: Double,
+    avgWordsPerSession: Double,
+    columns: Int = 2
+) {
+    Column {
+        Text(
+            text = "Statistics Overview",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.height(if (columns > 2) 160.dp else 240.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                StatisticCard(
+                    title = "Words Captured",
+                    value = formatNumber(totalWords),
+                    icon = Icons.Default.TextFields,
+                    animatedValue = totalWords.toInt()
+                )
+            }
+            
+            item {
+                StatisticCard(
+                    title = "Sessions",
+                    value = totalSessions.toString(),
+                    icon = Icons.Default.PlayArrow,
+                    animatedValue = totalSessions
+                )
+            }
+            
+            item {
+                StatisticCard(
+                    title = "Avg Words/Min",
+                    value = "${avgWordsPerMinute.roundToInt()}",
+                    icon = Icons.Default.Speed,
+                    animatedValue = avgWordsPerMinute.roundToInt()
+                )
+            }
+            
+            item {
+                StatisticCard(
+                    title = "Words/Session",
+                    value = "${avgWordsPerSession.roundToInt()}",
+                    icon = Icons.Default.Analytics,
+                    animatedValue = avgWordsPerSession.roundToInt()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    iconColor: Color,
+    animatedValue: Int,
+    modifier: Modifier = Modifier
+) {
+    var animatedCount by remember { mutableIntStateOf(0) }
+    val animatedCountValue by animateIntAsState(
+        targetValue = animatedValue,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = FastOutSlowInEasing
+        ),
+        label = "MetricCardCounter"
+    )
+    
+    LaunchedEffect(animatedValue) {
+        animatedCount = animatedCountValue
+    }
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .semantics { 
+                contentDescription = "$title: $value" 
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Column {
+                AnimatedContent(
+                    targetState = animatedCountValue,
+                    transitionSpec = {
+                        slideInVertically(
+                            animationSpec = tween(300),
+                            initialOffsetY = { it }
+                        ).plus(fadeIn(animationSpec = tween(300))) togetherWith
+                        slideOutVertically(
+                            animationSpec = tween(300),
+                            targetOffsetY = { -it }
+                        ).plus(fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "CounterAnimation"
+                ) { count ->
+                    Text(
+                        text = if (title == "Efficiency") "${count}%" else when {
+                            title.contains("Time") -> formatTime(count.toDouble())
+                            else -> formatNumber(count.toLong())
+                        },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatisticCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    animatedValue: Int,
+    modifier: Modifier = Modifier
+) {
+    val animatedCountValue by animateIntAsState(
+        targetValue = animatedValue,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = FastOutSlowInEasing
+        ),
+        label = "StatisticCardCounter"
+    )
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(110.dp)
+            .semantics { 
+                contentDescription = "$title: $value" 
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            Column {
+                AnimatedContent(
+                    targetState = animatedCountValue,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(300)) togetherWith
+                        fadeOut(animationSpec = tween(300))
+                    },
+                    label = "StatisticCounterAnimation"
+                ) { count ->
+                    Text(
+                        text = formatNumber(count.toLong()),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentActivityItem(
+    session: me.shadykhalifa.whispertop.domain.models.TranscriptionSession,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { 
+                contentDescription = "Recent transcription session with ${session.wordCount} words" 
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.RecordVoiceOver,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "${session.wordCount} words transcribed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Text(
+                    text = formatDuration(session.audioLengthMs),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Text(
+                text = formatTimeAgo(session.timestamp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// Helper functions
+private fun calculateTypingTime(totalWords: Long): Double {
+    val averageWpm = 40.0
+    return totalWords / averageWpm
+}
+
+private fun formatTime(minutes: Double): String {
+    val hours = (minutes / 60).toInt()
+    val mins = (minutes % 60).toInt()
+    return if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+}
+
+private fun formatNumber(number: Long): String {
+    return when {
+        number >= 1_000_000 -> "${(number / 1_000_000.0).roundToInt()}M"
+        number >= 1_000 -> "${(number / 1_000.0).roundToInt()}K"
+        else -> number.toString()
+    }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val seconds = durationMs / 1000
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return "${minutes}:${remainingSeconds.toString().padStart(2, '0')}"
+}
+
+private fun formatTimeAgo(instant: kotlinx.datetime.Instant): String {
+    val now = Clock.System.now()
+    val diff = now - instant
+    
+    return when {
+        diff.inWholeMinutes < 1 -> "Just now"
+        diff.inWholeMinutes < 60 -> "${diff.inWholeMinutes}m ago"
+        diff.inWholeHours < 24 -> "${diff.inWholeHours}h ago"
+        else -> "${diff.inWholeDays}d ago"
+    }
+}
+
+@Composable
+private fun DashboardShimmerContent(
+    columns: Int,
+    horizontalPadding: Dp
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = horizontalPadding),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        item {
+            ShimmerHeaderContent()
+        }
+        
+        item {
+            ShimmerMetricsSection(columns = columns)
+        }
+        
+        item {
+            ShimmerStatisticsGrid(columns = columns)
+        }
+        
+        items(3) {
+            ShimmerRecentActivityItem()
+        }
+    }
+}
+
+@Composable
+private fun ShimmerHeaderContent() {
+    Column {
+        ShimmerBox(
+            width = 200.dp,
+            height = 32.dp
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        ShimmerBox(
+            width = 280.dp,
+            height = 20.dp
+        )
+    }
+}
+
+@Composable
+private fun ShimmerMetricsSection(columns: Int) {
+    Column {
+        ShimmerBox(
+            width = 180.dp,
+            height = 24.dp
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.height(if (columns > 2) 200.dp else 320.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(4) {
+                ShimmerMetricCard()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShimmerStatisticsGrid(columns: Int) {
+    Column {
+        ShimmerBox(
+            width = 160.dp,
+            height = 24.dp
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.height(if (columns > 2) 160.dp else 240.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(4) {
+                ShimmerStatisticCard()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShimmerMetricCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            ShimmerBox(
+                width = 24.dp,
+                height = 24.dp
+            )
+            
+            Column {
+                ShimmerBox(
+                    width = 80.dp,
+                    height = 28.dp
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                ShimmerBox(
+                    width = 60.dp,
+                    height = 16.dp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShimmerStatisticCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            ShimmerBox(
+                width = 20.dp,
+                height = 20.dp
+            )
+            
+            Column {
+                ShimmerBox(
+                    width = 70.dp,
+                    height = 20.dp
+                )
+                
+                ShimmerBox(
+                    width = 50.dp,
+                    height = 14.dp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShimmerRecentActivityItem() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ShimmerBox(
+                width = 24.dp,
+                height = 24.dp
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                ShimmerBox(
+                    width = 150.dp,
+                    height = 16.dp
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                ShimmerBox(
+                    width = 80.dp,
+                    height = 14.dp
+                )
+            }
+            
+            ShimmerBox(
+                width = 60.dp,
+                height = 14.dp
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShimmerBox(
+    width: Dp,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+    
+    Box(
+        modifier = modifier
+            .size(width, height)
+            .clip(RoundedCornerShape(4.dp))
+            .background(
+                MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            )
+    )
+}
+
+@Composable
+private fun ErrorStateContent(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.ErrorOutline,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "Something went wrong",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.semantics { 
+                contentDescription = "Retry loading dashboard data" 
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text("Retry")
+        }
+    }
+}
