@@ -66,6 +66,22 @@ import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewMode
 import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.OnboardingWpmViewModel
 import me.shadykhalifa.whispertop.data.local.ModelSelectionPreferencesManager
+// Performance optimization services
+import me.shadykhalifa.whispertop.domain.services.PerformanceCacheManager
+import me.shadykhalifa.whispertop.domain.services.PerformanceCacheManagerImpl
+import me.shadykhalifa.whispertop.domain.services.StatisticsCacheService
+import me.shadykhalifa.whispertop.domain.services.StatisticsCacheServiceImpl
+import me.shadykhalifa.whispertop.domain.services.BackgroundThreadManager
+import me.shadykhalifa.whispertop.domain.services.BackgroundThreadManagerImpl
+import me.shadykhalifa.whispertop.domain.services.MemoryProfiler
+import me.shadykhalifa.whispertop.domain.services.CommonMemoryProfiler
+import me.shadykhalifa.whispertop.domain.services.PerformanceMonitor
+import me.shadykhalifa.whispertop.domain.services.PerformanceMonitorImpl
+import me.shadykhalifa.whispertop.domain.services.LazyHistoryLoader
+import me.shadykhalifa.whispertop.domain.services.LazyHistoryLoaderImpl
+import me.shadykhalifa.whispertop.domain.services.CacheEvictionPolicyManager
+import me.shadykhalifa.whispertop.domain.services.CacheEvictionPolicyManagerImpl
+import me.shadykhalifa.whispertop.domain.repositories.StatisticsRepository
 // TODO: AppDatabase needs to be created or moved to androidMain
 // import me.shadykhalifa.whispertop.data.database.AppDatabase
 // import me.shadykhalifa.whispertop.data.database.getDatabase
@@ -119,6 +135,29 @@ val sharedModule = module {
     
     // CoroutineScope for managers
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    
+    // Performance Optimization Services
+    single<BackgroundThreadManager> { BackgroundThreadManagerImpl() }
+    single<PerformanceCacheManager> { PerformanceCacheManagerImpl() }
+    single<MemoryProfiler> { MemoryProfilerImpl() }
+    single<PerformanceMonitor> { PerformanceMonitorImpl() }
+    single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
+    single<LazyHistoryLoader> { 
+        LazyHistoryLoaderImpl(
+            historyRepository = get<TranscriptionHistoryRepository>(),
+            performanceMonitor = get(),
+            backgroundThreadManager = get()
+        )
+    }
+    single<CacheEvictionPolicyManager> {
+        CacheEvictionPolicyManagerImpl(
+            performanceCacheManager = get(),
+            statisticsCacheService = get(),
+            memoryProfiler = get(),
+            backgroundThreadManager = get(),
+            coroutineScope = get()
+        )
+    }
     
     // Managers  
     single { RecordingManager(get()) }
