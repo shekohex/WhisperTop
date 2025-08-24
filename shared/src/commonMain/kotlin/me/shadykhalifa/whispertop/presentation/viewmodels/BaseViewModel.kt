@@ -9,8 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import me.shadykhalifa.whispertop.domain.models.ErrorInfo
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 
-abstract class BaseViewModel {
+abstract class BaseViewModel(
+    private val errorHandler: ViewModelErrorHandler
+) {
     
     private val job = SupervisorJob()
     protected val viewModelScope = CoroutineScope(Dispatchers.Main + job)
@@ -18,8 +22,19 @@ abstract class BaseViewModel {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _errorInfo = MutableStateFlow<ErrorInfo?>(null)
+    val errorInfo: StateFlow<ErrorInfo?> = _errorInfo.asStateFlow()
+    
+    @Deprecated("Use errorInfo instead", ReplaceWith("errorInfo"))
+    val errorMessage: StateFlow<String?> = _errorInfo.asStateFlow().let { errorInfoFlow ->
+        MutableStateFlow<String?>(null).also { deprecatedFlow ->
+            viewModelScope.launch {
+                errorInfoFlow.collect { errorInfo ->
+                    deprecatedFlow.value = errorInfo?.message
+                }
+            }
+        }.asStateFlow()
+    }
     
     protected fun launchSafely(
         onError: ((Throwable) -> Unit)? = null,
@@ -44,12 +59,16 @@ abstract class BaseViewModel {
         _isLoading.value = loading
     }
     
-    protected fun handleError(throwable: Throwable) {
-        _errorMessage.value = throwable.message ?: "An unknown error occurred"
+    protected fun handleError(throwable: Throwable, context: String? = null) {
+        _errorInfo.value = errorHandler.handleError(throwable, context)
+    }
+    
+    protected fun handleErrorWithNotification(throwable: Throwable, context: String? = null) {
+        _errorInfo.value = errorHandler.handleErrorWithNotification(throwable, context)
     }
     
     fun clearError() {
-        _errorMessage.value = null
+        _errorInfo.value = null
     }
     
     fun onCleared() {

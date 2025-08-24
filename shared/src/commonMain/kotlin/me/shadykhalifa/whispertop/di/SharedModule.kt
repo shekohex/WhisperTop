@@ -41,6 +41,9 @@ import me.shadykhalifa.whispertop.domain.services.DebugLoggingService
 import me.shadykhalifa.whispertop.data.services.DebugLoggingServiceImpl
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.domain.models.ErrorNotificationServiceImpl
+import me.shadykhalifa.whispertop.domain.models.ErrorMapper
+import me.shadykhalifa.whispertop.domain.models.ErrorMapperImpl
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 import me.shadykhalifa.whispertop.domain.managers.RecordingManager
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
@@ -95,6 +98,8 @@ val sharedModule = module {
     singleOf(::RetryServiceImpl) { bind<RetryService>() }
     singleOf(::ErrorLoggingServiceImpl) { bind<ErrorLoggingService>() }
     singleOf(::ErrorNotificationServiceImpl) { bind<ErrorNotificationService>() }
+    singleOf(::ErrorMapperImpl) { bind<ErrorMapper>() }
+    singleOf(::ViewModelErrorHandler)
     singleOf(::ConnectionStatusServiceImpl) { bind<ConnectionStatusService>() }
     
     // Database
@@ -116,9 +121,9 @@ val sharedModule = module {
     single { RecordingManager(get()) }
     
     // Use Cases
-    factoryOf(::StartRecordingUseCase)
-    factoryOf(::StopRecordingUseCase)
-    factoryOf(::TranscriptionUseCase)
+    factory { StartRecordingUseCase(get(), get(), get<ErrorNotificationService>()) }
+    factory { StopRecordingUseCase(get(), get(), get(), get<ErrorNotificationService>()) }
+    factory { TranscriptionUseCase(get(), get(), get(), get<ErrorNotificationService>()) }
     factoryOf(::LanguageDetectionUseCase)
     factoryOf(::TranscribeWithLanguageDetectionUseCase)
     single<ServiceManagementUseCase> { ServiceManagementUseCaseImpl(get(), get()) }
@@ -130,7 +135,7 @@ val sharedModule = module {
     single<StatisticsCalculatorUseCase> { StatisticsCalculatorUseCaseImpl(get(), get(), get()) }
     
     // ViewModels
-    singleOf(::RecordingViewModel)
-    factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>()) }
-    singleOf(::ModelSelectionViewModel)
+    factory { RecordingViewModel(get(), get(), get(), get<ViewModelErrorHandler>()) }
+    factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
+    factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
 }

@@ -5,12 +5,14 @@ import me.shadykhalifa.whispertop.domain.managers.RecordingManager
 import me.shadykhalifa.whispertop.domain.models.RecordingState
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
+import me.shadykhalifa.whispertop.domain.models.ErrorNotificationService
 import me.shadykhalifa.whispertop.utils.Result
 
 class TranscriptionUseCase(
     private val recordingManager: RecordingManager,
     private val transcriptionRepository: TranscriptionRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val errorNotificationService: ErrorNotificationService
 ) {
     
     val recordingState: StateFlow<RecordingState> = recordingManager.recordingState
@@ -20,14 +22,19 @@ class TranscriptionUseCase(
             val settings = settingsRepository.getSettings()
             
             if (settings.apiKey.isBlank()) {
-                Result.Error(IllegalStateException("API key not configured"))
+                val error = IllegalStateException("API key not configured")
+                errorNotificationService.showError(error, "transcription_start")
+                Result.Error(error)
             } else if (!transcriptionRepository.isConfigured()) {
-                Result.Error(IllegalStateException("Transcription service not configured"))
+                val error = IllegalStateException("Transcription service not configured")
+                errorNotificationService.showError(error, "transcription_start")
+                Result.Error(error)
             } else {
                 recordingManager.startRecording()
                 Result.Success(Unit)
             }
         } catch (e: Exception) {
+            errorNotificationService.showError(e, "transcription_start")
             Result.Error(e)
         }
     }
@@ -37,6 +44,7 @@ class TranscriptionUseCase(
             recordingManager.stopRecording()
             Result.Success(Unit)
         } catch (e: Exception) {
+            errorNotificationService.showError(e, "transcription_stop")
             Result.Error(e)
         }
     }

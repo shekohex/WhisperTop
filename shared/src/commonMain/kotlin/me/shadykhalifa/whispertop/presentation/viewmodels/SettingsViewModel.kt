@@ -16,6 +16,7 @@ import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.repositories.SecurePreferencesRepository
 import me.shadykhalifa.whispertop.data.remote.createOpenAIApiService
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 
 data class SettingsUiState(
     val settings: AppSettings = AppSettings(),
@@ -49,8 +50,9 @@ enum class ConnectionTestResult {
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    private val securePreferencesRepository: SecurePreferencesRepository
-) : BaseViewModel() {
+    private val securePreferencesRepository: SecurePreferencesRepository,
+    errorHandler: ViewModelErrorHandler
+) : BaseViewModel(errorHandler) {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()

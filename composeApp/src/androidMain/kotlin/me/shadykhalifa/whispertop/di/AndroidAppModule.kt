@@ -103,7 +103,8 @@ val androidAppModule = module {
     viewModel { 
         AudioRecordingViewModel(
             transcriptionWorkflowUseCase = get(),
-            userFeedbackUseCase = get()
+            userFeedbackUseCase = get(),
+            errorHandler = get()
         )
     }
     viewModel { OnboardingViewModel() }

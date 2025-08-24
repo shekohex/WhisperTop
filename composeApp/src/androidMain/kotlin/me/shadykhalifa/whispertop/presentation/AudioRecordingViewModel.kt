@@ -15,13 +15,16 @@ import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
 import me.shadykhalifa.whispertop.presentation.models.AudioFilePresentationModel
 import me.shadykhalifa.whispertop.presentation.models.RecordingStatus
 import me.shadykhalifa.whispertop.presentation.models.TranscriptionDisplayModel
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
+import me.shadykhalifa.whispertop.domain.models.ErrorContext
 
 import me.shadykhalifa.whispertop.presentation.models.toUiState
 
 
 class AudioRecordingViewModel(
     private val transcriptionWorkflowUseCase: TranscriptionWorkflowUseCase,
-    private val userFeedbackUseCase: UserFeedbackUseCase
+    private val userFeedbackUseCase: UserFeedbackUseCase,
+    private val errorHandler: ViewModelErrorHandler
 ) : ViewModel() {
     
     companion object {
@@ -59,18 +62,21 @@ class AudioRecordingViewModel(
                         userFeedbackUseCase.showFeedback(message)
                     }
                     is WorkflowState.Error -> {
-                        val errorMsg = when {
-                            workflowState.error.message?.contains("network", ignoreCase = true) == true -> 
-                                "Network error - check connection"
-                            workflowState.error.message?.contains("api key", ignoreCase = true) == true -> 
-                                "API key issue - check settings"
-                            workflowState.error.message?.contains("rate limit", ignoreCase = true) == true -> 
-                                "Rate limited - try again later"
-                            workflowState.error.message?.contains("authentication", ignoreCase = true) == true -> 
-                                "Authentication failed"
-                            else -> "Transcription failed"
-                        }
-                        userFeedbackUseCase.showFeedback(errorMsg, isError = true)
+                        val errorContext = ErrorContext(
+                            operationName = "transcription_workflow",
+                            additionalData = mapOf(
+                                "workflow_step" to "error_handling",
+                                "original_error_type" to (workflowState.error::class.simpleName ?: "unknown")
+                            )
+                        )
+                        
+                        val errorInfo = errorHandler.handleErrorWithContext(
+                            error = workflowState.error,
+                            errorContext = errorContext,
+                            showNotification = false
+                        )
+                        
+                        userFeedbackUseCase.showFeedback(errorInfo.message, isError = true)
                     }
                     is WorkflowState.Processing -> {
                         if (workflowState.progress == 0f) {

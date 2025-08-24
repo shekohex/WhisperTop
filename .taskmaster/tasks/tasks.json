@@ -1544,7 +1544,7 @@
         "description": "Create ErrorMapper abstraction to transform domain errors to UI-friendly messages, eliminating direct error message construction in ViewModels and properly integrating ErrorClassifier and ErrorNotificationService through use cases.",
         "details": "Create ErrorMapper interface and implementation that transforms domain errors (TranscriptionError, AudioRecordingError, OpenAIException) to ErrorInfo objects using existing ErrorClassifier. Refactor AudioRecordingViewModel lines 74-84 to use ErrorMapper instead of direct error string assignment. Update SettingsViewModel.handleError() to delegate to ErrorMapper. Enhance use cases (TranscriptionUseCase, StartRecordingUseCase, StopRecordingUseCase) to integrate ErrorNotificationService for centralized error handling. Create ViewModelErrorHandler that encapsulates error processing logic. Update UI state classes to handle ErrorInfo objects instead of raw error strings. Implement error action handling in UI components (retry, settings navigation, dismiss). Add ErrorContext data class to provide contextual information for better error classification. Integrate with existing ErrorLoggingService for comprehensive error tracking. Remove all direct error message construction from ViewModels - they should only receive and display pre-classified ErrorInfo objects.",
         "testStrategy": "Unit tests for ErrorMapper transformation of all domain error types to appropriate ErrorInfo objects. Test ViewModel integration ensures no direct error string construction occurs. Integration tests verify ErrorNotificationService receives properly classified errors from use cases. UI tests confirm error actions (retry, navigate to settings) work correctly. Mock error scenarios to verify complete error flow from domain through ErrorMapper to UI display. Verify ErrorLoggingService integration captures all error transformations with proper context.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           10,
           13,
@@ -2106,7 +2106,7 @@
     ],
     "metadata": {
       "created": "2025-08-14T18:18:20.877Z",
-      "updated": "2025-08-23T13:54:17.630Z",
+      "updated": "2025-08-24T00:50:44.165Z",
       "description": "Tasks for master context"
     }
   }

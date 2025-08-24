@@ -10,12 +10,14 @@ import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.usecases.StartRecordingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.StopRecordingUseCase
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 
 class RecordingViewModel(
     private val audioRepository: AudioRepository,
     private val startRecordingUseCase: StartRecordingUseCase,
-    private val stopRecordingUseCase: StopRecordingUseCase
-) : BaseViewModel() {
+    private val stopRecordingUseCase: StopRecordingUseCase,
+    errorHandler: ViewModelErrorHandler
+) : BaseViewModel(errorHandler) {
     
     private val _recordingState = MutableStateFlow<RecordingState>(RecordingState.Idle)
     val recordingState: StateFlow<RecordingState> = _recordingState.asStateFlow()

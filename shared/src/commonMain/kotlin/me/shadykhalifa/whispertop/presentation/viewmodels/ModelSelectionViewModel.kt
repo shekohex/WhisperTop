@@ -5,10 +5,12 @@ import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.data.local.ModelSelectionPreferencesManager
 import me.shadykhalifa.whispertop.domain.models.ModelUseCase
 import me.shadykhalifa.whispertop.domain.models.OpenAIModel
+import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 
 class ModelSelectionViewModel(
-    private val preferencesManager: ModelSelectionPreferencesManager
-) : BaseViewModel() {
+    private val preferencesManager: ModelSelectionPreferencesManager,
+    errorHandler: ViewModelErrorHandler
+) : BaseViewModel(errorHandler) {
 
     private val _uiState = MutableStateFlow(ModelSelectionUiState())
     val uiState: StateFlow<ModelSelectionUiState> = _uiState.asStateFlow()
