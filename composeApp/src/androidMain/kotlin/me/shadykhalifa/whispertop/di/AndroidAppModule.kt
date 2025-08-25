@@ -47,10 +47,12 @@ import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryReposi
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.SavedStateHandle
 
 val androidAppModule = module {
     // Clean Architecture Service Management
@@ -121,9 +123,9 @@ val androidAppModule = module {
             transcriptionHistoryRepository = get()
         )
     }
-    viewModel { 
+    viewModel { (savedStateHandle: SavedStateHandle) -> 
         MainNavigationViewModel(
-            savedStateHandle = get()
+            savedStateHandle = savedStateHandle
         )
     }
     viewModel { 

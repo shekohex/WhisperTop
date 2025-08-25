@@ -47,10 +47,6 @@ class DataCleanupWorker(
                 6, TimeUnit.HOURS  // Flex interval
             )
                 .setConstraints(constraints)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    15, TimeUnit.MINUTES
-                )
                 .build()
                 
             WorkManager.getInstance(context)

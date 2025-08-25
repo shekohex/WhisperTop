@@ -33,6 +33,8 @@ import me.shadykhalifa.whispertop.presentation.ui.screens.OnboardingWpmScreen
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
 import me.shadykhalifa.whispertop.presentation.navigation.NavigationTransitions
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
+import androidx.lifecycle.SavedStateHandle
 
 @Composable
 fun MainNavGraph(
@@ -40,7 +42,7 @@ fun MainNavGraph(
     requestPermissions: Boolean = false,
     showSettings: Boolean = false,
     showWpmOnboarding: Boolean = false,
-    mainNavViewModel: MainNavigationViewModel = koinInject()
+    mainNavViewModel: MainNavigationViewModel = koinInject { parametersOf(SavedStateHandle()) }
 ) {
     val navigationState by mainNavViewModel.uiState.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
