@@ -59,8 +59,8 @@ class UserStatisticsRepositoryImpl(
 
     override suspend fun updateDerivedStatistics(userId: String): Result<Unit> = execute {
         val accuracy = transcriptionHistoryDao.getAverageConfidence()
-        val language = transcriptionHistoryDao.getMostUsedLanguage()
-        val model = transcriptionHistoryDao.getMostUsedModel()
+        val language = transcriptionHistoryDao.getMostUsedLanguage()?.language
+        val model = transcriptionHistoryDao.getMostUsedModel()?.model
         val currentTime = System.currentTimeMillis()
 
         userStatisticsDao.updateDerivedStats(

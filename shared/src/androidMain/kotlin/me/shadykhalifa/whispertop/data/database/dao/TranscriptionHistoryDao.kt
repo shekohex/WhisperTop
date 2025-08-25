@@ -10,6 +10,16 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import me.shadykhalifa.whispertop.data.database.entities.TranscriptionHistoryEntity
 
+data class LanguageUsage(
+    val language: String,
+    val count: Int
+)
+
+data class ModelUsage(
+    val model: String,
+    val count: Int
+)
+
 @Dao
 interface TranscriptionHistoryDao {
     
@@ -86,7 +96,7 @@ interface TranscriptionHistoryDao {
         ORDER BY count DESC 
         LIMIT 1
     """)
-    suspend fun getMostUsedLanguage(): String?
+    suspend fun getMostUsedLanguage(): LanguageUsage?
     
     @Query("""
         SELECT model, COUNT(*) as count 
@@ -96,7 +106,7 @@ interface TranscriptionHistoryDao {
         ORDER BY count DESC 
         LIMIT 1
     """)
-    suspend fun getMostUsedModel(): String?
+    suspend fun getMostUsedModel(): ModelUsage?
     
     @Query("SELECT COUNT(*) FROM transcription_history WHERE timestamp >= :startOfDay")
     suspend fun getDailyTranscriptionCount(startOfDay: Long): Long

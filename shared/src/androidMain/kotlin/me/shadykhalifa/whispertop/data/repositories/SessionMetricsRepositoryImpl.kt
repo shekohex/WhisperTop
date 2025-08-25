@@ -87,8 +87,8 @@ class SessionMetricsRepositoryImpl(
         val averageWordCount = sessionMetricsDao.getAverageWordCount() ?: 0.0
         val averageRecordingDuration = sessionMetricsDao.getAverageRecordingDuration() ?: 0L
         val averageSpeakingRate = sessionMetricsDao.getAverageSpeakingRate() ?: 0.0
-        val mostUsedApps = sessionMetricsDao.getMostUsedApps()
-        val errorStatistics = sessionMetricsDao.getErrorStatistics()
+        val mostUsedApps = sessionMetricsDao.getMostUsedApps().associate { it.targetAppPackage to it.count }
+        val errorStatistics = sessionMetricsDao.getErrorStatistics().associate { it.errorType to it.count }
 
         SessionStatistics(
             totalSessions = totalSessions,

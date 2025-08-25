@@ -130,8 +130,8 @@ class TranscriptionHistoryRepositoryImpl(
         val count = dao.getCount()
         val totalDuration = dao.getTotalDuration()
         val averageConfidence = dao.getAverageConfidence()
-        val mostUsedLanguage = dao.getMostUsedLanguage()
-        val mostUsedModel = dao.getMostUsedModel()
+        val mostUsedLanguage = dao.getMostUsedLanguage()?.language
+        val mostUsedModel = dao.getMostUsedModel()?.model
         val startOfDay = System.currentTimeMillis() - (System.currentTimeMillis() % (24 * 60 * 60 * 1000))
         val dailyCount = dao.getDailyTranscriptionCount(startOfDay)
 

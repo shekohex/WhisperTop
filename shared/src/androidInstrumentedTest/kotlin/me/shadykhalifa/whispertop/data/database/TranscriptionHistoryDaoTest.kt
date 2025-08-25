@@ -232,7 +232,7 @@ class TranscriptionHistoryDaoTest {
         dao.insertAll(entities)
         val mostUsedLanguage = dao.getMostUsedLanguage()
 
-        assertEquals("en", mostUsedLanguage)
+        assertEquals("en", mostUsedLanguage?.language)
         
         
     }

@@ -116,9 +116,7 @@ room {
 }
 
 dependencies {
-    // Temporarily disabled due to KSP compatibility issues with Room 2.7.0-alpha08
-    // TODO: Re-enable when Room/KSP versions are compatible
-    // add("kspAndroid", libs.androidx.room.compiler)
+    add("kspAndroid", libs.androidx.room.compiler)
 }
 
 // JaCoCo Coverage Configuration for Shared Module

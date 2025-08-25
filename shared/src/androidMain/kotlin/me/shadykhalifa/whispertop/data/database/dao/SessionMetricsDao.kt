@@ -78,10 +78,10 @@ interface SessionMetricsDao {
     suspend fun getAverageSpeakingRate(): Double?
     
     @Query("SELECT targetAppPackage, COUNT(*) as count FROM session_metrics WHERE targetAppPackage IS NOT NULL GROUP BY targetAppPackage ORDER BY count DESC LIMIT :limit")
-    suspend fun getMostUsedApps(limit: Int = 10): Map<String, Int>
+    suspend fun getMostUsedApps(limit: Int = 10): List<AppUsage>
     
     @Query("SELECT errorType, COUNT(*) as count FROM session_metrics WHERE errorType IS NOT NULL GROUP BY errorType ORDER BY count DESC")
-    suspend fun getErrorStatistics(): Map<String, Int>
+    suspend fun getErrorStatistics(): List<ErrorBreakdown>
     
     @Query("DELETE FROM session_metrics WHERE sessionStartTime < :timestamp")
     suspend fun deleteOlderThan(timestamp: Long): Int
