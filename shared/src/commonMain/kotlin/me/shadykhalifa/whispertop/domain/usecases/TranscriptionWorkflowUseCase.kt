@@ -385,7 +385,8 @@ class TranscriptionWorkflowUseCase(
             customPrompt = settings.customPrompt?.takeIf { it.isNotBlank() },
             temperature = settings.temperature,
             language = settings.language?.takeIf { it.isNotBlank() },
-            model = settings.selectedModel
+            model = settings.selectedModel,
+            wordCount = wordCount
         )
         
         return when (val result = transcriptionHistoryRepository.saveTranscription(
@@ -396,7 +397,8 @@ class TranscriptionWorkflowUseCase(
             customPrompt = transcriptionHistoryItem.customPrompt,
             temperature = transcriptionHistoryItem.temperature,
             language = transcriptionHistoryItem.language,
-            model = transcriptionHistoryItem.model
+            model = transcriptionHistoryItem.model,
+            wordCount = transcriptionHistoryItem.wordCount
         )) {
             is Result.Success -> {
                 // Log success for analytics

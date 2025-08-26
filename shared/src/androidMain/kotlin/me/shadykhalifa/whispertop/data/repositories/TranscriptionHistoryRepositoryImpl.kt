@@ -42,7 +42,8 @@ class TranscriptionHistoryRepositoryImpl(
         customPrompt: String?,
         temperature: Float?,
         language: String?,
-        model: String?
+        model: String?,
+        wordCount: Int
     ): Result<String> = execute {
         val id = UUID.randomUUID().toString()
         val entity = TranscriptionHistoryEntity(
@@ -55,7 +56,8 @@ class TranscriptionHistoryRepositoryImpl(
             customPrompt = customPrompt,
             temperature = temperature,
             language = language,
-            model = model
+            model = model,
+            wordCount = wordCount
         )
         dao.insert(entity)
         id
@@ -146,6 +148,12 @@ class TranscriptionHistoryRepositoryImpl(
     }
 
     private fun TranscriptionHistoryEntity.toDomainModel(): TranscriptionHistoryItem {
+        val calculatedWordCount = if (wordCount == 0 && text.isNotBlank()) {
+            text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.size
+        } else {
+            wordCount
+        }
+        
         return TranscriptionHistoryItem(
             id = id,
             text = text,
@@ -156,7 +164,8 @@ class TranscriptionHistoryRepositoryImpl(
             customPrompt = customPrompt,
             temperature = temperature,
             language = language,
-            model = model
+            model = model,
+            wordCount = calculatedWordCount
         )
     }
 

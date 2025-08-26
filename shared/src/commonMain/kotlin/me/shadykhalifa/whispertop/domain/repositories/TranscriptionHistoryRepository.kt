@@ -24,7 +24,8 @@ interface TranscriptionHistoryRepository {
         customPrompt: String?,
         temperature: Float?,
         language: String?,
-        model: String?
+        model: String?,
+        wordCount: Int = 0
     ): Result<String>
     
     suspend fun getTranscription(id: String): Result<TranscriptionHistoryItem?>
