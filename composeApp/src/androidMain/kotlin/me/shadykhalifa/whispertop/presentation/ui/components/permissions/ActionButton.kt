@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import me.shadykhalifa.whispertop.domain.models.AppPermission
 import me.shadykhalifa.whispertop.domain.models.PermissionState
 
 @Composable
@@ -20,10 +21,10 @@ fun ActionButton(
 ) {
     val buttonData = when {
         permissionState.isGranted -> null
-        permissionState.requiresSettings -> {
+        permissionState.requiresSettings || permissionState.permission == AppPermission.ACCESSIBILITY_SERVICE -> {
             Tuple4(
-                "Settings",
-                Icons.Default.Settings,
+                "Grant",
+                Icons.Default.PlayArrow,
                 onOpenSettings,
                 "Open system settings for ${permissionState.permission.displayName}"
             )
