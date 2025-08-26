@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import me.shadykhalifa.whispertop.data.audio.getCurrentTimeMillis
 import me.shadykhalifa.whispertop.domain.models.AudioFile
 import me.shadykhalifa.whispertop.domain.models.RecordingState
@@ -41,11 +43,26 @@ class RecordingManager(
     
     private var recordingJob: Job? = null
     private var timeoutJob: Job? = null
+    private var stateResetJob: Job? = null
+    
+    private val stateMutex = Mutex()
 
     
     private val maxRecordingDurationMs = 25 * 60 * 1000L // 25 minutes for 25MB limit
     private val retryAttempts = 3
     private val retryDelayMs = 1000L
+    private val successDisplayDelayMs = 1500L // Show success state for 1.5 seconds
+    
+    private suspend fun updateState(newState: RecordingState, reason: String = "") {
+        stateMutex.withLock {
+            val oldState = _recordingState.value
+            _recordingState.value = newState
+            loggingManager.debug(
+                TAG,
+                "State transition: ${oldState::class.simpleName} → ${newState::class.simpleName}${if (reason.isNotEmpty()) " ($reason)" else ""}"
+            )
+        }
+    }
     
     fun startRecording() {
         if (_recordingState.value !is RecordingState.Idle) {
@@ -59,7 +76,7 @@ class RecordingManager(
         recordingJob = scope.launch {
             try {
                 val startTime = getCurrentTimeMillis()
-                _recordingState.value = RecordingState.Recording(startTime = startTime)
+                updateState(RecordingState.Recording(startTime = startTime), "start recording")
                 
 
                 startTimeoutJob()
@@ -94,7 +111,7 @@ class RecordingManager(
         
         recordingJob = scope.launch {
             try {
-                _recordingState.value = RecordingState.Processing()
+                updateState(RecordingState.Processing(), "stop recording")
                 
                 val stopResult = audioRepository.stopRecording()
                 when (stopResult) {
@@ -118,6 +135,7 @@ class RecordingManager(
     fun cancelRecording() {
         recordingJob?.cancel()
         timeoutJob?.cancel()
+        stateResetJob?.cancel()
         
         scope.launch {
             try {
@@ -125,19 +143,32 @@ class RecordingManager(
             } catch (exception: Throwable) {
                 // Ignore errors during cancellation cleanup
             } finally {
-                _recordingState.value = RecordingState.Idle
+                updateState(RecordingState.Idle, "cancel recording")
             }
         }
     }
     
     fun retryFromError() {
-        val currentState = _recordingState.value
-        if (currentState is RecordingState.Error && currentState.retryable) {
-            _recordingState.value = RecordingState.Idle
+        scope.launch {
+            val currentState = _recordingState.value
+            when (currentState) {
+                is RecordingState.Error -> {
+                    if (currentState.retryable) {
+                        updateState(RecordingState.Idle, "retry from error")
+                    }
+                }
+                is RecordingState.Success -> {
+                    updateState(RecordingState.Idle, "reset from success")
+                }
+                else -> {
+                    loggingManager.debug(TAG, "retryFromError called but state is ${currentState::class.simpleName}, ignoring")
+                }
+            }
         }
     }
     
     fun resetToIdle() {
+        stateResetJob?.cancel()
         cancelRecording()
     }
     
@@ -157,7 +188,7 @@ class RecordingManager(
     private suspend fun processTranscription(audioFile: AudioFile) {
         try {
             for (progress in 0..100 step 10) {
-                _recordingState.value = RecordingState.Processing(progress / 100f)
+                updateState(RecordingState.Processing(progress / 100f), "processing progress")
                 delay(50) // Simulate progress updates
             }
             
@@ -173,10 +204,19 @@ class RecordingManager(
             
             when (transcriptionResult) {
                 is Result.Success -> {
-                    _recordingState.value = RecordingState.Success(
-                        audioFile = audioFile,
-                        transcription = transcriptionResult.data.text
+                    updateState(
+                        RecordingState.Success(
+                            audioFile = audioFile,
+                            transcription = transcriptionResult.data.text
+                        ),
+                        "transcription success"
                     )
+                    
+                    // Auto-transition back to Idle after displaying success
+                    stateResetJob = scope.launch {
+                        delay(successDisplayDelayMs)
+                        updateState(RecordingState.Idle, "auto-reset after success")
+                    }
                 }
                 is Result.Error -> {
                     handleRecordingError(transcriptionResult.exception, retryable = true)
@@ -194,6 +234,7 @@ class RecordingManager(
     private suspend fun handleRecordingError(throwable: Throwable, retryable: Boolean) {
         recordingJob?.cancel()
         timeoutJob?.cancel()
+        stateResetJob?.cancel()
         
         try {
             audioRepository.cancelRecording()
@@ -201,15 +242,21 @@ class RecordingManager(
             // Ignore cleanup errors
         }
         
-        _recordingState.value = RecordingState.Error(
-            throwable = throwable,
-            retryable = retryable
-        )
+        scope.launch {
+            updateState(
+                RecordingState.Error(
+                    throwable = throwable,
+                    retryable = retryable
+                ),
+                "recording error: ${throwable.message}"
+            )
+        }
     }
     
     fun cleanup() {
         recordingJob?.cancel()
         timeoutJob?.cancel()
+        stateResetJob?.cancel()
         scope.cancel()
     }
 }
