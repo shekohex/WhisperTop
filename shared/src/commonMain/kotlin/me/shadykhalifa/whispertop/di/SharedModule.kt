@@ -143,28 +143,28 @@ val sharedModule = module {
     // MemoryProfiler is platform-specific and provided in platform modules
     single<PerformanceMonitor> { PerformanceMonitorImpl() }
     // StatisticsCacheService temporarily disabled due to missing StatisticsRepository
-    // single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
+    single<StatisticsCacheService> { StatisticsCacheServiceImpl(get<StatisticsRepository>()) }
     // LazyHistoryLoader temporarily disabled due to missing TranscriptionHistoryRepository
-    // single<LazyHistoryLoader> { 
-    //     LazyHistoryLoaderImpl(
-    //         historyRepository = get<TranscriptionHistoryRepository>(),
-    //         performanceMonitor = get(),
-    //         backgroundThreadManager = get()
-    //     )
-    // }
+     single<LazyHistoryLoader> {
+         LazyHistoryLoaderImpl(
+             historyRepository = get<TranscriptionHistoryRepository>(),
+             performanceMonitor = get(),
+             backgroundThreadManager = get()
+         )
+     }
     // CacheEvictionPolicyManager temporarily disabled due to missing dependencies
-    // single<CacheEvictionPolicyManager> {
-    //     CacheEvictionPolicyManagerImpl(
-    //         performanceCacheManager = get(),
-    //         statisticsCacheService = get(),
-    //         memoryProfiler = get(),
-    //         backgroundThreadManager = get(),
-    //         coroutineScope = get()
-    //     )
-    // }
+     single<CacheEvictionPolicyManager> {
+         CacheEvictionPolicyManagerImpl(
+             performanceCacheManager = get(),
+             statisticsCacheService = get(),
+             memoryProfiler = get(),
+             backgroundThreadManager = get(),
+             coroutineScope = get()
+         )
+     }
     
     // Managers  
-    single { RecordingManager(get()) }
+    single { RecordingManager(get(), get()) }
     
     // Use Cases
     factory { StartRecordingUseCase(get(), get(), get<ErrorNotificationService>()) }
@@ -186,6 +186,6 @@ val sharedModule = module {
     factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
     factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
     // DashboardViewModel temporarily disabled due to missing dependencies
-    // factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
+    factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
     factory { OnboardingWpmViewModel(get<SettingsRepository>(), get<ViewModelErrorHandler>()) }
 }

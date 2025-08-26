@@ -3,6 +3,7 @@ package me.shadykhalifa.whispertop.presentation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.impl.WorkManagerImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -148,11 +149,7 @@ class AudioRecordingViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
-    
 
-    
-
-    
     override fun onCleared() {
         super.onCleared()
         transcriptionWorkflowUseCase.cleanup()

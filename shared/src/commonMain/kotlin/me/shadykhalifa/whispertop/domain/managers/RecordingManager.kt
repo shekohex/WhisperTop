@@ -1,5 +1,4 @@
 package me.shadykhalifa.whispertop.domain.managers
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,14 +16,22 @@ import me.shadykhalifa.whispertop.domain.models.TranscriptionRequest
 import me.shadykhalifa.whispertop.domain.repositories.AudioRepository
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionRepository
 import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
-import me.shadykhalifa.whispertop.domain.usecases.DurationTrackerUseCase
+import me.shadykhalifa.whispertop.domain.services.DebugLoggingService
+import me.shadykhalifa.whispertop.domain.services.LoggingManager
 import me.shadykhalifa.whispertop.utils.Result
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+
+
 class RecordingManager(
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    private val loggingManager: LoggingManager,
 ) : KoinComponent {
+
+    companion object {
+        const val TAG = "RecordingManager";
+    }
     private val audioRepository: AudioRepository by inject()
     private val transcriptionRepository: TranscriptionRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
@@ -42,6 +49,10 @@ class RecordingManager(
     
     fun startRecording() {
         if (_recordingState.value !is RecordingState.Idle) {
+            loggingManager.debug(
+                TAG,
+                "Recording state is not Idle, returning",
+            );
             return
         }
         
@@ -59,7 +70,7 @@ class RecordingManager(
                         handleRecordingError(startResult.exception, retryable = true)
                     }
                     is Result.Success -> {
-                        // Recording started successfully
+                        // Recording started successfully, continue with transcription
                     }
                     is Result.Loading -> {
                         // Continue - loading state not relevant for start recording
@@ -129,10 +140,6 @@ class RecordingManager(
     fun resetToIdle() {
         cancelRecording()
     }
-    
-
-    
-
     
     private fun startTimeoutJob() {
         timeoutJob = scope.launch {

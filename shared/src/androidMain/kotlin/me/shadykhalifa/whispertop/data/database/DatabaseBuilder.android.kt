@@ -47,8 +47,23 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
             override fun postKey(connection: SQLiteConnection?) {
                 try {
                     Log.v(tag, "Applying post-key security configurations")
-                    // Essential security settings
-                    connection?.execute("PRAGMA cipher_memory_security = ON", null, null)
+                    
+                    // Conditional memory security: OFF in debug to prevent mlock warnings, ON in production for security
+                    val isDebugBuild = try {
+                        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                    } catch (e: Exception) {
+                        Log.w(tag, "Failed to determine debug status for memory security config", e)
+                        false
+                    }
+                    
+                    if (isDebugBuild) {
+                        Log.v(tag, "DEBUG BUILD: Disabling cipher_memory_security to prevent mlock warnings")
+                        connection?.execute("PRAGMA cipher_memory_security = OFF", null, null)
+                    } else {
+                        Log.v(tag, "PRODUCTION BUILD: Enabling cipher_memory_security for enhanced security")
+                        connection?.execute("PRAGMA cipher_memory_security = ON", null, null)
+                    }
+                    
                     // Removed cipher_plaintext_header_size for security (as per code review)
                     connection?.execute("PRAGMA cipher_cache_size = 16000", null, null) // Larger cache for encrypted DB
                 } catch (e: Exception) {
@@ -106,7 +121,20 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
                 
                 try {
                     // Re-apply critical security settings on every connection
-                    db.execSQL("PRAGMA cipher_memory_security=ON")
+                    // Use same debug/production logic for consistency
+                    val isDebugBuild = try {
+                        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                    } catch (e: Exception) {
+                        Log.w(tag, "Failed to determine debug status for onOpen memory security config", e)
+                        false
+                    }
+                    
+                    if (isDebugBuild) {
+                        db.execSQL("PRAGMA cipher_memory_security=OFF")
+                    } else {
+                        db.execSQL("PRAGMA cipher_memory_security=ON")
+                    }
+                    
                     db.execSQL("PRAGMA foreign_keys=ON")
                     
                     val reopenTime = System.currentTimeMillis() - startTime
