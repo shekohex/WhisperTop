@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -282,6 +283,15 @@ class TranscriptionWorkflowUseCase(
                 transcription = transcription,
                 textInserted = false
             )
+            
+            // AUTO-RESET: Schedule transition back to Idle after brief delay
+            scope.launch {
+                delay(200) // Brief success feedback period
+                // Double-check state hasn't changed (e.g., user didn't start new recording)
+                if (_workflowState.value is WorkflowState.Success) {
+                    resetToIdle() // Properly reset both RecordingManager and WorkflowState
+                }
+            }
             return
         }
         
@@ -315,6 +325,15 @@ class TranscriptionWorkflowUseCase(
                 transcription = transcription,
                 textInserted = textInserted
             )
+            
+            // AUTO-RESET: Schedule transition back to Idle after brief delay
+            scope.launch {
+                delay(200) // Brief success feedback period
+                // Double-check state hasn't changed (e.g., user didn't start new recording)
+                if (_workflowState.value is WorkflowState.Success) {
+                    resetToIdle() // Properly reset both RecordingManager and WorkflowState
+                }
+            }
             
             if (!textInserted) {
                 val error = TranscriptionError.TextInsertionFailed(transcription)

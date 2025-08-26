@@ -19,6 +19,7 @@ import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 import me.shadykhalifa.whispertop.domain.models.ErrorContext
 
 import me.shadykhalifa.whispertop.presentation.models.toUiState
+import me.shadykhalifa.whispertop.utils.Result
 
 
 class AudioRecordingViewModel(
@@ -96,14 +97,36 @@ class AudioRecordingViewModel(
     fun startRecording() {
         Log.d(TAG, "Starting recording via workflow...")
         viewModelScope.launch {
-            transcriptionWorkflowUseCase.startRecording()
+            val result = transcriptionWorkflowUseCase.startRecording()
+            when (result) {
+                is Result.Success -> {
+                    Log.d(TAG, "Recording started successfully")
+                }
+                is Result.Error -> {
+                    Log.e(TAG, "Failed to start recording: ${result.exception.message}")
+                }
+                is Result.Loading -> {
+                    Log.d(TAG, "Recording start is loading...")
+                }
+            }
         }
     }
     
     fun stopRecording() {
         Log.d(TAG, "Stopping recording via workflow...")
         viewModelScope.launch {
-            transcriptionWorkflowUseCase.stopRecording()
+            val result = transcriptionWorkflowUseCase.stopRecording()
+            when (result) {
+                is Result.Success -> {
+                    Log.d(TAG, "Recording stopped successfully")
+                }
+                is Result.Error -> {
+                    Log.e(TAG, "Failed to stop recording: ${result.exception.message}")
+                }
+                is Result.Loading -> {
+                    Log.d(TAG, "Recording stop is loading...")
+                }
+            }
         }
     }
     
@@ -115,6 +138,11 @@ class AudioRecordingViewModel(
     fun retryFromError() {
         Log.d(TAG, "Retrying from error via workflow...")
         transcriptionWorkflowUseCase.retryFromError()
+    }
+    
+    fun resetToIdle() {
+        Log.d(TAG, "Manually resetting to idle state")
+        transcriptionWorkflowUseCase.resetToIdle()
     }
     
     fun clearError() {
