@@ -40,10 +40,13 @@ import me.shadykhalifa.whispertop.presentation.viewmodels.PermissionsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.HistoryViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.MainNavigationViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.TranscriptionDetailViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.DashboardViewModel
 import me.shadykhalifa.whispertop.data.database.AppDatabase
 import me.shadykhalifa.whispertop.data.database.createDatabaseBuilder
 import me.shadykhalifa.whispertop.data.repositories.TranscriptionHistoryRepositoryImpl
+import me.shadykhalifa.whispertop.data.repositories.UserStatisticsRepositoryImpl
 import me.shadykhalifa.whispertop.domain.repositories.TranscriptionHistoryRepository
+import me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -101,6 +104,7 @@ val androidAppModule = module {
     
     // Database repositories  
     singleOf(::TranscriptionHistoryRepositoryImpl) { bind<TranscriptionHistoryRepository>() }
+    singleOf(::UserStatisticsRepositoryImpl) { bind<UserStatisticsRepository>() }
     
     // ViewModels
     viewModel { 
@@ -131,6 +135,15 @@ val androidAppModule = module {
     viewModel { 
         TranscriptionDetailViewModel(
             transcriptionHistoryRepository = get(),
+            errorHandler = get()
+        )
+    }
+    factory {
+        DashboardViewModel(
+            userStatisticsRepository = get(),
+            transcriptionHistoryRepository = get(), 
+            settingsRepository = get(),
+            metricsCollector = get(),
             errorHandler = get()
         )
     }

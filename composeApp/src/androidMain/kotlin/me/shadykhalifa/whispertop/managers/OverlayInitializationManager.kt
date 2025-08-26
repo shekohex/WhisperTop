@@ -293,7 +293,8 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
                 Log.d(TAG, "Recording successful, ignoring click")
             }
             RecordingStatus.Error -> {
-                Log.d(TAG, "Recording error, ignoring click")
+                Log.d(TAG, "Recording error detected, attempting retry")
+                audioRecordingViewModel.retryFromError()
             }
         }
     }
@@ -315,6 +316,11 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
                 
                 micButtonOverlay?.setState(buttonState)
                 Log.d(TAG, "Updated mic button state to: $buttonState (from recording status: ${uiState.status})")
+                
+                // Log error details for debugging when in error state
+                if (uiState.status == RecordingStatus.Error && uiState.errorMessage != null) {
+                    Log.w(TAG, "Recording error details: ${uiState.errorMessage}")
+                }
             }
         }
     }

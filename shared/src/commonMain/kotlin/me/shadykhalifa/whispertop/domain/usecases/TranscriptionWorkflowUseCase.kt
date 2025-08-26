@@ -233,8 +233,12 @@ class TranscriptionWorkflowUseCase(
     }
     
     fun retryFromError() {
-        recordingManager.retryFromError()
-        _workflowState.value = WorkflowState.Idle
+        scope.launch {
+            recordingManager.retryFromError()
+            _workflowState.value = WorkflowState.Idle
+            // Re-initialize services in case the error was due to service initialization
+            initializeServices()
+        }
     }
     
     fun resetToIdle() {

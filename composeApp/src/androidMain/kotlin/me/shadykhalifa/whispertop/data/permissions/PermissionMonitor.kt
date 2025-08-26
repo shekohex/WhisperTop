@@ -145,7 +145,7 @@ class PermissionMonitor(
         ) ?: return false
         
         val packageName = context.packageName
-        val serviceName = "$packageName/me.shadykhalifa.whispertop.services.WhisperTopAccessibilityService"
+        val serviceName = "$packageName/me.shadykhalifa.whispertop.service.WhisperTopAccessibilityService"
         
         return enabledServices.contains(serviceName)
     }

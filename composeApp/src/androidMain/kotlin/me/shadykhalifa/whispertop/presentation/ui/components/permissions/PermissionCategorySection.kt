@@ -7,9 +7,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -127,21 +124,29 @@ fun PermissionCategorySection(
                 else -> 1
             }
             
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columns),
+            Column(
                 modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                userScrollEnabled = false
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(permissions) { (appPermission, permissionState) ->
-                    PermissionCard(
-                        appPermission = appPermission,
-                        permissionState = permissionState,
-                        onRequestPermission = onRequestPermission,
-                        onOpenSettings = onOpenSettings,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                permissions.chunked(columns).forEach { rowPermissions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowPermissions.forEach { (appPermission, permissionState) ->
+                            PermissionCard(
+                                appPermission = appPermission,
+                                permissionState = permissionState,
+                                onRequestPermission = onRequestPermission,
+                                onOpenSettings = onOpenSettings,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // Fill remaining space if this row has fewer items
+                        repeat(columns - rowPermissions.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }

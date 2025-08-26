@@ -5,9 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +42,21 @@ import me.shadykhalifa.whispertop.presentation.ui.components.ShimmerBox
 import me.shadykhalifa.whispertop.presentation.ui.components.AnimatedErrorState
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
+
+data class MetricCardData(
+    val title: String,
+    val value: String,
+    val icon: ImageVector,
+    val iconColor: Color,
+    val animatedValue: Int
+)
+
+data class StatisticCardData(
+    val title: String,
+    val value: String,
+    val icon: ImageVector,
+    val animatedValue: Int
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -237,50 +249,36 @@ private fun ProductivityMetricsSection(
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            modifier = Modifier.height(if (columns > 2) 200.dp else 320.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        val metricCards = listOf(
+            MetricCardData("Speaking Time", formatTime(speakingTimeMinutes), Icons.Default.Mic, Color(0xFF4CAF50), speakingTimeMinutes.roundToInt()),
+            MetricCardData("Typing Time", formatTime(typingTimeMinutes), Icons.Default.Keyboard, Color(0xFFFF9800), typingTimeMinutes.roundToInt()),
+            MetricCardData("Time Saved", formatTime(timeSavedMinutes), Icons.Default.Schedule, Color(0xFF2196F3), timeSavedMinutes.roundToInt()),
+            MetricCardData("Efficiency", "${(efficiencyMultiplier * 100).roundToInt()}%", Icons.Default.Timeline, MaterialTheme.colorScheme.primary, (efficiencyMultiplier * 100).roundToInt())
+        )
+        
+        Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                MetricCard(
-                    title = "Speaking Time",
-                    value = formatTime(speakingTimeMinutes),
-                    icon = Icons.Default.Mic,
-                    iconColor = Color(0xFF4CAF50), // Green
-                    animatedValue = speakingTimeMinutes.roundToInt()
-                )
-            }
-            
-            item {
-                MetricCard(
-                    title = "Typing Time",
-                    value = formatTime(typingTimeMinutes),
-                    icon = Icons.Default.Keyboard,
-                    iconColor = Color(0xFFFF9800), // Orange
-                    animatedValue = typingTimeMinutes.roundToInt()
-                )
-            }
-            
-            item {
-                MetricCard(
-                    title = "Time Saved",
-                    value = formatTime(timeSavedMinutes),
-                    icon = Icons.Default.Schedule,
-                    iconColor = Color(0xFF2196F3), // Blue
-                    animatedValue = timeSavedMinutes.roundToInt()
-                )
-            }
-            
-            item {
-                MetricCard(
-                    title = "Efficiency",
-                    value = "${(efficiencyMultiplier * 100).roundToInt()}%",
-                    icon = Icons.Default.Timeline,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    animatedValue = (efficiencyMultiplier * 100).roundToInt()
-                )
+            metricCards.chunked(columns).forEach { rowCards ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowCards.forEach { cardData ->
+                        MetricCard(
+                            title = cardData.title,
+                            value = cardData.value,
+                            icon = cardData.icon,
+                            iconColor = cardData.iconColor,
+                            animatedValue = cardData.animatedValue,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Fill remaining space if this row has fewer items
+                    repeat(columns - rowCards.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
@@ -303,46 +301,35 @@ private fun StatisticsGrid(
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            modifier = Modifier.height(if (columns > 2) 160.dp else 240.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        val statisticCards = listOf(
+            StatisticCardData("Words Captured", formatNumber(totalWords), Icons.Default.TextFields, totalWords.toInt()),
+            StatisticCardData("Sessions", totalSessions.toString(), Icons.Default.PlayArrow, totalSessions),
+            StatisticCardData("Avg Words/Min", "${avgWordsPerMinute.roundToInt()}", Icons.Default.Speed, avgWordsPerMinute.roundToInt()),
+            StatisticCardData("Words/Session", "${avgWordsPerSession.roundToInt()}", Icons.Default.Analytics, avgWordsPerSession.roundToInt())
+        )
+        
+        Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                StatisticCard(
-                    title = "Words Captured",
-                    value = formatNumber(totalWords),
-                    icon = Icons.Default.TextFields,
-                    animatedValue = totalWords.toInt()
-                )
-            }
-            
-            item {
-                StatisticCard(
-                    title = "Sessions",
-                    value = totalSessions.toString(),
-                    icon = Icons.Default.PlayArrow,
-                    animatedValue = totalSessions
-                )
-            }
-            
-            item {
-                StatisticCard(
-                    title = "Avg Words/Min",
-                    value = "${avgWordsPerMinute.roundToInt()}",
-                    icon = Icons.Default.Speed,
-                    animatedValue = avgWordsPerMinute.roundToInt()
-                )
-            }
-            
-            item {
-                StatisticCard(
-                    title = "Words/Session",
-                    value = "${avgWordsPerSession.roundToInt()}",
-                    icon = Icons.Default.Analytics,
-                    animatedValue = avgWordsPerSession.roundToInt()
-                )
+            statisticCards.chunked(columns).forEach { rowCards ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowCards.forEach { cardData ->
+                        StatisticCard(
+                            title = cardData.title,
+                            value = cardData.value,
+                            icon = cardData.icon,
+                            animatedValue = cardData.animatedValue,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Fill remaining space if this row has fewer items
+                    repeat(columns - rowCards.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
