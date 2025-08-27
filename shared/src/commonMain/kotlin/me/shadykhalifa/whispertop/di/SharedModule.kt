@@ -185,7 +185,6 @@ val sharedModule = module {
     factory { RecordingViewModel(get(), get(), get(), get<ViewModelErrorHandler>()) }
     factory { SettingsViewModel(get<SettingsRepository>(), get<SecurePreferencesRepository>(), get<ViewModelErrorHandler>()) }
     factory { ModelSelectionViewModel(get<ModelSelectionPreferencesManager>(), get<ViewModelErrorHandler>()) }
-    // DashboardViewModel temporarily disabled due to missing dependencies
     factory { DashboardViewModel(get<UserStatisticsRepository>(), get<TranscriptionHistoryRepository>(), get<SettingsRepository>(), get<MetricsCollector>(), get<ViewModelErrorHandler>()) }
     factory { OnboardingWpmViewModel(get<SettingsRepository>(), get<ViewModelErrorHandler>()) }
 }

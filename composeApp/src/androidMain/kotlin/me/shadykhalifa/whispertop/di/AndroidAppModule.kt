@@ -138,13 +138,5 @@ val androidAppModule = module {
             errorHandler = get()
         )
     }
-    factory {
-        DashboardViewModel(
-            userStatisticsRepository = get(),
-            transcriptionHistoryRepository = get(), 
-            settingsRepository = get(),
-            metricsCollector = get(),
-            errorHandler = get()
-        )
-    }
+
 }
