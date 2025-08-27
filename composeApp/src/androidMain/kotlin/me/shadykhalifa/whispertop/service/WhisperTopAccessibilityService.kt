@@ -194,16 +194,38 @@ class WhisperTopAccessibilityService : AccessibilityService() {
     }
 
     private fun isEditableField(node: AccessibilityNodeInfo): Boolean {
-        return node.isEditable || 
-               node.className?.toString()?.contains("EditText") == true ||
-               node.className?.toString()?.contains("WebView") == true ||
-               (node.isFocusable && node.isClickable)
+        return node.isEditable ||
+                node.className?.toString()?.contains("EditText") == true ||
+                node.className?.toString()?.contains("WebView") == true ||
+                (node.isFocusable && node.isClickable)
+    }
+
+    /**
+     * Gets the actual text content of a node, distinguishing between user input and placeholder text.
+     * When a text field is empty but has a hint, Android's accessibility API returns the hint
+     * as the text content. This method compares the text with the hint to determine if there's
+     * actual user input.
+     */
+    private fun getActualTextContent(node: AccessibilityNodeInfo): String {
+        val text = node.text?.toString() ?: ""
+        val hintText = node.hintText?.toString() ?: ""
+
+        // If the text matches the hint exactly, the field is actually empty
+        val isPlaceholderOnly = text == hintText && text.isNotEmpty()
+
+        Log.d(TAG, "Text content analysis - Text: '$text', Hint: '$hintText', Is placeholder only: $isPlaceholderOnly")
+
+        return if (isPlaceholderOnly) {
+            ""
+        } else {
+            text
+        }
     }
 
     private fun insertTextDirectly(node: AccessibilityNodeInfo, text: String): Boolean {
         return try {
             // Get current text and check for selection
-            val existingText = node.text?.toString() ?: ""
+            val existingText = getActualTextContent(node)
             val hasSelection = node.textSelectionStart != node.textSelectionEnd
             
             Log.d(TAG, "Current text length: ${existingText.length}, has selection: $hasSelection")
@@ -254,9 +276,9 @@ class WhisperTopAccessibilityService : AccessibilityService() {
                     val focusedNode = findFocusedEditText()
                     if (focusedNode != null) {
                         try {
-                            // Get current text and check for selection
-                            val existingText = focusedNode.text?.toString() ?: ""
-                            val hasSelection = focusedNode.textSelectionStart != focusedNode.textSelectionEnd
+                             // Get current text and check for selection
+                             val existingText = getActualTextContent(focusedNode)
+                             val hasSelection = focusedNode.textSelectionStart != focusedNode.textSelectionEnd
                             
                             val finalText = TextInsertionUtils.combineTextWithIntelligentSpacing(
                                 existingText = existingText,

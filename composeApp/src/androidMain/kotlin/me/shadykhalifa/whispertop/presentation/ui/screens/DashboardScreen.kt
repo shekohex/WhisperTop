@@ -129,7 +129,7 @@ fun DashboardScreen(
         state = pullToRefreshState
     ) {
         if (uiState.isLoading && uiState.statistics == null) {
-            // Show loading shimmer for initial load
+            // Show loading shimmer only when we're actually loading and have no statistics
             DashboardShimmerContent(
                 columns = metricsColumns,
                 horizontalPadding = horizontalPadding
