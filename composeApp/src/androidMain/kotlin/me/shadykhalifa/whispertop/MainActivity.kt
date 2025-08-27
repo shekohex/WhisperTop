@@ -69,6 +69,9 @@ class MainActivity : ComponentActivity() {
     
     override fun onResume() {
         super.onResume()
+        // Clear any hidden overlay state when app is reopened
+        overlayInitManager.clearOverlayHiddenState()
+        
         // Check and re-initialize overlay if needed when returning from settings
         lifecycleScope.launch {
             overlayInitManager.checkAndReinitializeIfNeeded()
