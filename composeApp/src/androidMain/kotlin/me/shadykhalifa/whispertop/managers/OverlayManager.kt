@@ -186,6 +186,14 @@ class OverlayManager : KoinComponent, DefaultLifecycleObserver {
         return overlayService?.getActiveOverlays() ?: emptySet()
     }
     
+    fun hideOverlay(overlayId: String): Boolean {
+        return overlayService?.hideOverlay(overlayId) ?: false
+    }
+    
+    fun showOverlay(overlayId: String): Boolean {
+        return overlayService?.showOverlay(overlayId) ?: false
+    }
+    
     fun isServiceConnected(): Boolean = isServiceBound.get()
     
     fun getCurrentServiceState(): ServiceState = _serviceState.value

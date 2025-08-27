@@ -40,12 +40,16 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
         private const val KEY_OVERLAY_X = "overlay_x"
         private const val KEY_OVERLAY_Y = "overlay_y"
         private const val KEY_OVERLAY_ENABLED = "overlay_enabled"
+        private const val KEY_OVERLAY_HIDDEN = "overlay_hidden"
     }
     
     private val context: Context by inject()
     private val overlayManager: OverlayManager by inject()
     private val permissionHandler: PermissionHandler by inject()
     private val audioRecordingViewModel: AudioRecordingViewModel by inject()
+    
+    // Lazy injection since these may not be needed immediately
+    private val overlayNotificationManager: me.shadykhalifa.whispertop.ui.notifications.OverlayNotificationManager by inject()
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
@@ -186,6 +190,13 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
             
             if (addResult) {
                 Log.i(TAG, "Mic button overlay added successfully")
+                
+                // Check if overlay should be hidden initially
+                if (isOverlayHidden()) {
+                    Log.d(TAG, "Overlay is set to hidden, hiding it")
+                    overlayManager.hideOverlay(MIC_BUTTON_OVERLAY_ID)
+                }
+                
                 return true
             } else {
                 Log.e(TAG, "Failed to add mic button overlay to service")
@@ -296,6 +307,23 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
                 Log.d(TAG, "Recording error detected, attempting retry")
                 audioRecordingViewModel.retryFromError()
             }
+        }
+    }
+    
+    /**
+     * Handle long press on mic button to hide overlay
+     */
+    private suspend fun handleMicButtonLongPress() {
+        Log.d(TAG, "Handling mic button long press - hiding overlay")
+        
+        // Hide the overlay
+        val hideResult = overlayManager.hideOverlay(MIC_BUTTON_OVERLAY_ID)
+        if (hideResult) {
+            // Set hidden state and show notification
+            setOverlayHidden(true)
+            Log.i(TAG, "Overlay hidden successfully with notification shown")
+        } else {
+            Log.e(TAG, "Failed to hide overlay")
         }
     }
     
@@ -463,6 +491,49 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
     }
     
     /**
+     * Check if overlay is currently hidden
+     */
+    private fun isOverlayHidden(): Boolean {
+        return overlayPrefs.getBoolean(KEY_OVERLAY_HIDDEN, false)
+    }
+    
+    /**
+     * Set overlay hidden state and show/hide notification accordingly
+     */
+    private fun setOverlayHidden(hidden: Boolean) {
+        overlayPrefs.edit()
+            .putBoolean(KEY_OVERLAY_HIDDEN, hidden)
+            .apply()
+        Log.d(TAG, "Set overlay hidden: $hidden")
+        
+        if (hidden) {
+            overlayNotificationManager.showOverlayHiddenNotification()
+        } else {
+            overlayNotificationManager.dismissNotification()
+        }
+    }
+    
+    /**
+     * Clear overlay hidden state (used when app is reopened)
+     */
+    fun clearOverlayHiddenState() {
+        if (isOverlayHidden()) {
+            Log.d(TAG, "Clearing overlay hidden state on app reopen")
+            setOverlayHidden(false)
+            overlayManager.showOverlay(MIC_BUTTON_OVERLAY_ID)
+        }
+    }
+    
+    /**
+     * Show overlay from hidden state (called from notification action)
+     */
+    suspend fun showOverlayFromHidden() {
+        Log.d(TAG, "Showing overlay from hidden state")
+        setOverlayHidden(false)
+        overlayManager.showOverlay(MIC_BUTTON_OVERLAY_ID)
+    }
+    
+    /**
      * Enhanced mic button listener that includes position saving
      */
     private fun createMicButtonListener(): MicButtonOverlay.MicButtonListener {
@@ -478,6 +549,17 @@ class OverlayInitializationManager : KoinComponent, DefaultLifecycleObserver {
                         handleMicButtonClick()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error handling mic button click", e)
+                    }
+                }
+            }
+            
+            override fun onMicButtonLongPressed() {
+                scope.launch {
+                    try {
+                        Log.d(TAG, "Mic button long pressed - hiding overlay")
+                        handleMicButtonLongPress()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error handling mic button long press", e)
                     }
                 }
             }
