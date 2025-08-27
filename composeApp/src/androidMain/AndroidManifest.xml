@@ -140,6 +140,12 @@
             </intent-filter>
         </receiver>
         
+        <!-- Overlay Visibility Control Receiver -->
+        <receiver
+            android:name=".receivers.OverlayVisibilityBroadcastReceiver"
+            android:exported="false"
+            android:enabled="true" />
+        
     </application>
 
 </manifest>
