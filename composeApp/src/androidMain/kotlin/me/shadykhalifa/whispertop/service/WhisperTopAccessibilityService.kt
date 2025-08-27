@@ -368,9 +368,6 @@ class WhisperTopAccessibilityService : AccessibilityService() {
             try {
                 val wordCount = countWords(text)
                 val characterCount = text.length
-                val typingSpeedWpm = calculateTypingSpeed(characterCount, insertionDurationMs)
-                
-                Log.d(TAG, "Text insertion analytics - Words: $wordCount, Characters: $characterCount, WPM: $typingSpeedWpm, App: $targetAppPackage, Success: $success, Sensitive: ${PrivacyUtils.containsSensitiveInfo(text)}")
                 
                 // Get current AudioRecordingService session to update metrics atomically
                 AudioRecordingService.getInstance()?.let { service ->
@@ -384,6 +381,8 @@ class WhisperTopAccessibilityService : AccessibilityService() {
                                 } else 0.0
                             } else 0.0
                         } ?: 0.0
+                        
+                        Log.d(TAG, "Text insertion analytics - Words: $wordCount, Characters: $characterCount, WPM: $speakingRate, App: $targetAppPackage, Success: $success, Sensitive: ${PrivacyUtils.containsSensitiveInfo(text)}")
                         
                         // Use atomic transaction to update all text insertion data with timeout
                         kotlinx.coroutines.withTimeoutOrNull(5000) { // 5 second timeout for analytics
@@ -418,12 +417,4 @@ class WhisperTopAccessibilityService : AccessibilityService() {
             .size
     }
     
-    private fun calculateTypingSpeed(characterCount: Int, durationMs: Long): Double {
-        if (durationMs <= 0) return 0.0
-        
-        // Standard WPM calculation: (characters / 5) / (time in minutes)
-        // Dividing by 5 because average word length is approximately 5 characters
-        val minutes = durationMs / 60000.0
-        return if (minutes > 0) (characterCount / 5.0) / minutes else 0.0
-    }
 }
