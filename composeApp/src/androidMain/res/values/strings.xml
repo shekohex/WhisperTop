@@ -91,4 +91,10 @@
     
     <string name="accessibility_duration_minutes_seconds" formatted="false">%d minutes %d seconds</string>
     <string name="accessibility_duration_seconds">%d seconds</string>
+    
+    <!-- Overlay control notification strings -->
+    <string name="notification_overlay_hidden_title">Mic icon hidden</string>
+    <string name="notification_overlay_hidden_text">Tap Show to restore the mic icon</string>
+    <string name="action_show_overlay">Show</string>
+    <string name="action_ignore">Ignore</string>
 </resources>
