@@ -67,6 +67,33 @@ interface UserStatisticsDao {
         updatedAt: Long
     )
     
+    @Query("""
+        UPDATE user_statistics
+        SET totalSessions = totalSessions + :totalSessions,
+            totalWords = totalWords + :totalWords,
+            totalSpeakingTimeMs = totalSpeakingTimeMs + :totalSpeakingTime,
+            totalTranscriptions = totalTranscriptions + :totalSessions,
+            averageWordsPerMinute = CASE
+                WHEN totalSpeakingTimeMs + :totalSpeakingTime > 0
+                THEN (totalWords + :totalWords) / ((totalSpeakingTimeMs + :totalSpeakingTime) / 60000.0)
+                ELSE averageWordsPerMinute
+            END,
+            averageWordsPerSession = CASE
+                WHEN totalSessions + :totalSessions > 0
+                THEN (totalWords + :totalWords) / (totalSessions + :totalSessions)
+                ELSE averageWordsPerSession
+            END,
+            updatedAt = :currentTime
+        WHERE id = :userId
+    """)
+    suspend fun updateDailyAggregatedStats(
+        userId: String,
+        totalSessions: Int,
+        totalWords: Long,
+        totalSpeakingTime: Long,
+        currentTime: Long
+    )
+
     @Transaction
     suspend fun insertOrUpdate(statistics: UserStatisticsEntity) {
         val existing = getById(statistics.id)

@@ -43,6 +43,76 @@ import me.shadykhalifa.whispertop.presentation.ui.components.AnimatedErrorState
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
+@Composable
+private fun EmptyStateContent(
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = horizontalPadding),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Spacer(modifier = Modifier.height(64.dp))
+        }
+
+        item {
+            Icon(
+                imageVector = Icons.Default.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        item {
+            Text(
+                text = "Welcome to WhisperTop!",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        item {
+            Text(
+                text = "Start transcribing speech to see your productivity statistics and insights.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        item {
+            Text(
+                text = "Sample Dashboard Preview",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        item {
+            Text(
+                text = "Below is a preview of what your dashboard will look like with real data:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        }
+    }
+}
+
 data class MetricCardData(
     val title: String,
     val value: String,
@@ -132,6 +202,12 @@ fun DashboardScreen(
             // Show loading shimmer only when we're actually loading and have no statistics
             DashboardShimmerContent(
                 columns = metricsColumns,
+                horizontalPadding = horizontalPadding
+            )
+        } else if (uiState.isEmptyState) {
+            // Show welcome screen for empty state
+            EmptyStateContent(
+                modifier = modifier,
                 horizontalPadding = horizontalPadding
             )
         } else {

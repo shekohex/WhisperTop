@@ -43,7 +43,7 @@ val androidModule = module {
     single<SessionMetricsDao> { get<AppDatabase>().sessionMetricsDao() }
     
     // Room-based repositories
-    single<TranscriptionHistoryRepository> { TranscriptionHistoryRepositoryImpl(get()) }
+    single<TranscriptionHistoryRepository> { TranscriptionHistoryRepositoryImpl(get(), get()) }
     single<UserStatisticsRepository> { UserStatisticsRepositoryImpl(get(), get()) }
     single<SessionMetricsRepository> { SessionMetricsRepositoryImpl(get()) }
     single<me.shadykhalifa.whispertop.domain.services.DataRetentionService> { 

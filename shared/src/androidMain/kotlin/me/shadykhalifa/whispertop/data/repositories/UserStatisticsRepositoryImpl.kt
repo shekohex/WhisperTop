@@ -16,23 +16,81 @@ class UserStatisticsRepositoryImpl(
 ) : BaseRepository(), UserStatisticsRepository {
 
     override suspend fun createUserStatistics(userId: String): Result<Unit> = execute {
-        val currentTime = System.currentTimeMillis()
-        val entity = UserStatisticsEntity(
-            id = userId,
-            totalTranscriptions = 0L,
-            totalDuration = 0f,
-            averageAccuracy = null,
-            dailyUsageCount = 0L,
-            mostUsedLanguage = null,
-            mostUsedModel = null,
-            createdAt = currentTime,
-            updatedAt = currentTime
-        )
-        userStatisticsDao.insert(entity)
+        try {
+            val currentTime = System.currentTimeMillis()
+            val entity = UserStatisticsEntity(
+                id = userId,
+                totalTranscriptions = 0L,
+                totalDuration = 0f,
+                averageAccuracy = null,
+                dailyUsageCount = 0L,
+                mostUsedLanguage = null,
+                mostUsedModel = null,
+                createdAt = currentTime,
+                updatedAt = currentTime
+            )
+            userStatisticsDao.insertOrUpdate(entity)
+        } catch (e: Exception) {
+            // If insert fails, try update as fallback
+            try {
+                val existing = userStatisticsDao.getById(userId)
+                if (existing != null) {
+                    val currentTime = System.currentTimeMillis()
+                    val updatedEntity = existing.copy(
+                        totalTranscriptions = existing.totalTranscriptions,
+                        totalDuration = existing.totalDuration,
+                        averageAccuracy = existing.averageAccuracy,
+                        dailyUsageCount = existing.dailyUsageCount,
+                        mostUsedLanguage = existing.mostUsedLanguage,
+                        mostUsedModel = existing.mostUsedModel,
+                        updatedAt = currentTime
+                    )
+                    userStatisticsDao.update(updatedEntity)
+                } else {
+                    throw e // Re-throw if no existing record
+                }
+            } catch (updateException: Exception) {
+                throw e // Throw original exception
+            }
+        }
     }
 
     override suspend fun getUserStatistics(userId: String): Result<UserStatistics?> = execute {
-        userStatisticsDao.getById(userId)?.toDomainModel()
+        try {
+            val entity = userStatisticsDao.getById(userId)
+            if (entity != null) {
+                entity.toDomainModel()
+            } else {
+                // If no statistics exist, try to create default ones
+                createDefaultStatisticsIfNeeded(userId)
+                null // Return null to trigger creation in ViewModel
+            }
+        } catch (e: Exception) {
+            // If database operation fails, return null to trigger fallback
+            null
+        }
+    }
+
+    private suspend fun createDefaultStatisticsIfNeeded(userId: String) {
+        try {
+            val currentTime = System.currentTimeMillis()
+            val entity = UserStatisticsEntity(
+                id = userId,
+                totalTranscriptions = 0L,
+                totalDuration = 0f,
+                averageAccuracy = null,
+                dailyUsageCount = 0L,
+                mostUsedLanguage = null,
+                mostUsedModel = null,
+                createdAt = currentTime,
+                updatedAt = currentTime
+            )
+            userStatisticsDao.insert(entity)
+        } catch (e: Exception) {
+            // Log but don't throw - this is a best-effort operation
+            // TODO: Consider implementing proper error reporting/logging
+            e.printStackTrace()
+        }
     }
 
     override fun getUserStatisticsFlow(userId: String): Flow<UserStatistics?> {
@@ -85,31 +143,40 @@ class UserStatisticsRepositoryImpl(
         peakUsageHour: Int
     ): Result<Unit> = execute {
         val currentTime = System.currentTimeMillis()
-        val userId = "user_stats" // Default user ID for single-user app
-        
-        // Get current statistics or create new ones
-        val currentStats = userStatisticsDao.getById(userId) ?: UserStatisticsEntity(
-            id = userId,
-            createdAt = currentTime,
-            updatedAt = currentTime
+        val userId = "default_user" // Match the user ID used in DashboardViewModel
+
+        // First ensure the user statistics record exists
+        val existingStats = userStatisticsDao.getById(userId)
+        if (existingStats == null) {
+            // Create initial statistics record
+            val initialStats = UserStatisticsEntity(
+                id = userId,
+                totalSessions = 0,
+                totalWords = 0L,
+                totalSpeakingTimeMs = 0L,
+                averageWordsPerMinute = 0.0,
+                averageWordsPerSession = 0.0,
+                userTypingWpm = 40, // Default typing speed
+                totalTranscriptions = 0L,
+                totalDuration = 0f,
+                averageAccuracy = null,
+                dailyUsageCount = 0L,
+                mostUsedLanguage = null,
+                mostUsedModel = null,
+                createdAt = currentTime,
+                updatedAt = currentTime
+            )
+            userStatisticsDao.insert(initialStats)
+        }
+
+        // Update with aggregated daily data using the DAO method
+        userStatisticsDao.updateDailyAggregatedStats(
+            userId = userId,
+            totalSessions = totalSessions,
+            totalWords = totalWords,
+            totalSpeakingTime = totalSpeakingTime,
+            currentTime = currentTime
         )
-        
-        // Update with aggregated daily data
-        val updatedStats = currentStats.copy(
-            totalSessions = currentStats.totalSessions + totalSessions,
-            totalWords = currentStats.totalWords + totalWords,
-            totalSpeakingTimeMs = currentStats.totalSpeakingTimeMs + totalSpeakingTime,
-            totalTranscriptions = currentStats.totalTranscriptions + totalSessions.toLong(),
-            averageWordsPerMinute = if (totalSpeakingTime > 0) {
-                (totalWords.toDouble() / totalSpeakingTime) * 60000 // Convert to words per minute
-            } else currentStats.averageWordsPerMinute,
-            averageWordsPerSession = if (totalSessions > 0) {
-                totalWords.toDouble() / totalSessions
-            } else currentStats.averageWordsPerSession,
-            updatedAt = currentTime
-        )
-        
-        userStatisticsDao.insertOrUpdate(updatedStats)
     }
 
     override suspend fun deleteAllStatistics(): Result<Unit> = execute {

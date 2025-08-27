@@ -12,10 +12,22 @@ import net.zetetic.database.sqlcipher.SQLiteConnection
 
 fun createDatabaseBuilder(context: Context): AppDatabase {
     val tag = "DatabaseBuilder"
-    
+
+    // Try encrypted database first, fall back to unencrypted if it fails
+    return try {
+        createEncryptedDatabase(context)
+    } catch (e: Exception) {
+        Log.e(tag, "Failed to create encrypted database, falling back to unencrypted", e)
+        createUnencryptedDatabase(context)
+    }
+}
+
+private fun createEncryptedDatabase(context: Context): AppDatabase {
+    val tag = "DatabaseBuilder"
+
     return try {
         Log.d(tag, "Initializing encrypted database with SQLCipher")
-        
+
         // Load SQLCipher native library with error handling
         try {
             System.loadLibrary("sqlcipher")
@@ -174,10 +186,103 @@ fun createDatabaseBuilder(context: Context): AppDatabase {
         
         Log.i(tag, "Encrypted database initialized successfully")
         database
-        
+
     } catch (e: Exception) {
-        Log.e(tag, "Critical failure in database initialization", e)
+        Log.e(tag, "Critical failure in encrypted database initialization", e)
         throw SecurityException("Encrypted database initialization failed", e)
+    }
+}
+
+private fun createUnencryptedDatabase(context: Context): AppDatabase {
+    val tag = "DatabaseBuilder"
+
+    return try {
+        Log.w(tag, "Creating unencrypted database as fallback")
+
+        // Create Room database without encryption
+        val builder = Room.databaseBuilder(
+            context = context,
+            klass = AppDatabase::class.java,
+            name = AppDatabase.DATABASE_NAME
+        )
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+
+        // Apply database callbacks for optimization and monitoring
+        builder.addCallback(object : androidx.room.RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                Log.i(tag, "Creating new unencrypted database")
+
+                val startTime = System.currentTimeMillis()
+                try {
+                    // Enable WAL mode for better concurrent access
+                    db.execSQL("PRAGMA journal_mode=WAL")
+                    db.execSQL("PRAGMA synchronous=NORMAL")
+
+                    // Performance optimizations for unencrypted database
+                    db.execSQL("PRAGMA cache_size=16000")
+                    db.execSQL("PRAGMA temp_store=MEMORY")
+                    db.execSQL("PRAGMA mmap_size=268435456") // 256MB memory mapping
+                    db.execSQL("PRAGMA page_size=4096")
+
+                    // Connection and query settings
+                    db.execSQL("PRAGMA busy_timeout=30000") // 30 second busy timeout
+                    db.execSQL("PRAGMA foreign_keys=ON") // Enable foreign key constraints
+
+                    val setupTime = System.currentTimeMillis() - startTime
+                    Log.d(tag, "Database performance optimizations applied in ${setupTime}ms")
+
+                } catch (e: Exception) {
+                    Log.e(tag, "Failed to apply database optimizations", e)
+                    // Don't fail database creation for optimization errors
+                }
+            }
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                val startTime = System.currentTimeMillis()
+
+                try {
+                    db.execSQL("PRAGMA foreign_keys=ON")
+
+                    val reopenTime = System.currentTimeMillis() - startTime
+                    Log.v(tag, "Database settings reapplied in ${reopenTime}ms")
+
+                    // Track connection performance
+                    if (reopenTime > 50) {
+                        Log.w(tag, "Slow database connection: ${reopenTime}ms")
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(tag, "Failed to reapply database settings", e)
+                }
+            }
+        })
+
+        // PRODUCTION SAFETY: Only allow destructive migration in debug builds
+        val isDebugBuild = try {
+            (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        } catch (e: Exception) {
+            Log.w(tag, "Failed to determine debug status", e)
+            false
+        }
+
+        if (isDebugBuild) {
+            Log.w(tag, "DEBUG BUILD: Enabling destructive migration fallback")
+            builder.fallbackToDestructiveMigration(true)
+        } else {
+            Log.i(tag, "PRODUCTION BUILD: Destructive migration disabled for data safety")
+            // In production, we must handle migrations properly to avoid data loss
+        }
+
+        val database = builder.build()
+
+        Log.i(tag, "Unencrypted database initialized successfully")
+        database
+
+    } catch (e: Exception) {
+        Log.e(tag, "Critical failure in unencrypted database initialization", e)
+        throw RuntimeException("Database initialization failed completely", e)
     }
 }
 

@@ -31,7 +31,8 @@ import me.shadykhalifa.whispertop.utils.safeCall
 import java.util.UUID
 
 class TranscriptionHistoryRepositoryImpl(
-    private val dao: TranscriptionHistoryDao
+    private val dao: TranscriptionHistoryDao,
+    private val userStatisticsRepository: me.shadykhalifa.whispertop.domain.repositories.UserStatisticsRepository
 ) : BaseRepository(), TranscriptionHistoryRepository {
 
     override suspend fun saveTranscription(
@@ -46,10 +47,11 @@ class TranscriptionHistoryRepositoryImpl(
         wordCount: Int
     ): Result<String> = execute {
         val id = UUID.randomUUID().toString()
+        val currentTime = System.currentTimeMillis()
         val entity = TranscriptionHistoryEntity(
             id = id,
             text = text,
-            timestamp = System.currentTimeMillis(),
+            timestamp = currentTime,
             duration = duration,
             audioFilePath = audioFilePath,
             confidence = confidence,
@@ -60,6 +62,34 @@ class TranscriptionHistoryRepositoryImpl(
             wordCount = wordCount
         )
         dao.insert(entity)
+
+        // Update statistics after saving transcription
+        try {
+            val userId = "default_user"
+
+            // Update daily aggregated statistics
+            val date = kotlinx.datetime.Clock.System.now()
+                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+
+            userStatisticsRepository.updateDailyAggregatedStats(
+                date = date,
+                totalSessions = 1,
+                totalWords = wordCount.toLong(),
+                totalSpeakingTime = (duration ?: 0f).toLong() * 1000, // Convert to milliseconds
+                averageSessionDuration = (duration ?: 0f).toDouble(),
+                peakUsageHour = kotlinx.datetime.Clock.System.now()
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).hour
+            )
+
+            // Update derived statistics (language, model, accuracy)
+            userStatisticsRepository.updateDerivedStatistics(userId)
+
+        } catch (e: Exception) {
+            // Log error but don't fail the transcription save
+            // TODO: Consider implementing proper error reporting/logging
+            e.printStackTrace()
+        }
+
         id
     }
 
