@@ -22,6 +22,7 @@ abstract class OverlayView @JvmOverloads constructor(
     
     companion object {
         private const val TAG = "OverlayView"
+        private const val LONG_PRESS_THRESHOLD_MS = 600L
         
         fun createLayoutParams(
             width: Int = WindowManager.LayoutParams.WRAP_CONTENT,
@@ -57,11 +58,13 @@ abstract class OverlayView @JvmOverloads constructor(
     private var isDraggable = false
     private var isExpanded = false
     private var isDragging = false
+    private var isLongPressing = false
     
     private var initialX = 0
     private var initialY = 0
     private var initialTouchX = 0f
     private var initialTouchY = 0f
+    private var pressStartTime = 0L
     
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -73,6 +76,7 @@ abstract class OverlayView @JvmOverloads constructor(
         fun onExpandStateChanged(isExpanded: Boolean)
         fun onPositionChanged(x: Int, y: Int)
         fun onOverlayClicked()
+        fun onOverlayLongPressed()
         fun onOverlayDismissed()
     }
     
@@ -150,6 +154,8 @@ abstract class OverlayView @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 Log.v(TAG, "handleTouch: ACTION_DOWN, isDraggable=$isDraggable")
+                pressStartTime = System.currentTimeMillis()
+                isLongPressing = false
                 if (isDraggable) {
                     initialX = layoutParams?.x ?: 0
                     initialY = layoutParams?.y ?: 0
@@ -162,7 +168,25 @@ abstract class OverlayView @JvmOverloads constructor(
             }
             
             MotionEvent.ACTION_MOVE -> {
-                if (isDraggable && !isDragging) {
+                // Check for long press before detecting drag
+                if (!isDragging && !isLongPressing) {
+                    val pressTime = System.currentTimeMillis() - pressStartTime
+                    if (pressTime >= LONG_PRESS_THRESHOLD_MS) {
+                        val deltaX = abs(event.rawX - initialTouchX)
+                        val deltaY = abs(event.rawY - initialTouchY)
+                        
+                        // Only trigger long press if finger hasn't moved too much
+                        if (deltaX < touchSlop && deltaY < touchSlop) {
+                            isLongPressing = true
+                            Log.v(TAG, "handleTouch: long press detected after ${pressTime}ms")
+                            performClick() // For accessibility
+                            notifyOverlayLongPressed()
+                            return true
+                        }
+                    }
+                }
+                
+                if (isDraggable && !isDragging && !isLongPressing) {
                     val deltaX = abs(event.rawX - initialTouchX)
                     val deltaY = abs(event.rawY - initialTouchY)
                     
@@ -182,20 +206,26 @@ abstract class OverlayView @JvmOverloads constructor(
             }
             
             MotionEvent.ACTION_UP -> {
-                Log.v(TAG, "handleTouch: ACTION_UP, isDraggable=$isDraggable, isDragging=$isDragging")
+                Log.v(TAG, "handleTouch: ACTION_UP, isDraggable=$isDraggable, isDragging=$isDragging, isLongPressing=$isLongPressing")
                 if (isDraggable) {
-                    if (!isDragging) {
+                    if (!isDragging && !isLongPressing) {
                         Log.v(TAG, "handleTouch: click detected")
                         performClick()
                         notifyOverlayClicked()
-                    } else {
+                    } else if (isDragging) {
                         Log.v(TAG, "handleTouch: drag ended")
+                    } else if (isLongPressing) {
+                        Log.v(TAG, "handleTouch: long press ended")
                     }
                     isDragging = false
+                    isLongPressing = false
                 } else {
-                    Log.v(TAG, "handleTouch: click (not draggable)")
-                    performClick()
-                    notifyOverlayClicked()
+                    if (!isLongPressing) {
+                        Log.v(TAG, "handleTouch: click (not draggable)")
+                        performClick()
+                        notifyOverlayClicked()
+                    }
+                    isLongPressing = false
                 }
                 return true
             }
@@ -234,6 +264,10 @@ abstract class OverlayView @JvmOverloads constructor(
     
     private fun notifyOverlayClicked() {
         overlayListeners.forEach { it.onOverlayClicked() }
+    }
+    
+    private fun notifyOverlayLongPressed() {
+        overlayListeners.forEach { it.onOverlayLongPressed() }
     }
     
     private fun notifyOverlayDismissed() {

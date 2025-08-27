@@ -95,7 +95,7 @@ class OverlayService : Service() {
         
         try {
             val params = layoutParams ?: createDefaultLayoutParams()
-            val overlayInfo = OverlayViewInfo(overlayView, params)
+            val overlayInfo = OverlayViewInfo(overlayView, params, isVisible = true)
             
             overlayViews[overlayId] = overlayInfo
             windowManager?.addView(overlayView, params)
@@ -114,7 +114,10 @@ class OverlayService : Service() {
         val overlayInfo = overlayViews[overlayId] ?: return false
         
         try {
-            windowManager?.removeView(overlayInfo.view)
+            // Only remove from window manager if it's currently visible
+            if (overlayInfo.isVisible) {
+                windowManager?.removeView(overlayInfo.view)
+            }
             overlayViews.remove(overlayId)
             notifyOverlayRemoved(overlayId)
             return true
@@ -145,6 +148,40 @@ class OverlayService : Service() {
     
     fun getActiveOverlays(): Set<String> {
         return overlayViews.keys.toSet()
+    }
+    
+    fun hideOverlay(overlayId: String): Boolean {
+        val overlayInfo = overlayViews[overlayId] ?: return false
+        
+        if (!overlayInfo.isVisible) {
+            return true // Already hidden
+        }
+        
+        try {
+            windowManager?.removeView(overlayInfo.view)
+            overlayViews[overlayId] = overlayInfo.copy(isVisible = false)
+            return true
+        } catch (e: Exception) {
+            notifyError("Failed to hide overlay: ${e.message}")
+            return false
+        }
+    }
+    
+    fun showOverlay(overlayId: String): Boolean {
+        val overlayInfo = overlayViews[overlayId] ?: return false
+        
+        if (overlayInfo.isVisible) {
+            return true // Already visible
+        }
+        
+        try {
+            windowManager?.addView(overlayInfo.view, overlayInfo.layoutParams)
+            overlayViews[overlayId] = overlayInfo.copy(isVisible = true)
+            return true
+        } catch (e: Exception) {
+            notifyError("Failed to show overlay: ${e.message}")
+            return false
+        }
     }
     
     fun getCurrentState(): OverlayState = currentState

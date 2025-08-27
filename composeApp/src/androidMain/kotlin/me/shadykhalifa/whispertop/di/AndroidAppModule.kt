@@ -24,6 +24,7 @@ import me.shadykhalifa.whispertop.managers.PowerAwareApiManager
 import me.shadykhalifa.whispertop.managers.ServiceRecoveryManager
 import me.shadykhalifa.whispertop.managers.SystemSettingsProvider
 import me.shadykhalifa.whispertop.managers.createApiManager
+import me.shadykhalifa.whispertop.ui.notifications.OverlayNotificationManager
 import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
 import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
@@ -73,6 +74,7 @@ val androidAppModule = module {
     singleOf(::OnboardingPermissionManager)
     singleOf(::OverlayManager)
     singleOf(::OverlayInitializationManager)
+    single { OverlayNotificationManager(get()) }
     
     // System Settings Abstraction
     single<SystemSettingsProvider> { AndroidSystemSettingsProvider(get()) }

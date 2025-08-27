@@ -85,6 +85,7 @@ class MicButtonOverlay @JvmOverloads constructor(
     interface MicButtonListener {
         fun onStateChanged(newState: MicButtonState)
         fun onMicButtonClicked()
+        fun onMicButtonLongPressed()
         fun onPositionSnapped(x: Int, y: Int)
         fun onAudioLevelChanged(level: Float)
     }
@@ -102,6 +103,18 @@ class MicButtonOverlay @JvmOverloads constructor(
         // Set this view as the lifecycle owner for its view tree
         setViewTreeLifecycleOwner(this)
         setViewTreeSavedStateRegistryOwner(this)
+    }
+    
+    /**
+     * Permanently destroy the lifecycle when the overlay is being removed
+     * Call this only when the overlay will not be reused
+     */
+    fun destroyLifecycle() {
+        if (lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+        }
+        // Perform full cleanup when permanently destroying
+        cleanup()
     }
     
     fun addMicButtonListener(listener: MicButtonListener) {
@@ -184,8 +197,12 @@ class MicButtonOverlay @JvmOverloads constructor(
     
     override fun createCollapsedView(): View {
         return ComposeView(context).apply {
-            // Ensure lifecycle is started before setting content
-            lifecycleRegistry.currentState = Lifecycle.State.STARTED
+            // Only set lifecycle state if it allows the transition
+            if (lifecycleRegistry.currentState != Lifecycle.State.DESTROYED &&
+                lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.CREATED) &&
+                !lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                lifecycleRegistry.currentState = Lifecycle.State.STARTED
+            }
             
             setContent {
                 MicButtonContent(
@@ -325,6 +342,11 @@ class MicButtonOverlay @JvmOverloads constructor(
                 notifyMicButtonClicked()
             }
             
+            override fun onOverlayLongPressed() {
+                hapticFeedbackManager.performFeedback(HapticFeedbackManager.FeedbackPattern.ButtonSnap, this@MicButtonOverlay)
+                notifyMicButtonLongPressed()
+            }
+            
             override fun onOverlayDismissed() {}
         })
     }
@@ -371,6 +393,10 @@ class MicButtonOverlay @JvmOverloads constructor(
         micButtonListeners.forEach { it.onMicButtonClicked() }
     }
     
+    private fun notifyMicButtonLongPressed() {
+        micButtonListeners.forEach { it.onMicButtonLongPressed() }
+    }
+    
     private fun notifyPositionSnapped(x: Int, y: Int) {
         micButtonListeners.forEach { it.onPositionSnapped(x, y) }
     }
@@ -381,34 +407,54 @@ class MicButtonOverlay @JvmOverloads constructor(
     
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        
+        // Ensure lifecycle is properly transitioned to RESUMED
+        if (lifecycleRegistry.currentState != Lifecycle.State.RESUMED &&
+            lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        }
     }
     
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
-        cleanup()
+        
+        // Move lifecycle to CREATED when detached to allow for reuse
+        // This prevents the DESTROYED state that would make reattachment impossible
+        if (lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            lifecycleRegistry.currentState = Lifecycle.State.CREATED
+        }
+        
+        // Only do lightweight cleanup - don't clear listeners if we'll be reused
+        cleanupForHiding()
     }
     
     /**
-     * Clean up resources and prevent memory leaks
+     * Lightweight cleanup when hiding overlay (preserves listeners for reuse)
      */
-    fun cleanup() {
+    private fun cleanupForHiding() {
         // Cancel all pending delayed actions
         delayedActions.forEach { runnable ->
             removeCallbacks(runnable)
         }
         delayedActions.clear()
         
+        // Reset visual state but keep listeners for reuse
+        _showSuccessIndicator = false
+        _showErrorIndicator = false
+        _audioLevel = 0f
+    }
+    
+    /**
+     * Full cleanup when permanently removing overlay
+     */
+    fun cleanup() {
+        // Do lightweight cleanup first
+        cleanupForHiding()
+        
         // Clear listeners to prevent potential memory leaks
         micButtonListeners.clear()
         
         // Cleanup haptic feedback manager
         hapticFeedbackManager.cleanup()
-        
-        // Reset state
-        _showSuccessIndicator = false
-        _showErrorIndicator = false
-        _audioLevel = 0f
     }
 }
