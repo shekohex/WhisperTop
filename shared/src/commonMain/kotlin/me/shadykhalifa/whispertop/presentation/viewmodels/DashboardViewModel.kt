@@ -22,6 +22,7 @@ import me.shadykhalifa.whispertop.domain.repositories.SettingsRepository
 import me.shadykhalifa.whispertop.domain.services.MetricsCollector
 import me.shadykhalifa.whispertop.presentation.utils.ViewModelErrorHandler
 import me.shadykhalifa.whispertop.utils.Result
+import me.shadykhalifa.whispertop.utils.Logger
 
 data class DashboardUiState(
      val statistics: UserStatistics? = null,
@@ -56,6 +57,7 @@ class DashboardViewModel(
 ) : BaseViewModel(errorHandler) {
     
     companion object {
+        private const val TAG = "DashboardViewModel"
         private const val DEFAULT_TYPING_WPM = 40.0
         private const val AVERAGE_CHARS_PER_WORD = 5.0
         private const val RECENT_TRANSCRIPTIONS_LIMIT = 10
@@ -70,30 +72,44 @@ class DashboardViewModel(
     
     private val updateMutex = Mutex()
     private val calculationMutex = Mutex()
+    private val initializationMutex = Mutex()
     
     private var lastCacheUpdate: Instant? = null
+    private var isInitializationComplete = false
     
     init {
+        Logger.debug(TAG, "Initializing DashboardViewModel")
         // Start with loading state
         _uiState.value = DashboardUiState(isLoading = true)
         loadInitialData()
-        startRealTimeUpdates()
         startLoadingTimeout()
     }
     
     private fun loadInitialData() {
         launchSafely {
-            updateMutex.withLock {
+            initializationMutex.withLock {
+                Logger.debug(TAG, "Starting initial data load")
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
                 try {
                     // Load data with comprehensive fallback handling
+                    val startTime = Clock.System.now()
                     val newState = loadDataWithFallback()
+                    val loadTime = Clock.System.now() - startTime
+                    
                     _uiState.value = newState.copy(isLoading = false)
                     lastCacheUpdate = Clock.System.now()
+                    isInitializationComplete = true
+                    
+                    Logger.debug(TAG, "Initial data load completed successfully in ${loadTime.inWholeMilliseconds}ms")
+                    Logger.debug(TAG, "Statistics loaded: hasStats=${newState.statistics != null}, isEmpty=${newState.isEmptyState}")
+                    
+                    // Start real-time updates only after initial data is loaded
+                    startRealTimeUpdates()
                 } catch (e: Exception) {
                     // This should never happen since loadDataWithfallback handles all exceptions
                     // But just in case, provide a final fallback
+                    Logger.error(TAG, "Critical error during initial data load: ${e.message}")
                     handleError(e, "loadInitialData")
                     _uiState.value = DashboardUiState(
                         statistics = createFallbackStatistics(),
@@ -109,6 +125,11 @@ class DashboardViewModel(
                         cacheValid = true,
                         isEmptyState = true
                     )
+                    isInitializationComplete = true
+                    
+                    Logger.debug(TAG, "Using fallback statistics after error")
+                    // Start real-time updates even if fallback was used
+                    startRealTimeUpdates()
                 }
             }
         }
@@ -116,11 +137,19 @@ class DashboardViewModel(
     
     private fun startRealTimeUpdates() {
         viewModelScope.launch {
+            Logger.debug(TAG, "Starting real-time updates")
+            // Wait for initialization to complete before starting real-time updates
+            while (!isInitializationComplete) {
+                kotlinx.coroutines.delay(100) // Wait 100ms before checking again
+            }
+            
+            Logger.debug(TAG, "Initialization complete - starting statistics flow collection")
             // Observe user statistics changes
             userStatisticsRepository.getUserStatisticsFlow(DEFAULT_USER_ID).collect { statistics ->
                 updateMutex.withLock {
                     val currentState = _uiState.value
                     if (currentState.statistics != statistics) {
+                        Logger.debug(TAG, "Statistics changed - updating UI state")
                         if (statistics != null) {
                             // Update the UI state with new statistics
                             val efficiencyMetrics = calculateEfficiencyMetrics(statistics, currentState.recentTranscriptions)
@@ -134,8 +163,9 @@ class DashboardViewModel(
                                 isLoading = false,
                                 lastUpdated = Clock.System.now()
                             )
-                        } else if (currentState.statistics != null) {
-                            // Statistics were deleted, refresh everything
+                        } else if (currentState.statistics != null && isInitializationComplete) {
+                            Logger.warn(TAG, "Statistics were deleted - refreshing data")
+                            // Statistics were deleted, refresh everything (only if init is complete)
                             loadInitialData()
                         }
                     }
@@ -154,9 +184,11 @@ class DashboardViewModel(
 
     private fun startLoadingTimeout() {
         viewModelScope.launch {
+            Logger.debug(TAG, "Starting loading timeout watchdog (${LOADING_TIMEOUT_MS}ms)")
             kotlinx.coroutines.delay(LOADING_TIMEOUT_MS)
             if (_uiState.value.isLoading && _uiState.value.statistics == null) {
                 // Only timeout if we're still loading and have no data
+                Logger.warn(TAG, "Loading timeout triggered - dashboard failed to load within ${LOADING_TIMEOUT_MS}ms")
                 updateMutex.withLock {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -167,6 +199,8 @@ class DashboardViewModel(
                     )
                 }
                 handleError(Exception("Dashboard loading timed out after ${LOADING_TIMEOUT_MS}ms"), "loadingTimeout")
+            } else {
+                Logger.debug(TAG, "Loading timeout watchdog completed - data loaded successfully")
             }
         }
     }
@@ -175,31 +209,45 @@ class DashboardViewModel(
 
     private suspend fun ensureDatabaseAccessible(): Boolean {
         return try {
+            Logger.debug(TAG, "Checking database accessibility")
             // Try to perform a simple database operation to check accessibility
             val testResult = userStatisticsRepository.getUserStatistics(DEFAULT_USER_ID)
 
             when (testResult) {
-                is Result.Success -> true
+                is Result.Success -> {
+                    Logger.debug(TAG, "Database access test successful")
+                    true
+                }
                 is Result.Error -> {
+                    Logger.warn(TAG, "Database access failed, attempting to create default statistics")
                     // Try to create default statistics if they don't exist
                     val createResult = userStatisticsRepository.createUserStatistics(DEFAULT_USER_ID)
                     when (createResult) {
-                        is Result.Success -> true
+                        is Result.Success -> {
+                            Logger.debug(TAG, "Default statistics created successfully")
+                            true
+                        }
                         is Result.Error -> {
+                            Logger.error(TAG, "Failed to create default statistics: ${createResult.exception.message}")
                             handleError(createResult.exception, "createDefaultStatistics")
                             false
                         }
                         is Result.Loading -> true
                     }
                 }
-                is Result.Loading -> true // Still loading, consider accessible
+                is Result.Loading -> {
+                    Logger.debug(TAG, "Database still loading, considering accessible")
+                    true // Still loading, consider accessible
+                }
             }
         } catch (e: Exception) {
+            Logger.error(TAG, "Database accessibility check exception: ${e.message}")
             // Try to create default statistics as a last resort
             try {
                 val createResult = userStatisticsRepository.createUserStatistics(DEFAULT_USER_ID)
                 createResult is Result.Success
             } catch (createException: Exception) {
+                Logger.error(TAG, "Last resort statistics creation failed: ${createException.message}")
                 handleError(e, "databaseAccessibilityCheck")
                 false
             }

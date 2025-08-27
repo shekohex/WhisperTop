@@ -198,13 +198,13 @@ fun DashboardScreen(
             .testTag("dashboard_content"),
         state = pullToRefreshState
     ) {
-        if (uiState.isLoading && uiState.statistics == null) {
-            // Show loading shimmer only when we're actually loading and have no statistics
+        if (uiState.isLoading && (uiState.statistics == null || uiState.isEmptyState)) {
+            // Show loading shimmer when loading and no data OR when loading empty state
             DashboardShimmerContent(
                 columns = metricsColumns,
                 horizontalPadding = horizontalPadding
             )
-        } else if (uiState.isEmptyState) {
+        } else if (uiState.isEmptyState && !uiState.isLoading) {
             // Show welcome screen for empty state
             EmptyStateContent(
                 modifier = modifier,
