@@ -98,33 +98,7 @@ private fun createEncryptedDatabase(context: Context): AppDatabase {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 Log.i(tag, "Creating new encrypted database")
-                
-                val startTime = System.currentTimeMillis()
-                try {
-                    // Enable WAL mode for better concurrent access
-                    db.execSQL("PRAGMA journal_mode=WAL")
-                    db.execSQL("PRAGMA synchronous=NORMAL")
-                    
-                    // Performance optimizations for encrypted database
-                    db.execSQL("PRAGMA cache_size=16000") // Larger cache for encryption overhead
-                    db.execSQL("PRAGMA temp_store=MEMORY")
-                    db.execSQL("PRAGMA mmap_size=268435456") // 256MB memory mapping
-                    db.execSQL("PRAGMA page_size=4096")
-                    
-                    // Connection and query settings
-                    db.execSQL("PRAGMA busy_timeout=30000") // 30 second busy timeout
-                    db.execSQL("PRAGMA foreign_keys=ON") // Enable foreign key constraints
-                    
-                    val setupTime = System.currentTimeMillis() - startTime
-                    Log.d(tag, "Database performance optimizations applied in ${setupTime}ms")
-                    
-                    // Log database configuration for performance analysis
-                    logDatabaseConfiguration(db, tag)
-                    
-                } catch (e: Exception) {
-                    Log.e(tag, "Failed to apply database optimizations", e)
-                    // Don't fail database creation for optimization errors
-                }
+                Log.d(tag, "SQLCipher restricts PRAGMA operations during onCreate - will apply in onOpen")
             }
             
             override fun onOpen(db: SupportSQLiteDatabase) {
@@ -132,33 +106,17 @@ private fun createEncryptedDatabase(context: Context): AppDatabase {
                 val startTime = System.currentTimeMillis()
                 
                 try {
-                    // Re-apply critical security settings on every connection
-                    // Use same debug/production logic for consistency
-                    val isDebugBuild = try {
-                        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-                    } catch (e: Exception) {
-                        Log.w(tag, "Failed to determine debug status for onOpen memory security config", e)
-                        false
-                    }
+                    // SQLCipher restricts most PRAGMA operations - only apply essential ones
+                    Log.d(tag, "Applying minimal SQLCipher-compatible settings")
                     
-                    if (isDebugBuild) {
-                        db.execSQL("PRAGMA cipher_memory_security=OFF")
-                    } else {
-                        db.execSQL("PRAGMA cipher_memory_security=ON")
-                    }
-                    
+                    // Only foreign keys are typically safe with SQLCipher
                     db.execSQL("PRAGMA foreign_keys=ON")
                     
-                    val reopenTime = System.currentTimeMillis() - startTime
-                    Log.v(tag, "Database security settings reapplied in ${reopenTime}ms")
-                    
-                    // Track connection performance
-                    if (reopenTime > 50) {
-                        Log.w(tag, "Slow database connection: ${reopenTime}ms")
-                    }
+                    val setupTime = System.currentTimeMillis() - startTime
+                    Log.d(tag, "Database settings applied in ${setupTime}ms")
                     
                 } catch (e: Exception) {
-                    Log.e(tag, "Failed to reapply security settings", e)
+                    Log.w(tag, "Failed to apply database settings", e)
                 }
             }
         })
@@ -226,7 +184,7 @@ private fun createUnencryptedDatabase(context: Context): AppDatabase {
                     db.execSQL("PRAGMA page_size=4096")
 
                     // Connection and query settings
-                    db.execSQL("PRAGMA busy_timeout=30000") // 30 second busy timeout
+                    db.execSQL("PRAGMA busy_timeout=45000") // 45 second busy timeout
                     db.execSQL("PRAGMA foreign_keys=ON") // Enable foreign key constraints
 
                     val setupTime = System.currentTimeMillis() - startTime
