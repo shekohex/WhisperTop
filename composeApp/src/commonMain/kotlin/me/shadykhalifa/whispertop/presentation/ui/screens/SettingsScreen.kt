@@ -41,6 +41,7 @@ import me.shadykhalifa.whispertop.domain.models.PricingInfo
 import me.shadykhalifa.whispertop.presentation.viewmodels.SettingsViewModel
 import me.shadykhalifa.whispertop.presentation.viewmodels.ConnectionTestResult
 import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionViewModel
+import me.shadykhalifa.whispertop.presentation.viewmodels.ModelSelectionUiState
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelSelectionDropdown
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelCapabilityCard
 import me.shadykhalifa.whispertop.presentation.ui.components.ModelRecommendationChip
@@ -145,10 +146,19 @@ fun SettingsScreen(
                 )
 
                 // Model Selection Section
-                ModelSelectionSection(
-                    selectedModel = uiState.settings.selectedModel,
-                    availableModels = uiState.availableModels,
-                    onModelSelected = viewModel::updateSelectedModel
+                EnhancedModelSelectionSection(
+                    modelSelectionState = modelSelectionState,
+                    modelSelectionViewModel = modelSelectionViewModel
+                )
+
+                // Transcription Customization Section
+                TranscriptionCustomizationSection(
+                    customPrompt = uiState.customPrompt,
+                    temperature = uiState.temperature,
+                    savingCustomPrompt = uiState.savingCustomPrompt,
+                    savingTemperature = uiState.savingTemperature,
+                    onCustomPromptChange = viewModel::updateCustomPrompt,
+                    onTemperatureChange = viewModel::updateTemperature
                 )
 
                 // Statistics Preferences Section
@@ -618,6 +628,95 @@ private fun ApiConfigurationSection(
                         }
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EnhancedModelSelectionSection(
+    modelSelectionState: ModelSelectionUiState,
+    modelSelectionViewModel: ModelSelectionViewModel,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Section header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "AI Model Selection",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                if (modelSelectionState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+            
+            Text(
+                text = "Choose the AI model for speech transcription",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Model Selection Dropdown
+            ModelSelectionDropdown(
+                selectedModel = modelSelectionState.selectedModel,
+                availableModels = modelSelectionState.availableModels,
+                onModelSelected = modelSelectionViewModel::selectModel,
+                onAddCustomModel = modelSelectionViewModel::showAddCustomModelDialog,
+                enabled = !modelSelectionState.isLoading
+            )
+            
+            // Custom Model Input Dialog
+            if (modelSelectionState.showAddCustomModelDialog) {
+                CustomModelInput(
+                    customModelName = modelSelectionState.customModelInput,
+                    onCustomModelNameChange = modelSelectionViewModel::updateCustomModelInput,
+                    onAddCustomModel = modelSelectionViewModel::addCustomModel,
+                    onCancel = modelSelectionViewModel::hideAddCustomModelDialog,
+                    isValid = modelSelectionState.customModelError == null,
+                    directMode = false
+                )
+            }
+            
+            // Error display
+            modelSelectionState.error?.let { error ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
             }
         }
     }
