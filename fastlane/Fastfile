@@ -34,6 +34,15 @@ platform :android do
       match_lightweight_tag: false
     )
 
+    # Find all generated APKs (handles ABI splits and custom naming)
+    apk_files = Dir["composeApp/build/outputs/apk/**/*.apk"].select { |f| 
+      f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
+    }
+
+    # Debug: List found APKs
+    puts "Found APK files:"
+    apk_files.each { |apk| puts "  - #{apk}" }
+
     # Create GitHub pre-release
     set_github_release(
       repository_name: ENV["GITHUB_REPOSITORY"],
@@ -42,7 +51,7 @@ platform :android do
       tag_name: "nightly-#{Time.now.strftime('%Y-%m-%d-%H-%M-%S')}",
       description: changelog,
       is_prerelease: true,
-      upload_assets: Dir["composeApp/build/outputs/apk/playstore/release/*.apk"] + Dir["composeApp/build/outputs/apk/sideload/release/*.apk"]
+      upload_assets: apk_files
     )
   end
 
@@ -63,6 +72,15 @@ platform :android do
       match_lightweight_tag: false
     )
 
+    # Find all generated APKs (handles ABI splits and custom naming)
+    apk_files = Dir["composeApp/build/outputs/apk/**/*.apk"].select { |f| 
+      f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
+    }
+
+    # Debug: List found APKs
+    puts "Found APK files:"
+    apk_files.each { |apk| puts "  - #{apk}" }
+
     # Create GitHub release
     set_github_release(
       repository_name: ENV["GITHUB_REPOSITORY"],
@@ -71,7 +89,7 @@ platform :android do
       tag_name: tag,
       description: changelog,
       is_prerelease: false,
-      upload_assets: Dir["composeApp/build/outputs/apk/playstore/release/*.apk"] + Dir["composeApp/build/outputs/apk/sideload/release/*.apk"]
+      upload_assets: apk_files
     )
   end
 end
