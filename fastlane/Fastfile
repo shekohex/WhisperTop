@@ -1,0 +1,77 @@
+# fastlane/Fastfile
+
+default_platform(:android)
+
+platform :android do
+  before_all do
+    # Decode the keystore from the base64 secret
+    sh("echo $RELEASE_KEYSTORE_BASE64 | base64 --decode > release.jks")
+
+    # Set environment variables for Gradle signing
+    ENV["KEYSTORE_FILE"] = "release.jks"
+    ENV["KEYSTORE_PASSWORD"] = ENV["RELEASE_KEYSTORE_PASSWORD"]
+    ENV["KEY_ALIAS"] = ENV["RELEASE_KEY_ALIAS"]
+    ENV["KEY_PASSWORD"] = ENV["RELEASE_KEY_PASSWORD"]
+  end
+
+  desc "Builds and releases a nightly pre-release"
+  lane :nightly do
+    # Get the short commit hash
+    commit_hash = sh("git rev-parse --short HEAD").strip
+
+    # Generate a version name with the commit hash
+    version_name = "nightly-#{commit_hash}"
+    ENV["VERSION_NAME"] = version_name
+
+    # Build the APKs
+    gradle(
+      task: "clean assemblePlaystoreRelease assembleSideloadRelease"
+    )
+
+    # Generate changelog from commits since last tag
+    changelog = changelog_from_git_commits(
+      pretty: "- %s",
+      match_lightweight_tags: false
+    )
+
+    # Create GitHub pre-release
+    set_github_release(
+      repository_name: ENV["GITHUB_REPOSITORY"],
+      api_token: ENV["GITHUB_TOKEN"],
+      name: "Nightly Build #{version_name}",
+      tag_name: "nightly-#{Time.now.strftime('%Y-%m-%d-%H-%M-%S')}",
+      body: changelog,
+      is_prerelease: true,
+      upload_assets: Dir["composeApp/build/outputs/apk/playstore/release/*.apk"] + Dir["composeApp/build/outputs/apk/sideload/release/*.apk"]
+    )
+  end
+
+  desc "Builds and releases a stable version"
+  lane :release do
+    # Get the version from the tag
+    tag = ENV["GITHUB_REF_NAME"]
+    ENV["VERSION_NAME"] = tag
+
+    # Build the APKs
+    gradle(
+      task: "clean assemblePlaystoreRelease assembleSideloadRelease"
+    )
+
+    # Generate changelog from commits since last tag
+    changelog = changelog_from_git_commits(
+      pretty: "- %s",
+      match_lightweight_tags: false
+    )
+
+    # Create GitHub release
+    set_github_release(
+      repository_name: ENV["GITHUB_REPOSITORY"],
+      api_token: ENV["GITHUB_TOKEN"],
+      name: "Release #{tag}",
+      tag_name: tag,
+      body: changelog,
+      is_prerelease: false,
+      upload_assets: Dir["composeApp/build/outputs/apk/playstore/release/*.apk"] + Dir["composeApp/build/outputs/apk/sideload/release/*.apk"]
+    )
+  end
+end
