@@ -37,7 +37,7 @@ platform :android do
     # Create GitHub pre-release
     set_github_release(
       repository_name: ENV["GITHUB_REPOSITORY"],
-      api_token: ENV["GITHUB_TOKEN"],
+      api_bearer: ENV["GITHUB_TOKEN"],
       name: "Nightly Build #{version_name}",
       tag_name: "nightly-#{Time.now.strftime('%Y-%m-%d-%H-%M-%S')}",
       description: changelog,
@@ -66,7 +66,7 @@ platform :android do
     # Create GitHub release
     set_github_release(
       repository_name: ENV["GITHUB_REPOSITORY"],
-      api_token: ENV["GITHUB_TOKEN"],
+      api_bearer: ENV["GITHUB_TOKEN"],
       name: "Release #{tag}",
       tag_name: tag,
       description: changelog,
