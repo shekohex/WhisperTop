@@ -29,23 +29,6 @@ platform :android do
       task: "clean assemblePlaystoreRelease assembleSideloadRelease"
     )
     puts "✓ Gradle build completed"
-    
-    # Verify APKs were built
-    expected_apk_dirs = [
-      "composeApp/build/outputs/apk/playstore/release",
-      "composeApp/build/outputs/apk/sideload/release"
-    ]
-    
-    expected_apk_dirs.each do |dir|
-      if Dir.exist?(dir)
-        apks_in_dir = Dir["#{dir}/*.apk"]
-        puts "✓ Found #{apks_in_dir.length} APK(s) in #{dir}"
-        apks_in_dir.each { |apk| puts "  - #{File.basename(apk)}" }
-      else
-        puts "✗ Missing directory: #{dir}"
-        UI.user_error!("Expected APK directory not found: #{dir}")
-      end
-    end
 
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
@@ -69,26 +52,10 @@ platform :android do
       puts "✗ Build directory does not exist: #{build_dir}"
     end
     
-    # Find APK files using multiple patterns
-    apk_patterns = [
-      "composeApp/build/outputs/apk/**/*.apk",
-      "composeApp/build/outputs/apk/**/release/*.apk",
-      "composeApp/build/outputs/apk/playstore/release/*.apk",
-      "composeApp/build/outputs/apk/sideload/release/*.apk"
-    ]
-    
-    apk_files = []
-    apk_patterns.each do |pattern|
-      found = Dir[pattern]
-      puts "Pattern '#{pattern}' found #{found.length} files:"
-      found.each { |f| puts "  - #{f}" }
-      apk_files.concat(found)
-    end
-    
-    # Filter for release builds only
-    apk_files = apk_files.select { |f| 
-      f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
-    }.uniq
+    # Find renamed APK files (whisper-top-*.apk pattern)
+    apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
+    puts "Found #{apk_files.length} renamed APK files:"
+    apk_files.each { |f| puts "  - #{f}" }
     
     puts "=== Final APK List ==="
     puts "Total APK files to upload: #{apk_files.length}"
@@ -121,23 +88,6 @@ platform :android do
       task: "clean assemblePlaystoreRelease assembleSideloadRelease"
     )
     puts "✓ Gradle build completed"
-    
-    # Verify APKs were built
-    expected_apk_dirs = [
-      "composeApp/build/outputs/apk/playstore/release",
-      "composeApp/build/outputs/apk/sideload/release"
-    ]
-    
-    expected_apk_dirs.each do |dir|
-      if Dir.exist?(dir)
-        apks_in_dir = Dir["#{dir}/*.apk"]
-        puts "✓ Found #{apks_in_dir.length} APK(s) in #{dir}"
-        apks_in_dir.each { |apk| puts "  - #{File.basename(apk)}" }
-      else
-        puts "✗ Missing directory: #{dir}"
-        UI.user_error!("Expected APK directory not found: #{dir}")
-      end
-    end
 
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
@@ -161,26 +111,10 @@ platform :android do
       puts "✗ Build directory does not exist: #{build_dir}"
     end
     
-    # Find APK files using multiple patterns
-    apk_patterns = [
-      "composeApp/build/outputs/apk/**/*.apk",
-      "composeApp/build/outputs/apk/**/release/*.apk",
-      "composeApp/build/outputs/apk/playstore/release/*.apk",
-      "composeApp/build/outputs/apk/sideload/release/*.apk"
-    ]
-    
-    apk_files = []
-    apk_patterns.each do |pattern|
-      found = Dir[pattern]
-      puts "Pattern '#{pattern}' found #{found.length} files:"
-      found.each { |f| puts "  - #{f}" }
-      apk_files.concat(found)
-    end
-    
-    # Filter for release builds only
-    apk_files = apk_files.select { |f| 
-      f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
-    }.uniq
+    # Find renamed APK files (whisper-top-*.apk pattern)
+    apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
+    puts "Found #{apk_files.length} renamed APK files:"
+    apk_files.each { |f| puts "  - #{f}" }
     
     puts "=== Final APK List ==="
     puts "Total APK files to upload: #{apk_files.length}"
