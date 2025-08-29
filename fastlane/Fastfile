@@ -31,7 +31,7 @@ platform :android do
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
       pretty: "- %s",
-      match_lightweight_tags: false
+      match_lightweight_tag: false
     )
 
     # Create GitHub pre-release
@@ -60,7 +60,7 @@ platform :android do
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
       pretty: "- %s",
-      match_lightweight_tags: false
+      match_lightweight_tag: false
     )
 
     # Create GitHub release
