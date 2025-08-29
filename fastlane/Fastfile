@@ -35,13 +35,48 @@ platform :android do
     )
 
     # Find all generated APKs (handles ABI splits and custom naming)
-    apk_files = Dir["composeApp/build/outputs/apk/**/*.apk"].select { |f| 
+    puts "=== APK Discovery Debug (Nightly) ==="
+    puts "Current working directory: #{Dir.pwd}"
+    puts "Looking for APK files..."
+    
+    # First, let's see what's in the build directory
+    build_dir = "composeApp/build/outputs/apk"
+    if Dir.exist?(build_dir)
+      puts "✓ Build directory exists: #{build_dir}"
+      all_files = Dir["#{build_dir}/**/*"]
+      puts "All files in build directory:"
+      all_files.each { |f| puts "  #{f}" }
+    else
+      puts "✗ Build directory does not exist: #{build_dir}"
+    end
+    
+    # Find APK files using multiple patterns
+    apk_patterns = [
+      "composeApp/build/outputs/apk/**/*.apk",
+      "composeApp/build/outputs/apk/**/release/*.apk",
+      "composeApp/build/outputs/apk/playstore/release/*.apk",
+      "composeApp/build/outputs/apk/sideload/release/*.apk"
+    ]
+    
+    apk_files = []
+    apk_patterns.each do |pattern|
+      found = Dir[pattern]
+      puts "Pattern '#{pattern}' found #{found.length} files:"
+      found.each { |f| puts "  - #{f}" }
+      apk_files.concat(found)
+    end
+    
+    # Filter for release builds only
+    apk_files = apk_files.select { |f| 
       f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
+    }.uniq
+    
+    puts "=== Final APK List ==="
+    puts "Total APK files to upload: #{apk_files.length}"
+    apk_files.each { |apk| 
+      puts "  - #{apk} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
     }
-
-    # Debug: List found APKs
-    puts "Found APK files:"
-    apk_files.each { |apk| puts "  - #{apk}" }
+    puts "=========================="
 
     # Create GitHub pre-release
     set_github_release(
@@ -73,13 +108,48 @@ platform :android do
     )
 
     # Find all generated APKs (handles ABI splits and custom naming)
-    apk_files = Dir["composeApp/build/outputs/apk/**/*.apk"].select { |f| 
+    puts "=== APK Discovery Debug (Release) ==="
+    puts "Current working directory: #{Dir.pwd}"
+    puts "Looking for APK files..."
+    
+    # First, let's see what's in the build directory
+    build_dir = "composeApp/build/outputs/apk"
+    if Dir.exist?(build_dir)
+      puts "✓ Build directory exists: #{build_dir}"
+      all_files = Dir["#{build_dir}/**/*"]
+      puts "All files in build directory:"
+      all_files.each { |f| puts "  #{f}" }
+    else
+      puts "✗ Build directory does not exist: #{build_dir}"
+    end
+    
+    # Find APK files using multiple patterns
+    apk_patterns = [
+      "composeApp/build/outputs/apk/**/*.apk",
+      "composeApp/build/outputs/apk/**/release/*.apk",
+      "composeApp/build/outputs/apk/playstore/release/*.apk",
+      "composeApp/build/outputs/apk/sideload/release/*.apk"
+    ]
+    
+    apk_files = []
+    apk_patterns.each do |pattern|
+      found = Dir[pattern]
+      puts "Pattern '#{pattern}' found #{found.length} files:"
+      found.each { |f| puts "  - #{f}" }
+      apk_files.concat(found)
+    end
+    
+    # Filter for release builds only
+    apk_files = apk_files.select { |f| 
       f.include?("release") && (f.include?("playstore") || f.include?("sideload"))
+    }.uniq
+    
+    puts "=== Final APK List ==="
+    puts "Total APK files to upload: #{apk_files.length}"
+    apk_files.each { |apk| 
+      puts "  - #{apk} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
     }
-
-    # Debug: List found APKs
-    puts "Found APK files:"
-    apk_files.each { |apk| puts "  - #{apk}" }
+    puts "=========================="
 
     # Create GitHub release
     set_github_release(
