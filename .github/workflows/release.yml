@@ -10,6 +10,10 @@ on:
 jobs:
   release:
     runs-on: macos-latest
+    permissions:
+      contents: write  # Required for creating releases and uploading assets
+      actions: read    # Required for reading workflow context
+      id-token: write  # Required for OIDC token generation
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
