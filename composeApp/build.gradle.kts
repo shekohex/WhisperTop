@@ -1,6 +1,12 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.TaskAction
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -115,7 +121,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = generateVersionCode()
-        versionName = generateVersionName()
+        versionName = System.getenv("VERSION_NAME") ?: generateVersionName()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Configure vector drawables for API < 21
@@ -152,7 +158,7 @@ android {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86_64")
-            isUniversalApk = true
+            isUniversalApk = false // Generate separate APKs for each architecture
         }
     }
     buildTypes {
@@ -251,6 +257,67 @@ android {
             exclude(group = "org.jetbrains", module = "annotations-java5")
         }
     }
+}
+
+// Custom APK naming task - configuration cache compatible
+abstract class RenameApksTask : DefaultTask() {
+    @get:InputDirectory
+    abstract val apkOutputDir: DirectoryProperty
+    
+    @get:Input
+    abstract val versionNameProperty: Property<String>
+    
+    @TaskAction
+    fun renameApks() {
+        val outputDir = apkOutputDir.get().asFile
+        if (outputDir.exists()) {
+            outputDir.walk().filter { it.extension == "apk" }.forEach { apkFile ->
+                val fileName = apkFile.name
+                // Skip already renamed files
+                if (!fileName.startsWith("whisper-top-")) {
+                    // Parse filename: composeApp-{flavor}-{arch}-{buildType}.apk
+                    val parts = fileName.replace(".apk", "").split("-")
+                    if (parts.size >= 3) {
+                        val flavor = parts[1] // playstore/sideload
+                        val buildType = parts.last() // debug/release
+                        
+                        // Extract architecture
+                        val arch = when {
+                            fileName.contains("arm64-v8a") -> "arm64-v8a"
+                            fileName.contains("armeabi-v7a") -> "armeabi-v7a"
+                            fileName.contains("x86_64") -> "x86_64"
+                            else -> "universal"
+                        }
+                        
+                        // Get version from property
+                        val versionName = versionNameProperty.get()
+                        
+                        // Format: whisper-top-{flavor}-{arch}-{buildType}-{version}.apk
+                        val newFileName = "whisper-top-${flavor}-${arch}-${buildType}-${versionName}.apk"
+                        val newFile = File(apkFile.parent, newFileName)
+                        
+                        if (apkFile.renameTo(newFile)) {
+                            println("✓ Renamed: ${apkFile.name} -> ${newFile.name}")
+                        } else {
+                            println("✗ Failed to rename: ${apkFile.name}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+val renameApksTask = tasks.register<RenameApksTask>("renameApks") {
+    description = "Rename APK files to custom format"
+    group = "build"
+    apkOutputDir.set(layout.buildDirectory.dir("outputs/apk"))
+    versionNameProperty.set(providers.environmentVariable("VERSION_NAME").orElse("1.0.0-release"))
+}
+
+// Attach rename task to assemble tasks
+tasks.matching { it.name.startsWith("assemble") && (it.name.contains("Release") || it.name.contains("Debug")) }.configureEach {
+    finalizedBy(renameApksTask)
 }
 
 dependencies {
