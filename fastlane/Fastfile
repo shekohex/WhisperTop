@@ -8,7 +8,7 @@ platform :android do
     sh("echo $RELEASE_KEYSTORE_BASE64 | base64 --decode > ../composeApp/release.jks")
 
     # Set environment variables for Gradle signing
-    ENV["KEYSTORE_FILE"] = "composeApp/release.jks"
+    ENV["KEYSTORE_FILE"] = "release.jks"
     ENV["KEYSTORE_PASSWORD"] = ENV["RELEASE_KEYSTORE_PASSWORD"]
     ENV["KEY_ALIAS"] = ENV["RELEASE_KEY_ALIAS"]
     ENV["KEY_PASSWORD"] = ENV["RELEASE_KEY_PASSWORD"]
