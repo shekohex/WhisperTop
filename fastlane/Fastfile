@@ -24,9 +24,28 @@ platform :android do
     ENV["VERSION_NAME"] = version_name
 
     # Build the APKs
+    puts "=== Starting Gradle Build (Nightly) ==="
     gradle(
       task: "clean assemblePlaystoreRelease assembleSideloadRelease"
     )
+    puts "✓ Gradle build completed"
+    
+    # Verify APKs were built
+    expected_apk_dirs = [
+      "composeApp/build/outputs/apk/playstore/release",
+      "composeApp/build/outputs/apk/sideload/release"
+    ]
+    
+    expected_apk_dirs.each do |dir|
+      if Dir.exist?(dir)
+        apks_in_dir = Dir["#{dir}/*.apk"]
+        puts "✓ Found #{apks_in_dir.length} APK(s) in #{dir}"
+        apks_in_dir.each { |apk| puts "  - #{File.basename(apk)}" }
+      else
+        puts "✗ Missing directory: #{dir}"
+        UI.user_error!("Expected APK directory not found: #{dir}")
+      end
+    end
 
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
@@ -97,9 +116,28 @@ platform :android do
     ENV["VERSION_NAME"] = tag
 
     # Build the APKs
+    puts "=== Starting Gradle Build (Release) ==="
     gradle(
       task: "clean assemblePlaystoreRelease assembleSideloadRelease"
     )
+    puts "✓ Gradle build completed"
+    
+    # Verify APKs were built
+    expected_apk_dirs = [
+      "composeApp/build/outputs/apk/playstore/release",
+      "composeApp/build/outputs/apk/sideload/release"
+    ]
+    
+    expected_apk_dirs.each do |dir|
+      if Dir.exist?(dir)
+        apks_in_dir = Dir["#{dir}/*.apk"]
+        puts "✓ Found #{apks_in_dir.length} APK(s) in #{dir}"
+        apks_in_dir.each { |apk| puts "  - #{File.basename(apk)}" }
+      else
+        puts "✗ Missing directory: #{dir}"
+        UI.user_error!("Expected APK directory not found: #{dir}")
+      end
+    end
 
     # Generate changelog from commits since last tag
     changelog = changelog_from_git_commits(
