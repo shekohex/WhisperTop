@@ -36,21 +36,19 @@ platform :android do
       match_lightweight_tag: false
     )
 
-    # Use Gradle's APK output paths (provided by fastlane gradle action)
-    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS ==="
-    gradle_apk_paths = ENV["GRADLE_ALL_APK_OUTPUT_PATHS"]
+    # Use Gradle's SharedValue for APK output paths
+    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS SharedValue ==="
+    apk_files = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS]
     
-    if gradle_apk_paths && !gradle_apk_paths.empty?
-      # Parse the JSON array of APK paths
-      require 'json'
-      apk_files = JSON.parse(gradle_apk_paths)
-      puts "Found #{apk_files.length} APK files from Gradle:"
+    if apk_files && !apk_files.empty?
+      puts "Found #{apk_files.length} APK files from Gradle SharedValues:"
       apk_files.each { |apk| 
-        relative_path = apk.gsub("/Users/runner/work/WhisperTop/WhisperTop/", "")
+        relative_path = apk.gsub(ENV['GITHUB_WORKSPACE'] + '/', '') if ENV['GITHUB_WORKSPACE']
+        relative_path ||= apk.gsub(Dir.pwd + '/', '')
         puts "  - #{relative_path} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
       }
     else
-      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS not found, falling back to glob pattern"
+      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS SharedValue not found, falling back to glob pattern"
       apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
       puts "Found #{apk_files.length} APK files via glob pattern:"
       apk_files.each { |f| puts "  - #{f}" }
@@ -88,21 +86,19 @@ platform :android do
       match_lightweight_tag: false
     )
 
-    # Use Gradle's APK output paths (provided by fastlane gradle action)
-    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS ==="
-    gradle_apk_paths = ENV["GRADLE_ALL_APK_OUTPUT_PATHS"]
+    # Use Gradle's SharedValue for APK output paths  
+    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS SharedValue ==="
+    apk_files = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS]
     
-    if gradle_apk_paths && !gradle_apk_paths.empty?
-      # Parse the JSON array of APK paths
-      require 'json'
-      apk_files = JSON.parse(gradle_apk_paths)
-      puts "Found #{apk_files.length} APK files from Gradle:"
+    if apk_files && !apk_files.empty?
+      puts "Found #{apk_files.length} APK files from Gradle SharedValues:"
       apk_files.each { |apk| 
-        relative_path = apk.gsub("/Users/runner/work/WhisperTop/WhisperTop/", "")
+        relative_path = apk.gsub(ENV['GITHUB_WORKSPACE'] + '/', '') if ENV['GITHUB_WORKSPACE']
+        relative_path ||= apk.gsub(Dir.pwd + '/', '')
         puts "  - #{relative_path} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
       }
     else
-      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS not found, falling back to glob pattern"
+      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS SharedValue not found, falling back to glob pattern"
       apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
       puts "Found #{apk_files.length} APK files via glob pattern:"
       apk_files.each { |f| puts "  - #{f}" }
