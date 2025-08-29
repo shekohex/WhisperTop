@@ -36,32 +36,25 @@ platform :android do
       match_lightweight_tag: false
     )
 
-    # Find all generated APKs (handles ABI splits and custom naming)
-    puts "=== APK Discovery Debug (Nightly) ==="
-    puts "Current working directory: #{Dir.pwd}"
-    puts "Looking for APK files..."
+    # Use Gradle's APK output paths (provided by fastlane gradle action)
+    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS ==="
+    gradle_apk_paths = ENV["GRADLE_ALL_APK_OUTPUT_PATHS"]
     
-    # First, let's see what's in the build directory
-    build_dir = "composeApp/build/outputs/apk"
-    if Dir.exist?(build_dir)
-      puts "✓ Build directory exists: #{build_dir}"
-      all_files = Dir["#{build_dir}/**/*"]
-      puts "All files in build directory:"
-      all_files.each { |f| puts "  #{f}" }
+    if gradle_apk_paths && !gradle_apk_paths.empty?
+      # Parse the JSON array of APK paths
+      require 'json'
+      apk_files = JSON.parse(gradle_apk_paths)
+      puts "Found #{apk_files.length} APK files from Gradle:"
+      apk_files.each { |apk| 
+        relative_path = apk.gsub("/Users/runner/work/WhisperTop/WhisperTop/", "")
+        puts "  - #{relative_path} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
+      }
     else
-      puts "✗ Build directory does not exist: #{build_dir}"
+      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS not found, falling back to glob pattern"
+      apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
+      puts "Found #{apk_files.length} APK files via glob pattern:"
+      apk_files.each { |f| puts "  - #{f}" }
     end
-    
-    # Find renamed APK files (whisper-top-*.apk pattern)
-    apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
-    puts "Found #{apk_files.length} renamed APK files:"
-    apk_files.each { |f| puts "  - #{f}" }
-    
-    puts "=== Final APK List ==="
-    puts "Total APK files to upload: #{apk_files.length}"
-    apk_files.each { |apk| 
-      puts "  - #{apk} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
-    }
     puts "=========================="
 
     # Create GitHub pre-release
@@ -95,32 +88,25 @@ platform :android do
       match_lightweight_tag: false
     )
 
-    # Find all generated APKs (handles ABI splits and custom naming)
-    puts "=== APK Discovery Debug (Release) ==="
-    puts "Current working directory: #{Dir.pwd}"
-    puts "Looking for APK files..."
+    # Use Gradle's APK output paths (provided by fastlane gradle action)
+    puts "=== Using GRADLE_ALL_APK_OUTPUT_PATHS ==="
+    gradle_apk_paths = ENV["GRADLE_ALL_APK_OUTPUT_PATHS"]
     
-    # First, let's see what's in the build directory
-    build_dir = "composeApp/build/outputs/apk"
-    if Dir.exist?(build_dir)
-      puts "✓ Build directory exists: #{build_dir}"
-      all_files = Dir["#{build_dir}/**/*"]
-      puts "All files in build directory:"
-      all_files.each { |f| puts "  #{f}" }
+    if gradle_apk_paths && !gradle_apk_paths.empty?
+      # Parse the JSON array of APK paths
+      require 'json'
+      apk_files = JSON.parse(gradle_apk_paths)
+      puts "Found #{apk_files.length} APK files from Gradle:"
+      apk_files.each { |apk| 
+        relative_path = apk.gsub("/Users/runner/work/WhisperTop/WhisperTop/", "")
+        puts "  - #{relative_path} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
+      }
     else
-      puts "✗ Build directory does not exist: #{build_dir}"
+      puts "✗ GRADLE_ALL_APK_OUTPUT_PATHS not found, falling back to glob pattern"
+      apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
+      puts "Found #{apk_files.length} APK files via glob pattern:"
+      apk_files.each { |f| puts "  - #{f}" }
     end
-    
-    # Find renamed APK files (whisper-top-*.apk pattern)
-    apk_files = Dir["composeApp/build/outputs/apk/**/whisper-top-*.apk"]
-    puts "Found #{apk_files.length} renamed APK files:"
-    apk_files.each { |f| puts "  - #{f}" }
-    
-    puts "=== Final APK List ==="
-    puts "Total APK files to upload: #{apk_files.length}"
-    apk_files.each { |apk| 
-      puts "  - #{apk} (#{File.exist?(apk) ? 'EXISTS' : 'NOT FOUND'} - #{File.exist?(apk) ? "#{(File.size(apk) / 1024.0 / 1024.0).round(2)} MB" : 'N/A'})"
-    }
     puts "=========================="
 
     # Create GitHub release
