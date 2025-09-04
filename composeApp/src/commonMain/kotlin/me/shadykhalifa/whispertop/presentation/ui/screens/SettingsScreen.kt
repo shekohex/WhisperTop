@@ -165,6 +165,7 @@ fun SettingsScreen(
                 StatisticsPreferencesSection(
                     settings = uiState.settings,
                     validationErrors = uiState.statisticsPreferencesValidationErrors,
+                    optimisticDataPrivacyMode = uiState.optimisticDataPrivacyMode,
                     onStatisticsEnabledChange = viewModel::updateStatisticsEnabled,
                     onHistoryRetentionDaysChange = viewModel::updateHistoryRetentionDays,
                     onExportFormatChange = viewModel::updateExportFormat,
