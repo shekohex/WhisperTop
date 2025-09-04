@@ -31,6 +31,7 @@ data class SettingsUiState(
     val savingLanguage: Boolean = false,
     val savingTheme: Boolean = false,
     val optimisticApiKey: String? = null,
+    val optimisticDataPrivacyMode: DataPrivacyMode? = null,
     val apiKeyValue: String = "",
     val validationErrors: Map<String, String> = emptyMap(),
     val testingConnection: Boolean = false,
@@ -896,16 +897,24 @@ class SettingsViewModel(
     }
     
     fun updateDataPrivacyMode(mode: DataPrivacyMode) {
+        // Optimistically update the UI state
+        _uiState.value = _uiState.value.copy(optimisticDataPrivacyMode = mode)
+        
         launchSafely(
             onError = { throwable ->
+                // Revert optimistic update on error
+                _uiState.value = _uiState.value.copy(optimisticDataPrivacyMode = null)
                 handleError(throwable, "Failed to update data privacy mode")
             }
         ) {
             when (val result = settingsRepository.updateDataPrivacyMode(mode)) {
                 is Result.Success -> {
-                    // Success handled by flow collection
+                    // Clear optimistic update on success - the real settings will update via flow
+                    _uiState.value = _uiState.value.copy(optimisticDataPrivacyMode = null)
                 }
                 is Result.Error -> {
+                    // Revert optimistic update on error
+                    _uiState.value = _uiState.value.copy(optimisticDataPrivacyMode = null)
                     handleError(result.exception)
                 }
                 is Result.Loading -> {

@@ -26,6 +26,7 @@ import me.shadykhalifa.whispertop.domain.models.displayName
 fun StatisticsPreferencesSection(
     settings: AppSettings,
     validationErrors: Map<String, String> = emptyMap(),
+    optimisticDataPrivacyMode: DataPrivacyMode?,
     onStatisticsEnabledChange: (Boolean) -> Unit,
     onHistoryRetentionDaysChange: (Int) -> Unit,
     onExportFormatChange: (ExportFormat) -> Unit,
@@ -93,6 +94,7 @@ fun StatisticsPreferencesSection(
             // Privacy Section
             PrivacySection(
                 dataPrivacyMode = settings.dataPrivacyMode,
+                optimisticDataPrivacyMode = optimisticDataPrivacyMode,
                 onDataPrivacyModeChange = onDataPrivacyModeChange
             )
         }
@@ -408,6 +410,7 @@ private fun NotificationsSection(
 @Composable
 private fun PrivacySection(
     dataPrivacyMode: DataPrivacyMode,
+    optimisticDataPrivacyMode: DataPrivacyMode?,
     onDataPrivacyModeChange: (DataPrivacyMode) -> Unit
 ) {
     Column(
@@ -424,13 +427,14 @@ private fun PrivacySection(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DataPrivacyMode.entries.forEach { mode ->
+                val isSelected = mode == (optimisticDataPrivacyMode ?: dataPrivacyMode)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     RadioButton(
-                        selected = mode == dataPrivacyMode,
+                        selected = isSelected,
                         onClick = { onDataPrivacyModeChange(mode) }
                     )
                     Column(
@@ -440,7 +444,7 @@ private fun PrivacySection(
                         Text(
                             text = mode.displayName,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                         Text(
                             text = mode.description,
