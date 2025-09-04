@@ -13,6 +13,12 @@ import kotlinx.coroutines.launch
 import me.shadykhalifa.whispertop.domain.usecases.TranscriptionWorkflowUseCase
 import me.shadykhalifa.whispertop.domain.usecases.UserFeedbackUseCase
 import me.shadykhalifa.whispertop.domain.usecases.WorkflowState
+import me.shadykhalifa.whispertop.domain.usecases.ServiceInitializationUseCase
+import me.shadykhalifa.whispertop.domain.usecases.PermissionManagementUseCase
+import me.shadykhalifa.whispertop.domain.usecases.ServiceBindingUseCase
+import me.shadykhalifa.whispertop.domain.models.ServiceConnectionStatus
+import me.shadykhalifa.whispertop.domain.models.PermissionStatus
+import me.shadykhalifa.whispertop.domain.models.ServiceReadinessState
 import me.shadykhalifa.whispertop.presentation.models.AudioFilePresentationModel
 import me.shadykhalifa.whispertop.presentation.models.RecordingStatus
 import me.shadykhalifa.whispertop.presentation.models.TranscriptionDisplayModel
@@ -26,6 +32,9 @@ import me.shadykhalifa.whispertop.utils.Result
 class AudioRecordingViewModel(
     private val transcriptionWorkflowUseCase: TranscriptionWorkflowUseCase,
     private val userFeedbackUseCase: UserFeedbackUseCase,
+    private val serviceInitializationUseCase: ServiceInitializationUseCase,
+    private val permissionManagementUseCase: PermissionManagementUseCase,
+    private val serviceBindingUseCase: ServiceBindingUseCase,
     private val errorHandler: ViewModelErrorHandler
 ) : ViewModel() {
     
@@ -36,9 +45,18 @@ class AudioRecordingViewModel(
     private val _uiState = MutableStateFlow(AudioRecordingUiState())
     val uiState: StateFlow<AudioRecordingUiState> = _uiState.asStateFlow()
 
+    private val _serviceReadinessState = MutableStateFlow<ServiceReadinessState?>(null)
+    val serviceReadinessState: StateFlow<ServiceReadinessState?> = _serviceReadinessState.asStateFlow()
+
+    private val _serviceConnectionStatus = MutableStateFlow<ServiceConnectionStatus?>(null)
+    val serviceConnectionStatus: StateFlow<ServiceConnectionStatus?> = _serviceConnectionStatus.asStateFlow()
+
+    private val _permissionStatus = MutableStateFlow<PermissionStatus?>(null)
+    val permissionStatus: StateFlow<PermissionStatus?> = _permissionStatus.asStateFlow()
     
     init {
         observeWorkflowState()
+        initializeServices()
     }
 
     
@@ -91,13 +109,103 @@ class AudioRecordingViewModel(
         }
     }
 
+    private fun initializeServices() {
+        viewModelScope.launch {
+            checkServiceReadiness()
+        }
+    }
 
-    
+    suspend fun checkServiceReadiness() {
+        val serviceBindingResult = serviceBindingUseCase()
+        when (serviceBindingResult) {
+            is Result.Success -> {
+                _serviceReadinessState.value = serviceBindingResult.data
+            }
+            is Result.Error -> {
+                Log.e(TAG, "Failed to check service readiness: ${serviceBindingResult.exception.message}")
+                _serviceReadinessState.value = ServiceReadinessState(
+                    serviceConnected = false,
+                    permissionsGranted = false,
+                    errorMessage = serviceBindingResult.exception.message
+                )
+            }
+            is Result.Loading -> {
+                // Loading state handled by UI
+            }
+        }
+    }
+
+    suspend fun initializeServiceConnection(): Result<ServiceConnectionStatus> {
+        return serviceInitializationUseCase().also { result ->
+            when (result) {
+                is Result.Success -> {
+                    _serviceConnectionStatus.value = result.data
+                }
+                is Result.Error -> {
+                    Log.e(TAG, "Service initialization failed: ${result.exception.message}")
+                }
+                is Result.Loading -> {
+                    // Loading state handled by UI
+                }
+            }
+        }
+    }
+
+    suspend fun checkPermissions(): Result<PermissionStatus> {
+        return permissionManagementUseCase().also { result ->
+            when (result) {
+                is Result.Success -> {
+                    _permissionStatus.value = result.data
+                }
+                is Result.Error -> {
+                    Log.e(TAG, "Permission check failed: ${result.exception.message}")
+                }
+                is Result.Loading -> {
+                    // Loading state handled by UI
+                }
+            }
+        }
+    }
+
+    fun isServiceReady(): Boolean {
+        val readiness = _serviceReadinessState.value
+        return readiness?.isReady == true
+    }
+
+    fun arePermissionsGranted(): Boolean {
+        val permissionStatus = _permissionStatus.value
+        return permissionStatus is PermissionStatus.AllGranted
+    }
+
+    fun isServiceConnected(): Boolean {
+        val connectionStatus = _serviceConnectionStatus.value
+        return connectionStatus is ServiceConnectionStatus.Connected || 
+               connectionStatus is ServiceConnectionStatus.AlreadyBound
+    }
+
+    fun refreshServiceState() {
+        viewModelScope.launch {
+            initializeServiceConnection()
+            checkPermissions()
+            checkServiceReadiness()
+        }
+    }
 
     
     fun startRecording() {
         Log.d(TAG, "Starting recording via workflow...")
         viewModelScope.launch {
+            // Ensure services are ready before starting recording
+            if (!isServiceReady()) {
+                refreshServiceState()
+                if (!isServiceReady()) {
+                    val readiness = _serviceReadinessState.value
+                    val errorMessage = readiness?.errorMessage ?: "Services not ready"
+                    userFeedbackUseCase.showFeedback(errorMessage, isError = true)
+                    return@launch
+                }
+            }
+            
             val result = transcriptionWorkflowUseCase.startRecording()
             when (result) {
                 is Result.Success -> {
@@ -138,6 +246,8 @@ class AudioRecordingViewModel(
     
     fun retryFromError() {
         Log.d(TAG, "Retrying from error via workflow...")
+        // Refresh service state before retrying
+        refreshServiceState()
         transcriptionWorkflowUseCase.retryFromError()
     }
     

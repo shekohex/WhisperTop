@@ -113,6 +113,9 @@ val androidAppModule = module {
         AudioRecordingViewModel(
             transcriptionWorkflowUseCase = get(),
             userFeedbackUseCase = get(),
+            serviceInitializationUseCase = get(),
+            permissionManagementUseCase = get(),
+            serviceBindingUseCase = get(),
             errorHandler = get()
         )
     }
